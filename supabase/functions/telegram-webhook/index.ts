@@ -13,7 +13,8 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const message = body?.message;
+    // Support both private/group messages and channel posts
+    const message = body?.message || body?.channel_post;
 
     if (!message) {
       return new Response(JSON.stringify({ ok: true }), {
