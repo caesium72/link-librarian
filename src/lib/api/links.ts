@@ -67,9 +67,24 @@ export async function deleteLink(id: string) {
   if (error) throw error;
 }
 
+export async function checkDuplicate(url: string): Promise<Link | null> {
+  const { data } = await supabase
+    .from("links")
+    .select("*")
+    .eq("original_url", url)
+    .maybeSingle();
+  return data || null;
+}
+
 export async function addLink(url: string): Promise<Link> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
+
+  // Check for duplicate
+  const existing = await checkDuplicate(url);
+  if (existing) {
+    throw new Error("DUPLICATE");
+  }
 
   // Extract domain
   let domain = "";

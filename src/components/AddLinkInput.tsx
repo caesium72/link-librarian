@@ -41,7 +41,11 @@ export function AddLinkInput({ onSuccess }: AddLinkInputProps) {
       toast({ title: "Link added", description: "Analysis will start shortly." });
       onSuccess();
     } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+      if (e.message === "DUPLICATE") {
+        toast({ title: "Duplicate link", description: "This link already exists in your library.", variant: "destructive" });
+      } else {
+        toast({ title: "Error", description: e.message, variant: "destructive" });
+      }
     } finally {
       setIsAdding(false);
     }
