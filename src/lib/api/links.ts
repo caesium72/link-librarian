@@ -68,10 +68,13 @@ export async function deleteLink(id: string) {
 }
 
 export async function checkDuplicate(url: string): Promise<Link | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
   const { data } = await supabase
     .from("links")
     .select("*")
     .eq("original_url", url)
+    .eq("user_id", user.id)
     .maybeSingle();
   return data || null;
 }
