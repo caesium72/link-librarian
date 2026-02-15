@@ -16,13 +16,21 @@ export function AddLinkInput({ onSuccess }: AddLinkInputProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmed = url.trim();
+    let trimmed = url.trim();
     if (!trimmed) return;
 
+    // Auto-add https:// if it looks like a domain but has no protocol
+    if (!/^https?:\/\//i.test(trimmed) && /^[a-zA-Z0-9]([a-zA-Z0-9-]*\.)+[a-zA-Z]{2,}/.test(trimmed)) {
+      trimmed = `https://${trimmed}`;
+    }
+
     try {
-      new URL(trimmed);
+      const parsed = new URL(trimmed);
+      if (!["http:", "https:"].includes(parsed.protocol)) {
+        throw new Error("Invalid protocol");
+      }
     } catch {
-      toast({ title: "Invalid URL", description: "Please enter a valid URL.", variant: "destructive" });
+      toast({ title: "Invalid URL", description: "Please enter a valid URL (e.g. example.com).", variant: "destructive" });
       return;
     }
 
