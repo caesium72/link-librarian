@@ -8,13 +8,18 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { Upload, FileJson, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+const CHUNK_SIZE = 200;
+
 export const ImportDialog = ({ onSuccess }: { onSuccess: () => void }) => {
   const [open, setOpen] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [progressLabel, setProgressLabel] = useState("");
   const [result, setResult] = useState<{ imported: number; skipped: number; total: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -25,21 +30,20 @@ export const ImportDialog = ({ onSuccess }: { onSuccess: () => void }) => {
 
     setImporting(true);
     setResult(null);
+    setProgress(0);
+    setProgressLabel("Parsing file...");
 
     try {
       const text = await file.text();
       let parsed: unknown;
 
-      // Try parsing as JSON
       try {
         parsed = JSON.parse(text);
       } catch {
-        // Try JSONL (one object per line)
         const lines = text.split("\n").filter((l) => l.trim());
         parsed = { messages: lines.map((l) => JSON.parse(l)) };
       }
 
-      // Extract messages array from Telegram export format
       let messages: unknown[];
       if (Array.isArray(parsed)) {
         messages = parsed;
@@ -49,17 +53,33 @@ export const ImportDialog = ({ onSuccess }: { onSuccess: () => void }) => {
         throw new Error("Unrecognized format. Expected Telegram Desktop JSON export.");
       }
 
-      // Send to edge function
-      const { data, error } = await supabase.functions.invoke("import-telegram", {
-        body: { messages },
-      });
+      const totalChunks = Math.ceil(messages.length / CHUNK_SIZE);
+      let totalImported = 0;
+      let totalSkipped = 0;
+      let totalUrls = 0;
 
-      if (error) throw error;
+      for (let i = 0; i < totalChunks; i++) {
+        const chunk = messages.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+        const pct = Math.round(((i + 1) / totalChunks) * 100);
+        setProgress(pct);
+        setProgressLabel(`Processing ${i * CHUNK_SIZE + 1}–${Math.min((i + 1) * CHUNK_SIZE, messages.length)} of ${messages.length} messages...`);
 
-      setResult(data);
+        const { data, error } = await supabase.functions.invoke("import-telegram", {
+          body: { messages: chunk },
+        });
+
+        if (error) throw error;
+        totalImported += data.imported;
+        totalSkipped += data.skipped;
+        totalUrls += data.total;
+      }
+
+      setProgress(100);
+      setProgressLabel("Done!");
+      setResult({ imported: totalImported, skipped: totalSkipped, total: totalUrls });
       toast({
         title: "Import complete",
-        description: `${data.imported} new links imported, ${data.skipped} duplicates skipped.`,
+        description: `${totalImported} new links imported, ${totalSkipped} duplicates skipped.`,
       });
       onSuccess();
     } catch (err) {
@@ -93,9 +113,10 @@ export const ImportDialog = ({ onSuccess }: { onSuccess: () => void }) => {
         <div className="space-y-4">
           <div className="rounded-lg border border-dashed border-border p-6 text-center">
             {importing ? (
-              <div className="flex flex-col items-center gap-2">
+              <div className="flex flex-col items-center gap-3">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-sm text-muted-foreground font-mono">Processing messages...</p>
+                <Progress value={progress} className="h-2" />
+                <p className="text-xs text-muted-foreground font-mono">{progressLabel}</p>
               </div>
             ) : (
               <label className="cursor-pointer flex flex-col items-center gap-2">
