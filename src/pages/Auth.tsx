@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { BookMarked, Mail, Lock } from "lucide-react";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -54,7 +55,7 @@ const Auth = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <div className="flex items-center gap-2 mb-2">
-            <span className="font-mono text-primary text-lg">{">"}</span>
+            <BookMarked className="h-5 w-5 text-primary" />
             <CardTitle className="text-xl font-mono">Link Librarian</CardTitle>
           </div>
           <CardDescription>
@@ -93,7 +94,7 @@ const Auth = () => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" />Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -105,7 +106,7 @@ const Auth = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="flex items-center gap-1.5"><Lock className="h-3.5 w-3.5" />Password</Label>
               <Input
                 id="password"
                 type="password"

@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, LogOut, Inbox, Pin } from "lucide-react";
+import { Search, LogOut, Inbox, Pin, BookMarked, FileText, Video, GitBranch, BookOpen, Wrench, MessageSquare, LayoutGrid, Filter, Clock, CheckCircle2, AlertCircle } from "lucide-react";
 import { ImportDialog } from "@/components/ImportDialog";
 import { useToast } from "@/hooks/use-toast";
 import type { Link } from "@/types/links";
@@ -102,7 +102,7 @@ const Index = () => {
       <header className="border-b border-border sticky top-0 z-10 bg-background/95 backdrop-blur">
         <div className="container flex items-center justify-between h-12 px-4">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-primary text-sm">{">"}</span>
+            <BookMarked className="h-4 w-4 text-primary" />
             <h1 className="font-mono text-sm font-semibold">Link Librarian</h1>
           </div>
           <div className="flex items-center gap-2">
@@ -140,14 +140,14 @@ const Index = () => {
                 <SelectValue placeholder="Type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All types</SelectItem>
-                <SelectItem value="article">Article</SelectItem>
-                <SelectItem value="video">Video</SelectItem>
-                <SelectItem value="repo">Repo</SelectItem>
-                <SelectItem value="docs">Docs</SelectItem>
-                <SelectItem value="tool">Tool</SelectItem>
-                <SelectItem value="thread">Thread</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
+                <SelectItem value="all"><span className="flex items-center gap-1.5"><LayoutGrid className="h-3 w-3" />All types</span></SelectItem>
+                <SelectItem value="article"><span className="flex items-center gap-1.5"><FileText className="h-3 w-3" />Article</span></SelectItem>
+                <SelectItem value="video"><span className="flex items-center gap-1.5"><Video className="h-3 w-3" />Video</span></SelectItem>
+                <SelectItem value="repo"><span className="flex items-center gap-1.5"><GitBranch className="h-3 w-3" />Repo</span></SelectItem>
+                <SelectItem value="docs"><span className="flex items-center gap-1.5"><BookOpen className="h-3 w-3" />Docs</span></SelectItem>
+                <SelectItem value="tool"><span className="flex items-center gap-1.5"><Wrench className="h-3 w-3" />Tool</span></SelectItem>
+                <SelectItem value="thread"><span className="flex items-center gap-1.5"><MessageSquare className="h-3 w-3" />Thread</span></SelectItem>
+                <SelectItem value="other"><span className="flex items-center gap-1.5"><LayoutGrid className="h-3 w-3" />Other</span></SelectItem>
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -155,10 +155,10 @@ const Index = () => {
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="ready">Ready</SelectItem>
-                <SelectItem value="failed">Failed</SelectItem>
+                <SelectItem value="all"><span className="flex items-center gap-1.5"><Filter className="h-3 w-3" />All</span></SelectItem>
+                <SelectItem value="pending"><span className="flex items-center gap-1.5"><Clock className="h-3 w-3" />Pending</span></SelectItem>
+                <SelectItem value="ready"><span className="flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3" />Ready</span></SelectItem>
+                <SelectItem value="failed"><span className="flex items-center gap-1.5"><AlertCircle className="h-3 w-3" />Failed</span></SelectItem>
               </SelectContent>
             </Select>
             <Button
@@ -189,10 +189,10 @@ const Index = () => {
           </div>
         ) : links.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <Inbox className="h-12 w-12 text-muted-foreground/30 mb-4" />
+            <BookMarked className="h-12 w-12 text-muted-foreground/30 mb-4" />
             <h2 className="font-mono text-sm text-muted-foreground mb-1">No links yet</h2>
             <p className="text-xs text-muted-foreground/70 max-w-sm">
-              Paste links in your Telegram channel and they'll appear here automatically.
+              Add a link above or paste links in your Telegram channel and they'll appear here automatically.
             </p>
           </div>
         ) : (
