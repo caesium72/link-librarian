@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useRequireAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -6,13 +7,30 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Bot, CheckCircle2, AlertCircle, Loader2, Eye, EyeOff, Copy } from "lucide-react";
+import { ArrowLeft, Bot, CheckCircle2, AlertCircle, Loader2, Eye, EyeOff, Lock, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const Settings = () => {
   const { user, loading: authLoading } = useRequireAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   const [botToken, setBotToken] = useState("");
   const [showToken, setShowToken] = useState(false);
@@ -236,6 +254,127 @@ const Settings = () => {
                 )}
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Change Password */}
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 font-mono text-base">
+              <Lock className="h-4 w-4" />
+              Change Password
+            </CardTitle>
+            <CardDescription className="text-sm">
+              Update your account password.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label className="font-mono text-sm">New Password</Label>
+              <Input
+                type="password"
+                placeholder="••••••••"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                minLength={6}
+                className="font-mono text-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="font-mono text-sm">Confirm Password</Label>
+              <Input
+                type="password"
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                minLength={6}
+                className="font-mono text-sm"
+              />
+            </div>
+            <Button
+              onClick={async () => {
+                if (newPassword.length < 6) {
+                  toast({ title: "Password must be at least 6 characters", variant: "destructive" });
+                  return;
+                }
+                if (newPassword !== confirmPassword) {
+                  toast({ title: "Passwords don't match", variant: "destructive" });
+                  return;
+                }
+                setChangingPassword(true);
+                try {
+                  const { error } = await supabase.auth.updateUser({ password: newPassword });
+                  if (error) throw error;
+                  setNewPassword("");
+                  setConfirmPassword("");
+                  toast({ title: "Password updated!" });
+                } catch (e: any) {
+                  toast({ title: "Error", description: e.message, variant: "destructive" });
+                } finally {
+                  setChangingPassword(false);
+                }
+              }}
+              disabled={changingPassword || !newPassword || !confirmPassword}
+              size="sm"
+              className="font-mono"
+            >
+              {changingPassword ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
+              Update Password
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Delete Account */}
+        <Card className="mt-6 border-destructive/30">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 font-mono text-base text-destructive">
+              <Trash2 className="h-4 w-4" />
+              Delete Account
+            </CardTitle>
+            <CardDescription className="text-sm">
+              Permanently delete your account and all associated data. This action cannot be undone.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm" className="font-mono">
+                  Delete my account
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete your account, all your saved links, and your Telegram bot configuration. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="font-mono">Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="font-mono bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    disabled={deletingAccount}
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      setDeletingAccount(true);
+                      try {
+                        const { data, error } = await supabase.functions.invoke("delete-account");
+                        if (error) throw error;
+                        if (!data?.success) throw new Error(data?.error || "Failed to delete account");
+                        await supabase.auth.signOut();
+                        navigate("/auth");
+                      } catch (e: any) {
+                        toast({ title: "Error", description: e.message, variant: "destructive" });
+                        setDeletingAccount(false);
+                      }
+                    }}
+                  >
+                    {deletingAccount ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
+                    Yes, delete my account
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </CardContent>
         </Card>
       </main>
