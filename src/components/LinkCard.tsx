@@ -50,7 +50,7 @@ export function LinkCard({ link, onPin, onRetry, onDelete, onClick }: LinkCardPr
 
   return (
     <Card
-      className="cursor-pointer hover:border-primary/40 transition-colors group"
+      className="cursor-pointer hover:border-primary/40 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 group"
       onClick={() => onClick(link)}
     >
       <CardContent className="p-4">

@@ -52,11 +52,11 @@ const Auth = () => {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md animate-scale-in">
         <CardHeader className="space-y-1">
           <div className="flex items-center gap-2 mb-2">
-            <BookMarked className="h-5 w-5 text-primary" />
-            <CardTitle className="text-xl font-mono">Link Librarian</CardTitle>
+            <BookMarked className="h-5 w-5 text-primary animate-fade-in" />
+            <CardTitle className="text-xl font-mono animate-fade-in">Xenonowledge</CardTitle>
           </div>
           <CardDescription>
             {isLogin ? "Sign in to your dashboard" : "Create your account"}
