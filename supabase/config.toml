@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.setup-telegram]
 verify_jwt = false
+
+[functions.import-telegram]
+verify_jwt = false

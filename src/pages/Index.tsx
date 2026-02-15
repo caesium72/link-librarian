@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Search, LogOut, Inbox, Pin } from "lucide-react";
+import { ImportDialog } from "@/components/ImportDialog";
 import { useToast } from "@/hooks/use-toast";
 import type { Link } from "@/types/links";
 
@@ -97,6 +98,7 @@ const Index = () => {
             <span className="text-xs text-muted-foreground font-mono hidden sm:inline">
               {user?.email}
             </span>
+            <ImportDialog onSuccess={() => queryClient.invalidateQueries({ queryKey: ["links"] })} />
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={signOut}>
               <LogOut className="h-3.5 w-3.5" />
             </Button>
