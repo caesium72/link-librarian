@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,15 +12,33 @@ serve(async (req) => {
   }
 
   try {
-    const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
-    if (!botToken) {
+    const { userId } = await req.json();
+    if (!userId) {
       return new Response(
-        JSON.stringify({ error: "TELEGRAM_BOT_TOKEN not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "userId required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Get user's bot token from user_settings
+    const { data: settings, error: settingsError } = await supabase
+      .from("user_settings")
+      .select("telegram_bot_token")
+      .eq("user_id", userId)
+      .single();
+
+    if (settingsError || !settings?.telegram_bot_token) {
+      return new Response(
+        JSON.stringify({ error: "No bot token configured. Please save your token first." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const botToken = settings.telegram_bot_token;
     const webhookUrl = `${supabaseUrl}/functions/v1/telegram-webhook`;
 
     const response = await fetch(
@@ -33,7 +52,14 @@ serve(async (req) => {
 
     const data = await response.json();
 
-    return new Response(JSON.stringify({ success: data.ok, webhookUrl, result: data }), {
+    if (!data.ok) {
+      return new Response(
+        JSON.stringify({ success: false, error: data.description || "Telegram API error" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    return new Response(JSON.stringify({ success: true, webhookUrl, result: data }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
