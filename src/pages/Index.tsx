@@ -161,7 +161,8 @@ const Index = () => {
   const failedCount = links.filter((l) => l.status === "failed").length;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background bg-animated-orbs">
+      <div className="bg-orb-extra" />
       {/* Header */}
       <header className="border-b border-border sticky top-0 z-10 bg-background/95 backdrop-blur">
         <div className="container flex items-center justify-between h-12 px-4">
