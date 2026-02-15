@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Bot, CheckCircle2, AlertCircle, Loader2, Eye, EyeOff, Lock, Trash2 } from "lucide-react";
+import { ArrowLeft, Bot, CheckCircle2, AlertCircle, Loader2, Eye, EyeOff, Lock, Trash2, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import {
@@ -133,6 +133,15 @@ const Settings = () => {
             </Button>
           </Link>
           <h1 className="font-mono text-sm font-semibold">Settings</h1>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => loadSettings()}
+            disabled={loadingSettings}
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${loadingSettings ? "animate-spin" : ""}`} />
+          </Button>
           <div className="ml-auto">
             <ThemeToggle />
           </div>
