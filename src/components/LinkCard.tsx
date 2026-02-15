@@ -2,6 +2,7 @@ import { Link } from "@/types/links";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   ExternalLink,
   Copy,
@@ -36,9 +37,12 @@ interface LinkCardProps {
   onRetry: (id: string) => void;
   onDelete: (id: string) => void;
   onClick: (link: Link) => void;
+  selectionMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: (id: string) => void;
 }
 
-export function LinkCard({ link, onPin, onRetry, onDelete, onClick }: LinkCardProps) {
+export function LinkCard({ link, onPin, onRetry, onDelete, onClick, selectionMode, isSelected, onToggleSelect }: LinkCardProps) {
   const { toast } = useToast();
   const StatusIcon = statusConfig[link.status as keyof typeof statusConfig]?.icon ?? Clock;
 
@@ -48,13 +52,31 @@ export function LinkCard({ link, onPin, onRetry, onDelete, onClick }: LinkCardPr
     toast({ title: "Copied!", description: "URL copied to clipboard" });
   };
 
+  const handleClick = () => {
+    if (selectionMode && onToggleSelect) {
+      onToggleSelect(link.id);
+    } else {
+      onClick(link);
+    }
+  };
+
   return (
     <Card
-      className="cursor-pointer hover:border-primary/40 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 group"
-      onClick={() => onClick(link)}
+      className={`cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 group ${
+        isSelected ? "border-primary ring-1 ring-primary/30" : "hover:border-primary/40"
+      }`}
+      onClick={handleClick}
     >
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-3">
+          {selectionMode && (
+            <div className="pt-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={() => onToggleSelect?.(link.id)}
+              />
+            </div>
+          )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               {link.is_pinned && <Pin className="h-3 w-3 text-primary shrink-0" />}
@@ -92,46 +114,48 @@ export function LinkCard({ link, onPin, onRetry, onDelete, onClick }: LinkCardPr
             </div>
           </div>
 
-          <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={copyUrl}>
-              <Copy className="h-3 w-3" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              onClick={(e) => {
-                e.stopPropagation();
-                window.open(link.original_url, "_blank");
-              }}
-            >
-              <ExternalLink className="h-3 w-3" />
-            </Button>
-            {link.status === "failed" && (
+          {!selectionMode && (
+            <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={copyUrl}>
+                <Copy className="h-3 w-3" />
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onRetry(link.id);
+                  window.open(link.original_url, "_blank");
                 }}
               >
-                <RefreshCw className="h-3 w-3" />
+                <ExternalLink className="h-3 w-3" />
               </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-destructive hover:text-destructive"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(link.id);
-              }}
-            >
-              <Trash2 className="h-3 w-3" />
-            </Button>
-          </div>
+              {link.status === "failed" && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRetry(link.id);
+                  }}
+                >
+                  <RefreshCw className="h-3 w-3" />
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-destructive hover:text-destructive"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(link.id);
+                }}
+              >
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-3 mt-2 text-[10px] text-muted-foreground font-mono">
