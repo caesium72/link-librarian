@@ -56,6 +56,28 @@ export async function deleteLink(id: string) {
   if (error) throw error;
 }
 
+export async function addLink(url: string): Promise<Link> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  // Extract domain
+  let domain = "";
+  try { domain = new URL(url).hostname; } catch {}
+
+  // Insert link
+  const { data, error } = await supabase
+    .from("links")
+    .insert({ original_url: url, domain, user_id: user.id, status: "pending" })
+    .select()
+    .single();
+  if (error) throw error;
+
+  // Trigger analysis (fire and forget)
+  supabase.functions.invoke("analyze-link", { body: { linkId: data.id } }).catch(console.error);
+
+  return data;
+}
+
 export async function retryAnalysis(linkId: string) {
   const { data, error } = await supabase.functions.invoke("analyze-link", {
     body: { linkId },

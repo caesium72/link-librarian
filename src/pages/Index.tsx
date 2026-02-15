@@ -5,6 +5,7 @@ import { fetchLinks, updateLink, retryAnalysis } from "@/lib/api/links";
 import { LinkCard } from "@/components/LinkCard";
 import { LinkDetail } from "@/components/LinkDetail";
 import { Input } from "@/components/ui/input";
+import { AddLinkInput } from "@/components/AddLinkInput";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -107,6 +108,11 @@ const Index = () => {
       </header>
 
       <main className="container px-4 py-4 max-w-4xl">
+        {/* Add Link */}
+        <div className="mb-4">
+          <AddLinkInput onSuccess={() => queryClient.invalidateQueries({ queryKey: ["links"] })} />
+        </div>
+
         {/* Search & Filters */}
         <div className="flex flex-col sm:flex-row gap-2 mb-4">
           <div className="relative flex-1">
