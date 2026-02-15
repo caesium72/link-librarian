@@ -101,85 +101,60 @@
   }
 }
 
-/* Floating orb background animation */
-@keyframes float-orb-1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  25% { transform: translate(80px, -60px) scale(1.1); }
-  50% { transform: translate(-40px, -120px) scale(0.95); }
-  75% { transform: translate(-80px, 40px) scale(1.05); }
+/* Mesh gradient background */
+@keyframes mesh-shift {
+  0%, 100% {
+    background-position: 0% 50%, 100% 50%, 50% 100%;
+  }
+  25% {
+    background-position: 100% 0%, 0% 100%, 50% 0%;
+  }
+  50% {
+    background-position: 50% 100%, 50% 0%, 0% 50%;
+  }
+  75% {
+    background-position: 0% 0%, 100% 100%, 100% 50%;
+  }
 }
 
-@keyframes float-orb-2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  25% { transform: translate(-100px, 80px) scale(1.15); }
-  50% { transform: translate(60px, 40px) scale(0.9); }
-  75% { transform: translate(40px, -80px) scale(1.05); }
-}
-
-@keyframes float-orb-3 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(60px, 100px) scale(1.1); }
-  66% { transform: translate(-80px, -60px) scale(0.95); }
-}
-
-.bg-animated-orbs {
+.bg-mesh-gradient {
   position: relative;
-  overflow: hidden;
 }
 
-.bg-animated-orbs::before,
-.bg-animated-orbs::after {
+.bg-mesh-gradient::before {
   content: '';
   position: fixed;
-  border-radius: 50%;
-  filter: blur(100px);
-  opacity: 0.12;
-  pointer-events: none;
+  inset: 0;
   z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 600px 600px at 20% 30%, hsl(var(--primary) / 0.12), transparent 70%),
+    radial-gradient(ellipse 500px 500px at 80% 20%, hsl(var(--chart-2) / 0.10), transparent 70%),
+    radial-gradient(ellipse 550px 550px at 60% 80%, hsl(var(--chart-4) / 0.08), transparent 70%);
+  background-size: 200% 200%, 200% 200%, 200% 200%;
+  animation: mesh-shift 30s ease-in-out infinite;
 }
 
-.bg-animated-orbs::before {
-  width: 400px;
-  height: 400px;
-  background: hsl(var(--primary));
-  top: -100px;
-  right: -100px;
-  animation: float-orb-1 20s ease-in-out infinite;
+.dark .bg-mesh-gradient::before {
+  background:
+    radial-gradient(ellipse 600px 600px at 20% 30%, hsl(var(--primary) / 0.07), transparent 70%),
+    radial-gradient(ellipse 500px 500px at 80% 20%, hsl(var(--chart-2) / 0.06), transparent 70%),
+    radial-gradient(ellipse 550px 550px at 60% 80%, hsl(var(--chart-4) / 0.05), transparent 70%);
+  background-size: 200% 200%, 200% 200%, 200% 200%;
+  animation: mesh-shift 30s ease-in-out infinite;
 }
 
-.bg-animated-orbs::after {
-  width: 350px;
-  height: 350px;
-  background: hsl(var(--chart-2));
-  bottom: -80px;
-  left: -80px;
-  animation: float-orb-2 25s ease-in-out infinite;
-}
-
-.bg-orb-extra {
+/* Dot grid overlay */
+.bg-dot-grid::after {
+  content: '';
   position: fixed;
-  width: 300px;
-  height: 300px;
-  border-radius: 50%;
-  background: hsl(var(--chart-4));
-  filter: blur(120px);
-  opacity: 0.08;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  animation: float-orb-3 18s ease-in-out infinite;
-  pointer-events: none;
+  inset: 0;
   z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, hsl(var(--foreground) / 0.06) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
-.dark .bg-animated-orbs::before {
-  opacity: 0.08;
-}
-
-.dark .bg-animated-orbs::after {
-  opacity: 0.06;
-}
-
-.dark .bg-orb-extra {
-  opacity: 0.05;
+.dark .bg-dot-grid::after {
+  background-image: radial-gradient(circle, hsl(var(--foreground) / 0.04) 1px, transparent 1px);
 }
