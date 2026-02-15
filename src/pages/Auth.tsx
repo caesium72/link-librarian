@@ -1,4 +1,5 @@
 import { useState } from "react";
+import logo from "@/assets/logo.png";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -55,7 +56,7 @@ const Auth = () => {
       <Card className="w-full max-w-md animate-scale-in">
         <CardHeader className="space-y-1">
           <div className="flex items-center gap-2 mb-2">
-            <BookMarked className="h-5 w-5 text-primary animate-fade-in" />
+            <img src={logo} alt="Xenonowledge" className="h-6 w-6 animate-fade-in" />
             <CardTitle className="text-xl font-mono animate-fade-in">Xenonowledge</CardTitle>
           </div>
           <CardDescription>
