@@ -3,6 +3,7 @@ import { useRequireAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchLinks, updateLink, retryAnalysis } from "@/lib/api/links";
 import { LinkCard } from "@/components/LinkCard";
+import { AnimatedList } from "@/components/AnimatedList";
 import { LinkDetail } from "@/components/LinkDetail";
 import { Input } from "@/components/ui/input";
 import { AddLinkInput } from "@/components/AddLinkInput";
@@ -186,17 +187,21 @@ const Index = () => {
             </p>
           </div>
         ) : (
-          <div className="space-y-2">
-            {links.map((link) => (
+          <AnimatedList
+            items={links}
+            onItemSelect={(link) => setSelectedLink(link)}
+            showGradients
+            enableArrowNavigation
+            displayScrollbar
+            renderItem={(link) => (
               <LinkCard
-                key={link.id}
                 link={link}
                 onPin={(id, pinned) => handleUpdate(id, { is_pinned: !pinned })}
                 onRetry={(id) => retryMutation.mutate(id)}
                 onClick={setSelectedLink}
               />
-            ))}
-          </div>
+            )}
+          />
         )}
       </main>
 
