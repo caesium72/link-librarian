@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useRequireAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchLinks, updateLink, retryAnalysis } from "@/lib/api/links";
+import { fetchLinks, updateLink, retryAnalysis, deleteLink } from "@/lib/api/links";
 import { LinkCard } from "@/components/LinkCard";
 import { LinkDetail } from "@/components/LinkDetail";
 import { Input } from "@/components/ui/input";
@@ -65,6 +65,16 @@ const Index = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["links"] });
       toast({ title: "Analysis queued", description: "The link will be re-analyzed." });
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteLink,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["links"] });
+      if (selectedLink) setSelectedLink(null);
+      toast({ title: "Deleted" });
     },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
@@ -193,6 +203,7 @@ const Index = () => {
                 link={link}
                 onPin={(id, pinned) => handleUpdate(id, { is_pinned: !pinned })}
                 onRetry={(id) => retryMutation.mutate(id)}
+                onDelete={(id) => deleteMutation.mutate(id)}
                 onClick={setSelectedLink}
               />
             ))}
@@ -207,6 +218,7 @@ const Index = () => {
         onClose={() => setSelectedLink(null)}
         onUpdate={handleUpdate}
         onRetry={(id) => retryMutation.mutate(id)}
+        onDelete={(id) => deleteMutation.mutate(id)}
       />
     </div>
   );
