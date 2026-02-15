@@ -3,7 +3,7 @@ import { Link as RouterLink } from "react-router-dom";
 import logo from "@/assets/logo.png";
 import { useRequireAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchLinks, updateLink, retryAnalysis, deleteLink } from "@/lib/api/links";
+import { fetchLinks, updateLink, retryAnalysis, deleteLink, bulkDeleteLinks, bulkAddTag } from "@/lib/api/links";
 import { LinkCard } from "@/components/LinkCard";
 import { LinkDetail } from "@/components/LinkDetail";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, LogOut, Inbox, Pin, BookMarked, FileText, Video, GitBranch, BookOpen, Wrench, MessageSquare, LayoutGrid, Filter, Clock, CheckCircle2, AlertCircle, ArrowUpDown, ArrowDown, ArrowUp, Settings, RefreshCw } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Search, LogOut, Pin, FileText, Video, GitBranch, BookOpen, Wrench, MessageSquare, LayoutGrid, Filter, Clock, CheckCircle2, AlertCircle, ArrowUpDown, ArrowDown, ArrowUp, Settings, RefreshCw, CheckSquare, X, Trash2, Tag } from "lucide-react";
 import { ImportDialog } from "@/components/ImportDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/hooks/use-toast";
@@ -34,6 +44,13 @@ const Index = () => {
   const [selectedLink, setSelectedLink] = useState<Link | null>(null);
   const [showPinned, setShowPinned] = useState(false);
   const [sortBy, setSortBy] = useState("date_desc");
+
+  // Selection mode state
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showTagInput, setShowTagInput] = useState(false);
+  const [tagInput, setTagInput] = useState("");
 
   // Debounce search
   useEffect(() => {
@@ -84,10 +101,52 @@ const Index = () => {
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
+  const bulkDeleteMutation = useMutation({
+    mutationFn: (ids: string[]) => bulkDeleteLinks(ids),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["links"] });
+      toast({ title: "Deleted", description: `${selectedIds.size} links removed.` });
+      exitSelectionMode();
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const bulkTagMutation = useMutation({
+    mutationFn: ({ ids, tag }: { ids: string[]; tag: string }) => bulkAddTag(ids, tag),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["links"] });
+      toast({ title: "Tagged", description: `Tag added to ${selectedIds.size} links.` });
+      setShowTagInput(false);
+      setTagInput("");
+      exitSelectionMode();
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
   const handleUpdate = useCallback(
     (id: string, updates: Partial<Link>) => updateMutation.mutate({ id, updates }),
     [updateMutation]
   );
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const selectAll = () => {
+    setSelectedIds(new Set(links.map((l) => l.id)));
+  };
+
+  const exitSelectionMode = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+    setShowTagInput(false);
+    setTagInput("");
+  };
 
   if (authLoading) {
     return (
@@ -201,16 +260,110 @@ const Index = () => {
           {pendingCount > 0 && <span className="text-chart-3">{pendingCount} pending</span>}
           {readyCount > 0 && <span className="text-primary">{readyCount} ready</span>}
           {failedCount > 0 && <span className="text-destructive">{failedCount} failed</span>}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 ml-auto"
-            onClick={() => queryClient.invalidateQueries({ queryKey: ["links"] })}
-            disabled={isLoading}
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
-          </Button>
+          <div className="ml-auto flex items-center gap-1">
+            {links.length > 0 && !selectionMode && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs font-mono gap-1.5"
+                onClick={() => setSelectionMode(true)}
+              >
+                <CheckSquare className="h-3 w-3" />
+                Select
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => queryClient.invalidateQueries({ queryKey: ["links"] })}
+              disabled={isLoading}
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
+            </Button>
+          </div>
         </div>
+
+        {/* Bulk Action Toolbar */}
+        {selectionMode && (
+          <div className="flex items-center gap-2 mb-4 p-3 bg-muted/50 border border-border rounded-lg animate-fade-in">
+            <span className="text-xs font-mono text-muted-foreground">
+              {selectedIds.size} selected
+            </span>
+            <Button variant="outline" size="sm" className="h-7 text-xs font-mono" onClick={selectAll}>
+              Select All ({links.length})
+            </Button>
+
+            {showTagInput ? (
+              <form
+                className="flex items-center gap-1.5 ml-auto"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const tag = tagInput.trim().toLowerCase();
+                  if (!tag || tag.length > 50) return;
+                  bulkTagMutation.mutate({ ids: Array.from(selectedIds), tag });
+                }}
+              >
+                <Input
+                  placeholder="Tag name..."
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  className="h-7 w-32 text-xs font-mono"
+                  maxLength={50}
+                  autoFocus
+                />
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="h-7 text-xs"
+                  disabled={!tagInput.trim() || selectedIds.size === 0 || bulkTagMutation.isPending}
+                >
+                  Apply
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => { setShowTagInput(false); setTagInput(""); }}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </form>
+            ) : (
+              <div className="flex items-center gap-1.5 ml-auto">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs font-mono gap-1.5"
+                  disabled={selectedIds.size === 0}
+                  onClick={() => setShowTagInput(true)}
+                >
+                  <Tag className="h-3 w-3" />
+                  Add Tag
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs font-mono gap-1.5 text-destructive hover:text-destructive"
+                  disabled={selectedIds.size === 0}
+                  onClick={() => setShowDeleteConfirm(true)}
+                >
+                  <Trash2 className="h-3 w-3" />
+                  Delete
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={exitSelectionMode}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Links Grid */}
         {isLoading ? (
@@ -241,6 +394,9 @@ const Index = () => {
                   onRetry={(id) => retryMutation.mutate(id)}
                   onDelete={(id) => deleteMutation.mutate(id)}
                   onClick={setSelectedLink}
+                  selectionMode={selectionMode}
+                  isSelected={selectedIds.has(link.id)}
+                  onToggleSelect={toggleSelect}
                 />
               </div>
             ))}
@@ -257,6 +413,28 @@ const Index = () => {
         onRetry={(id) => retryMutation.mutate(id)}
         onDelete={(id) => deleteMutation.mutate(id)}
       />
+
+      {/* Bulk Delete Confirmation */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedIds.size} links?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. All selected links and their data will be permanently removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => bulkDeleteMutation.mutate(Array.from(selectedIds))}
+              disabled={bulkDeleteMutation.isPending}
+            >
+              {bulkDeleteMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

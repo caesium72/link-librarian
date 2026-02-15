@@ -67,6 +67,47 @@ export async function deleteLink(id: string) {
   if (error) throw error;
 }
 
+export async function bulkDeleteLinks(ids: string[]) {
+  const { error } = await supabase.from("links").delete().in("id", ids);
+  if (error) throw error;
+}
+
+export async function bulkAddTag(ids: string[], tag: string) {
+  // Fetch current tags for all links, then append the new tag
+  const { data, error: fetchError } = await supabase
+    .from("links")
+    .select("id, tags")
+    .in("id", ids);
+  if (fetchError) throw fetchError;
+
+  const updates = (data || []).map((link) => {
+    const existing = link.tags || [];
+    const newTags = existing.includes(tag) ? existing : [...existing, tag];
+    return supabase.from("links").update({ tags: newTags }).eq("id", link.id);
+  });
+
+  const results = await Promise.all(updates);
+  const failed = results.find((r) => r.error);
+  if (failed?.error) throw failed.error;
+}
+
+export async function bulkRemoveTag(ids: string[], tag: string) {
+  const { data, error: fetchError } = await supabase
+    .from("links")
+    .select("id, tags")
+    .in("id", ids);
+  if (fetchError) throw fetchError;
+
+  const updates = (data || []).map((link) => {
+    const newTags = (link.tags || []).filter((t: string) => t !== tag);
+    return supabase.from("links").update({ tags: newTags }).eq("id", link.id);
+  });
+
+  const results = await Promise.all(updates);
+  const failed = results.find((r) => r.error);
+  if (failed?.error) throw failed.error;
+}
+
 export async function checkDuplicate(url: string): Promise<Link | null> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
