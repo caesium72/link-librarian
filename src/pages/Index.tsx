@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, LogOut, Inbox, Pin, BookMarked, FileText, Video, GitBranch, BookOpen, Wrench, MessageSquare, LayoutGrid, Filter, Clock, CheckCircle2, AlertCircle, ArrowUpDown, ArrowDown, ArrowUp, Settings } from "lucide-react";
+import { Search, LogOut, Inbox, Pin, BookMarked, FileText, Video, GitBranch, BookOpen, Wrench, MessageSquare, LayoutGrid, Filter, Clock, CheckCircle2, AlertCircle, ArrowUpDown, ArrowDown, ArrowUp, Settings, RefreshCw } from "lucide-react";
 import { ImportDialog } from "@/components/ImportDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/hooks/use-toast";
@@ -195,11 +195,20 @@ const Index = () => {
         </div>
 
         {/* Stats bar */}
-        <div className="flex gap-4 mb-4 text-xs font-mono text-muted-foreground">
+        <div className="flex items-center gap-4 mb-4 text-xs font-mono text-muted-foreground">
           <span>{links.length} links</span>
           {pendingCount > 0 && <span className="text-chart-3">{pendingCount} pending</span>}
           {readyCount > 0 && <span className="text-primary">{readyCount} ready</span>}
           {failedCount > 0 && <span className="text-destructive">{failedCount} failed</span>}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 ml-auto"
+            onClick={() => queryClient.invalidateQueries({ queryKey: ["links"] })}
+            disabled={isLoading}
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
+          </Button>
         </div>
 
         {/* Links Grid */}
