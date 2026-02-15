@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { Link as RouterLink } from "react-router-dom";
 import { useRequireAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchLinks, updateLink, retryAnalysis, deleteLink } from "@/lib/api/links";
@@ -14,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, LogOut, Inbox, Pin, BookMarked, FileText, Video, GitBranch, BookOpen, Wrench, MessageSquare, LayoutGrid, Filter, Clock, CheckCircle2, AlertCircle, ArrowUpDown, ArrowDown, ArrowUp } from "lucide-react";
+import { Search, LogOut, Inbox, Pin, BookMarked, FileText, Video, GitBranch, BookOpen, Wrench, MessageSquare, LayoutGrid, Filter, Clock, CheckCircle2, AlertCircle, ArrowUpDown, ArrowDown, ArrowUp, Settings } from "lucide-react";
 import { ImportDialog } from "@/components/ImportDialog";
 import { useToast } from "@/hooks/use-toast";
 import type { Link } from "@/types/links";
@@ -112,6 +113,11 @@ const Index = () => {
               {user?.email}
             </span>
             <ImportDialog onSuccess={() => queryClient.invalidateQueries({ queryKey: ["links"] })} />
+            <RouterLink to="/settings">
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Settings className="h-3.5 w-3.5" />
+              </Button>
+            </RouterLink>
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={signOut}>
               <LogOut className="h-3.5 w-3.5" />
             </Button>
