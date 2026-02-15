@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Search, LogOut, Inbox, Pin, BookMarked, FileText, Video, GitBranch, BookOpen, Wrench, MessageSquare, LayoutGrid, Filter, Clock, CheckCircle2, AlertCircle, ArrowUpDown, ArrowDown, ArrowUp, Settings } from "lucide-react";
 import { ImportDialog } from "@/components/ImportDialog";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/hooks/use-toast";
 import type { Link } from "@/types/links";
 
@@ -113,6 +114,7 @@ const Index = () => {
               {user?.email}
             </span>
             <ImportDialog onSuccess={() => queryClient.invalidateQueries({ queryKey: ["links"] })} />
+            <ThemeToggle />
             <RouterLink to="/settings">
               <Button variant="ghost" size="icon" className="h-8 w-8">
                 <Settings className="h-3.5 w-3.5" />

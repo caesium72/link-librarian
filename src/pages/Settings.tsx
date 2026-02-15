@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Bot, CheckCircle2, AlertCircle, Loader2, Eye, EyeOff, Copy } from "lucide-react";
 import { Link } from "react-router-dom";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Settings = () => {
   const { user, loading: authLoading } = useRequireAuth();
@@ -114,6 +115,9 @@ const Settings = () => {
             </Button>
           </Link>
           <h1 className="font-mono text-sm font-semibold">Settings</h1>
+          <div className="ml-auto">
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
