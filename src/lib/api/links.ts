@@ -6,16 +6,27 @@ export async function fetchLinks({
   contentType,
   status,
   isPinned,
+  sortBy = "date_desc",
 }: {
   search?: string;
   contentType?: string;
   status?: string;
   isPinned?: boolean;
+  sortBy?: string;
 } = {}): Promise<Link[]> {
+  const sortMap: Record<string, { column: string; ascending: boolean }> = {
+    date_desc: { column: "created_at", ascending: false },
+    date_asc: { column: "created_at", ascending: true },
+    title_asc: { column: "title", ascending: true },
+    title_desc: { column: "title", ascending: false },
+    domain_asc: { column: "domain", ascending: true },
+  };
+  const sort = sortMap[sortBy] || sortMap.date_desc;
+
   let query = supabase
     .from("links")
     .select("*")
-    .order("created_at", { ascending: false });
+    .order(sort.column, { ascending: sort.ascending });
 
   if (search && search.trim()) {
     // Use full-text search
