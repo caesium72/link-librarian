@@ -15,7 +15,7 @@ import {
   Pin,
   PinOff,
   RefreshCw,
-  X,
+  Trash2,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -26,9 +26,10 @@ interface LinkDetailProps {
   onClose: () => void;
   onUpdate: (id: string, updates: Partial<Link>) => void;
   onRetry: (id: string) => void;
+  onDelete: (id: string) => void;
 }
 
-export function LinkDetail({ link, open, onClose, onUpdate, onRetry }: LinkDetailProps) {
+export function LinkDetail({ link, open, onClose, onUpdate, onRetry, onDelete }: LinkDetailProps) {
   const { toast } = useToast();
   const [notes, setNotes] = useState("");
   const [tagsInput, setTagsInput] = useState("");
@@ -221,6 +222,18 @@ export function LinkDetail({ link, open, onClose, onUpdate, onRetry }: LinkDetai
                 Retry Analysis
               </Button>
             )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="font-mono text-xs text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
+              onClick={() => {
+                onDelete(link.id);
+                onClose();
+              }}
+            >
+              <Trash2 className="h-3 w-3 mr-1" />
+              Delete
+            </Button>
           </div>
         </div>
       </SheetContent>

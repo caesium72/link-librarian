@@ -10,6 +10,7 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
+  Trash2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -33,10 +34,11 @@ interface LinkCardProps {
   link: Link;
   onPin: (id: string, pinned: boolean) => void;
   onRetry: (id: string) => void;
+  onDelete: (id: string) => void;
   onClick: (link: Link) => void;
 }
 
-export function LinkCard({ link, onPin, onRetry, onClick }: LinkCardProps) {
+export function LinkCard({ link, onPin, onRetry, onDelete, onClick }: LinkCardProps) {
   const { toast } = useToast();
   const StatusIcon = statusConfig[link.status as keyof typeof statusConfig]?.icon ?? Clock;
 
@@ -118,6 +120,17 @@ export function LinkCard({ link, onPin, onRetry, onClick }: LinkCardProps) {
                 <RefreshCw className="h-3 w-3" />
               </Button>
             )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-destructive hover:text-destructive"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(link.id);
+              }}
+            >
+              <Trash2 className="h-3 w-3" />
+            </Button>
           </div>
         </div>
 
