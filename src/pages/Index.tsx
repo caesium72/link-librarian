@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { Link as RouterLink } from "react-router-dom";
+import logo from "@/assets/logo.png";
 import { useRequireAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchLinks, updateLink, retryAnalysis, deleteLink } from "@/lib/api/links";
@@ -106,7 +107,7 @@ const Index = () => {
       <header className="border-b border-border sticky top-0 z-10 bg-background/95 backdrop-blur">
         <div className="container flex items-center justify-between h-12 px-4">
           <div className="flex items-center gap-2">
-            <BookMarked className="h-4 w-4 text-primary animate-fade-in" />
+            <img src={logo} alt="Xenonowledge" className="h-5 w-5 animate-fade-in" />
             <h1 className="font-mono text-sm font-semibold animate-fade-in">Xenonowledge</h1>
           </div>
           <div className="flex items-center gap-2">
@@ -220,7 +221,7 @@ const Index = () => {
           </div>
         ) : links.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
-            <BookMarked className="h-12 w-12 text-muted-foreground/30 mb-4 animate-scale-in" />
+            <img src={logo} alt="Xenonowledge" className="h-12 w-12 opacity-30 mb-4 animate-scale-in" />
             <h2 className="font-mono text-sm text-muted-foreground mb-1">No links yet</h2>
             <p className="text-xs text-muted-foreground/70 max-w-sm">
               Add a link above or paste links in your Telegram channel and they'll appear here automatically.
