@@ -52,8 +52,7 @@ const Auth = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4 bg-animated-orbs">
-      <div className="bg-orb-extra" />
+    <div className="flex min-h-screen items-center justify-center bg-background p-4 bg-mesh-gradient bg-dot-grid">
       <Card className="w-full max-w-md animate-scale-in">
         <CardHeader className="space-y-1">
           <div className="flex items-center gap-2 mb-2">
