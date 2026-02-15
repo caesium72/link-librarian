@@ -106,8 +106,8 @@ const Index = () => {
       <header className="border-b border-border sticky top-0 z-10 bg-background/95 backdrop-blur">
         <div className="container flex items-center justify-between h-12 px-4">
           <div className="flex items-center gap-2">
-            <BookMarked className="h-4 w-4 text-primary" />
-            <h1 className="font-mono text-sm font-semibold">Link Librarian</h1>
+            <BookMarked className="h-4 w-4 text-primary animate-fade-in" />
+            <h1 className="font-mono text-sm font-semibold animate-fade-in">Xenonowledge</h1>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground font-mono hidden sm:inline">
@@ -127,14 +127,14 @@ const Index = () => {
         </div>
       </header>
 
-      <main className="container px-4 py-4 max-w-4xl">
+      <main className="container px-4 py-4 max-w-4xl animate-fade-in">
         {/* Add Link */}
-        <div className="mb-4">
+        <div className="mb-4 animate-fade-in" style={{ animationDelay: "0.1s", animationFillMode: "backwards" }}>
           <AddLinkInput onSuccess={() => queryClient.invalidateQueries({ queryKey: ["links"] })} />
         </div>
 
         {/* Search & Filters */}
-        <div className="flex flex-col sm:flex-row gap-2 mb-4">
+        <div className="flex flex-col sm:flex-row gap-2 mb-4 animate-fade-in" style={{ animationDelay: "0.15s", animationFillMode: "backwards" }}>
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
@@ -219,8 +219,8 @@ const Index = () => {
             ))}
           </div>
         ) : links.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <BookMarked className="h-12 w-12 text-muted-foreground/30 mb-4" />
+          <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
+            <BookMarked className="h-12 w-12 text-muted-foreground/30 mb-4 animate-scale-in" />
             <h2 className="font-mono text-sm text-muted-foreground mb-1">No links yet</h2>
             <p className="text-xs text-muted-foreground/70 max-w-sm">
               Add a link above or paste links in your Telegram channel and they'll appear here automatically.
@@ -228,15 +228,20 @@ const Index = () => {
           </div>
         ) : (
           <div className="space-y-2">
-            {links.map((link) => (
-              <LinkCard
+            {links.map((link, index) => (
+              <div
                 key={link.id}
-                link={link}
-                onPin={(id, pinned) => handleUpdate(id, { is_pinned: !pinned })}
-                onRetry={(id) => retryMutation.mutate(id)}
-                onDelete={(id) => deleteMutation.mutate(id)}
-                onClick={setSelectedLink}
-              />
+                className="animate-fade-in"
+                style={{ animationDelay: `${Math.min(index * 0.05, 0.5)}s`, animationFillMode: "backwards" }}
+              >
+                <LinkCard
+                  link={link}
+                  onPin={(id, pinned) => handleUpdate(id, { is_pinned: !pinned })}
+                  onRetry={(id) => retryMutation.mutate(id)}
+                  onDelete={(id) => deleteMutation.mutate(id)}
+                  onClick={setSelectedLink}
+                />
+              </div>
             ))}
           </div>
         )}
