@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, LogOut, Inbox, Pin, BookMarked, FileText, Video, GitBranch, BookOpen, Wrench, MessageSquare, LayoutGrid, Filter, Clock, CheckCircle2, AlertCircle } from "lucide-react";
+import { Search, LogOut, Inbox, Pin, BookMarked, FileText, Video, GitBranch, BookOpen, Wrench, MessageSquare, LayoutGrid, Filter, Clock, CheckCircle2, AlertCircle, ArrowUpDown, ArrowDown, ArrowUp } from "lucide-react";
 import { ImportDialog } from "@/components/ImportDialog";
 import { useToast } from "@/hooks/use-toast";
 import type { Link } from "@/types/links";
@@ -30,6 +30,7 @@ const Index = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedLink, setSelectedLink] = useState<Link | null>(null);
   const [showPinned, setShowPinned] = useState(false);
+  const [sortBy, setSortBy] = useState("date_desc");
 
   // Debounce search
   useEffect(() => {
@@ -38,13 +39,14 @@ const Index = () => {
   }, [search]);
 
   const { data: links = [], isLoading } = useQuery({
-    queryKey: ["links", debouncedSearch, contentType, statusFilter, showPinned],
+    queryKey: ["links", debouncedSearch, contentType, statusFilter, showPinned, sortBy],
     queryFn: () =>
       fetchLinks({
         search: debouncedSearch || undefined,
         contentType: contentType !== "all" ? contentType : undefined,
         status: statusFilter !== "all" ? statusFilter : undefined,
         isPinned: showPinned ? true : undefined,
+        sortBy,
       }),
     enabled: !!user,
   });
@@ -159,6 +161,18 @@ const Index = () => {
                 <SelectItem value="pending"><span className="flex items-center gap-1.5"><Clock className="h-3 w-3" />Pending</span></SelectItem>
                 <SelectItem value="ready"><span className="flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3" />Ready</span></SelectItem>
                 <SelectItem value="failed"><span className="flex items-center gap-1.5"><AlertCircle className="h-3 w-3" />Failed</span></SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-28 h-9 text-xs font-mono">
+                <SelectValue placeholder="Sort" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date_desc"><span className="flex items-center gap-1.5"><ArrowDown className="h-3 w-3" />Newest</span></SelectItem>
+                <SelectItem value="date_asc"><span className="flex items-center gap-1.5"><ArrowUp className="h-3 w-3" />Oldest</span></SelectItem>
+                <SelectItem value="title_asc"><span className="flex items-center gap-1.5"><ArrowUpDown className="h-3 w-3" />Title A-Z</span></SelectItem>
+                <SelectItem value="title_desc"><span className="flex items-center gap-1.5"><ArrowUpDown className="h-3 w-3" />Title Z-A</span></SelectItem>
+                <SelectItem value="domain_asc"><span className="flex items-center gap-1.5"><ArrowUpDown className="h-3 w-3" />Domain A-Z</span></SelectItem>
               </SelectContent>
             </Select>
             <Button
