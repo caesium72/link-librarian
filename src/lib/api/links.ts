@@ -1,0 +1,65 @@
+import { supabase } from "@/integrations/supabase/client";
+import type { Link } from "@/types/links";
+
+export async function fetchLinks({
+  search,
+  contentType,
+  status,
+  isPinned,
+}: {
+  search?: string;
+  contentType?: string;
+  status?: string;
+  isPinned?: boolean;
+} = {}): Promise<Link[]> {
+  let query = supabase
+    .from("links")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (search && search.trim()) {
+    // Use full-text search
+    const tsQuery = search.trim().split(/\s+/).join(" & ");
+    query = query.textSearch("fts", tsQuery);
+  }
+
+  if (contentType && contentType !== "all") {
+    query = query.eq("content_type", contentType);
+  }
+
+  if (status && status !== "all") {
+    query = query.eq("status", status);
+  }
+
+  if (isPinned !== undefined) {
+    query = query.eq("is_pinned", isPinned);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return data || [];
+}
+
+export async function updateLink(id: string, updates: Partial<Link>) {
+  const { data, error } = await supabase
+    .from("links")
+    .update(updates)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteLink(id: string) {
+  const { error } = await supabase.from("links").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function retryAnalysis(linkId: string) {
+  const { data, error } = await supabase.functions.invoke("analyze-link", {
+    body: { linkId },
+  });
+  if (error) throw error;
+  return data;
+}

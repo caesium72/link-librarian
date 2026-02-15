@@ -1,0 +1,7 @@
+project_id = "bqyimbbwbhsgpenntxeo"
+
+[functions.telegram-webhook]
+verify_jwt = false
+
+[functions.analyze-link]
+verify_jwt = false
