@@ -1,6 +1,7 @@
 import logo from "@/assets/logo.png";
 import { Link as RouterLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import {
   Select,
   SelectContent,
@@ -11,7 +12,7 @@ import {
 import {
   Pin, FileText, Video, GitBranch, BookOpen, Wrench, MessageSquare,
   LayoutGrid, Filter, Clock, CheckCircle2, AlertCircle,
-  ArrowUpDown, ArrowDown, ArrowUp, Settings, LogOut,
+  ArrowUpDown, ArrowDown, ArrowUp, Settings, LogOut, Menu, PanelLeftClose,
 } from "lucide-react";
 import { ImportDialog } from "@/components/ImportDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -32,6 +33,8 @@ interface FilterSidebarProps {
   userEmail?: string;
   onSignOut: () => void;
   onRefresh: () => void;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 export function FilterSidebar({
@@ -41,14 +44,63 @@ export function FilterSidebar({
   showPinned, setShowPinned,
   linkCount, pendingCount, readyCount, failedCount,
   userEmail, onSignOut, onRefresh,
+  collapsed = false, onToggleCollapse,
 }: FilterSidebarProps) {
+  if (collapsed) {
+    return (
+      <TooltipProvider delayDuration={0}>
+        <aside className="w-12 shrink-0 border-r border-border bg-card/50 flex flex-col h-screen sticky top-0 items-center py-3 gap-2 transition-all duration-200">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onToggleCollapse}>
+                <Menu className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Expand sidebar</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <img src={logo} alt="Xenonowledge" className="h-5 w-5 mt-1" />
+            </TooltipTrigger>
+            <TooltipContent side="right">Xenonowledge</TooltipContent>
+          </Tooltip>
+          <div className="flex-1" />
+          <ThemeToggle />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <RouterLink to="/settings">
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Settings className="h-3.5 w-3.5" />
+                </Button>
+              </RouterLink>
+            </TooltipTrigger>
+            <TooltipContent side="right">Settings</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onSignOut}>
+                <LogOut className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Sign out</TooltipContent>
+          </Tooltip>
+        </aside>
+      </TooltipProvider>
+    );
+  }
+
   return (
-    <aside className="w-56 shrink-0 border-r border-border bg-card/50 flex flex-col h-screen sticky top-0 overflow-y-auto">
+    <aside className="w-56 shrink-0 border-r border-border bg-card/50 flex flex-col h-screen sticky top-0 overflow-y-auto transition-all duration-200">
       {/* Logo & user */}
       <div className="p-4 border-b border-border">
-        <div className="flex items-center gap-2 mb-3">
-          <img src={logo} alt="Xenonowledge" className="h-5 w-5" />
-          <h1 className="font-mono text-sm font-semibold">Xenonowledge</h1>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <img src={logo} alt="Xenonowledge" className="h-5 w-5" />
+            <h1 className="font-mono text-sm font-semibold">Xenonowledge</h1>
+          </div>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onToggleCollapse}>
+            <PanelLeftClose className="h-4 w-4" />
+          </Button>
         </div>
         <p className="text-[10px] text-muted-foreground font-mono truncate">{userEmail}</p>
       </div>
