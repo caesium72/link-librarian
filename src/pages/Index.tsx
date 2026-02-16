@@ -198,7 +198,11 @@ const Index = () => {
         sortBy={sortBy} setSortBy={setSortBy}
         showPinned={showPinned} setShowPinned={setShowPinned}
         linkCount={links.length} pendingCount={pendingCount} readyCount={readyCount} failedCount={failedCount}
+        pendingLinks={links.filter((l) => l.status === "pending")}
+        failedLinks={links.filter((l) => l.status === "failed")}
         userEmail={user?.email} onSignOut={signOut} onRefresh={handleRefresh}
+        onSelectLink={setSelectedLink}
+        onRetry={(id) => retryMutation.mutate(id)}
       />
 
       {/* Center: links list */}
