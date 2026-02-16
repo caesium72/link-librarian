@@ -49,6 +49,7 @@ const Index = () => {
   const [selectedLink, setSelectedLink] = useState<Link | null>(null);
   const [showPinned, setShowPinned] = useState(false);
   const [sortBy, setSortBy] = useState("date_desc");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Selection mode state
   const [selectionMode, setSelectionMode] = useState(false);
@@ -200,6 +201,7 @@ const Index = () => {
         showPinned={showPinned} setShowPinned={setShowPinned}
         linkCount={links.length} pendingCount={pendingCount} readyCount={readyCount} failedCount={failedCount}
         userEmail={user?.email} onSignOut={signOut} onRefresh={handleRefresh}
+        collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
 
       {/* Center: links list */}
