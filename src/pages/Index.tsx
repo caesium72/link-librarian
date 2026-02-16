@@ -49,7 +49,17 @@ const Index = () => {
   const [selectedLink, setSelectedLink] = useState<Link | null>(null);
   const [showPinned, setShowPinned] = useState(false);
   const [sortBy, setSortBy] = useState("date_desc");
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try { return localStorage.getItem("sidebar-collapsed") === "true"; } catch { return false; }
+  });
+
+  const toggleSidebar = useCallback(() => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      try { localStorage.setItem("sidebar-collapsed", String(next)); } catch {}
+      return next;
+    });
+  }, []);
 
   // Selection mode state
   const [selectionMode, setSelectionMode] = useState(false);
@@ -201,7 +211,7 @@ const Index = () => {
         showPinned={showPinned} setShowPinned={setShowPinned}
         linkCount={links.length} pendingCount={pendingCount} readyCount={readyCount} failedCount={failedCount}
         userEmail={user?.email} onSignOut={signOut} onRefresh={handleRefresh}
-        collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        collapsed={sidebarCollapsed} onToggleCollapse={toggleSidebar}
       />
 
       {/* Center: links list */}
