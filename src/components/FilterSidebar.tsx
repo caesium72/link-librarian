@@ -11,13 +11,10 @@ import {
 import {
   Pin, FileText, Video, GitBranch, BookOpen, Wrench, MessageSquare,
   LayoutGrid, Filter, Clock, CheckCircle2, AlertCircle,
-  ArrowUpDown, ArrowDown, ArrowUp, Settings, LogOut, RefreshCw,
-  ExternalLink,
+  ArrowUpDown, ArrowDown, ArrowUp, Settings, LogOut,
 } from "lucide-react";
 import { ImportDialog } from "@/components/ImportDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import type { Link } from "@/types/links";
 
 interface FilterSidebarProps {
   contentType: string;
@@ -32,13 +29,9 @@ interface FilterSidebarProps {
   pendingCount: number;
   readyCount: number;
   failedCount: number;
-  pendingLinks: Link[];
-  failedLinks: Link[];
   userEmail?: string;
   onSignOut: () => void;
   onRefresh: () => void;
-  onSelectLink: (link: Link) => void;
-  onRetry: (id: string) => void;
 }
 
 export function FilterSidebar({
@@ -47,8 +40,7 @@ export function FilterSidebar({
   sortBy, setSortBy,
   showPinned, setShowPinned,
   linkCount, pendingCount, readyCount, failedCount,
-  pendingLinks, failedLinks,
-  userEmail, onSignOut, onRefresh, onSelectLink, onRetry,
+  userEmail, onSignOut, onRefresh,
 }: FilterSidebarProps) {
   return (
     <aside className="w-56 shrink-0 border-r border-border bg-card/50 flex flex-col h-screen sticky top-0 overflow-y-auto">
@@ -73,73 +65,16 @@ export function FilterSidebar({
             <div className="text-lg font-semibold font-mono text-primary">{readyCount}</div>
             <div className="text-[10px] text-muted-foreground">Ready</div>
           </div>
+          <div className="bg-chart-3/10 rounded-md p-2 text-center">
+            <div className="text-lg font-semibold font-mono text-chart-3">{pendingCount}</div>
+            <div className="text-[10px] text-muted-foreground">Pending</div>
+          </div>
+          <div className="bg-destructive/10 rounded-md p-2 text-center">
+            <div className="text-lg font-semibold font-mono text-destructive">{failedCount}</div>
+            <div className="text-[10px] text-muted-foreground">Failed</div>
+          </div>
         </div>
       </div>
-
-      {/* Pending links */}
-      {pendingLinks.length > 0 && (
-        <div className="p-4 border-b border-border space-y-2">
-          <div className="flex items-center gap-1.5">
-            <Clock className="h-3 w-3 text-chart-3" />
-            <h3 className="text-[10px] font-mono text-chart-3 uppercase tracking-wider">
-              Pending ({pendingLinks.length})
-            </h3>
-          </div>
-          <div className="space-y-1 max-h-32 overflow-y-auto">
-            {pendingLinks.map((link) => (
-              <button
-                key={link.id}
-                className="w-full text-left px-2 py-1.5 rounded-md hover:bg-muted/50 transition-colors group"
-                onClick={() => onSelectLink(link)}
-              >
-                <p className="text-[11px] font-mono truncate text-foreground">
-                  {link.title || link.domain || link.original_url}
-                </p>
-                <p className="text-[9px] text-muted-foreground truncate">{link.domain}</p>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Failed links */}
-      {failedLinks.length > 0 && (
-        <div className="p-4 border-b border-border space-y-2">
-          <div className="flex items-center gap-1.5">
-            <AlertCircle className="h-3 w-3 text-destructive" />
-            <h3 className="text-[10px] font-mono text-destructive uppercase tracking-wider">
-              Failed ({failedLinks.length})
-            </h3>
-          </div>
-          <div className="space-y-1 max-h-40 overflow-y-auto">
-            {failedLinks.map((link) => (
-              <div
-                key={link.id}
-                className="w-full px-2 py-1.5 rounded-md hover:bg-muted/50 transition-colors group"
-              >
-                <button
-                  className="w-full text-left"
-                  onClick={() => onSelectLink(link)}
-                >
-                  <p className="text-[11px] font-mono truncate text-foreground">
-                    {link.title || link.domain || link.original_url}
-                  </p>
-                  <p className="text-[9px] text-muted-foreground truncate">{link.original_url}</p>
-                </button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-5 text-[9px] font-mono gap-1 mt-0.5 px-1.5 text-chart-3 hover:text-chart-3"
-                  onClick={() => onRetry(link.id)}
-                >
-                  <RefreshCw className="h-2.5 w-2.5" />
-                  Retry
-                </Button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Filters */}
       <div className="p-4 space-y-3 flex-1">
