@@ -9,7 +9,14 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { BookMarked, Mail, Lock } from "lucide-react";
+import { BookMarked, Mail, Lock, Link2, Tags, Bot, Zap } from "lucide-react";
+
+const features = [
+  { icon: Link2, title: "Smart Analysis", desc: "Auto-summarize and categorize any link with AI" },
+  { icon: Tags, title: "Tags & Filters", desc: "Organize with tags, content types, and full-text search" },
+  { icon: Bot, title: "Telegram Bot", desc: "Save links directly from Telegram conversations" },
+  { icon: Zap, title: "Bulk Actions", desc: "Import, tag, and manage links in bulk" },
+];
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -52,12 +59,45 @@ const Auth = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <div className="flex min-h-screen bg-background">
+      {/* Left panel — feature showcase (hidden on mobile) */}
+      <div className="hidden lg:flex lg:w-1/2 flex-col justify-center px-12 xl:px-20 bg-muted/30 border-r border-border">
+        <div className="max-w-md mx-auto space-y-8 animate-fade-in">
+          <div className="flex items-center gap-3">
+            <img src={logo} alt="Xenonowledge" className="h-10 w-10" />
+            <h1 className="font-mono text-2xl font-bold">Xenonowledge</h1>
+          </div>
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            Your AI-powered knowledge base. Save, analyze, and organize links from anywhere — never lose a valuable resource again.
+          </p>
+          <div className="space-y-5">
+            {features.map((f) => (
+              <div key={f.title} className="flex items-start gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <f.icon className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="font-mono text-sm font-medium">{f.title}</h3>
+                  <p className="text-xs text-muted-foreground">{f.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Right panel — auth form */}
+      <div className="flex flex-1 items-center justify-center p-4">
       <Card className="w-full max-w-md animate-scale-in">
         <CardHeader className="space-y-1">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-2 lg:hidden">
             <img src={logo} alt="Xenonowledge" className="h-6 w-6 animate-fade-in" />
             <CardTitle className="text-xl font-mono animate-fade-in">Xenonowledge</CardTitle>
+          </div>
+          <div className="hidden lg:block">
+            <CardTitle className="text-xl font-mono animate-fade-in">
+              {isLogin ? "Welcome back" : "Get started"}
+            </CardTitle>
           </div>
           <CardDescription>
             {isLogin ? "Sign in to your dashboard" : "Create your account"}
@@ -133,6 +173,7 @@ const Auth = () => {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 };
