@@ -9,18 +9,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import {
   Pin, FileText, Video, GitBranch, BookOpen, Wrench, MessageSquare,
   LayoutGrid, Filter, Clock, CheckCircle2, AlertCircle,
-  ArrowUpDown, ArrowDown, ArrowUp, Settings, LogOut, ChevronDown,
+  ArrowUpDown, ArrowDown, ArrowUp, Settings, LogOut,
 } from "lucide-react";
 import { ImportDialog } from "@/components/ImportDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { useState } from "react";
 
 interface FilterSidebarProps {
   contentType: string;
@@ -40,23 +34,6 @@ interface FilterSidebarProps {
   onRefresh: () => void;
 }
 
-function SidebarSection({ title, defaultOpen = true, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <Collapsible open={open} onOpenChange={setOpen} className="border-b border-border">
-      <CollapsibleTrigger className="flex items-center justify-between w-full px-4 py-2.5 hover:bg-muted/50 transition-colors">
-        <h3 className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">{title}</h3>
-        <ChevronDown className={`h-3 w-3 text-muted-foreground transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
-      </CollapsibleTrigger>
-      <CollapsibleContent>
-        <div className="px-4 pb-3 space-y-2">
-          {children}
-        </div>
-      </CollapsibleContent>
-    </Collapsible>
-  );
-}
-
 export function FilterSidebar({
   contentType, setContentType,
   statusFilter, setStatusFilter,
@@ -66,10 +43,10 @@ export function FilterSidebar({
   userEmail, onSignOut, onRefresh,
 }: FilterSidebarProps) {
   return (
-    <aside className="w-52 shrink-0 border-r border-border bg-card/50 flex flex-col h-screen sticky top-0 overflow-y-auto">
+    <aside className="w-56 shrink-0 border-r border-border bg-card/50 flex flex-col h-screen sticky top-0 overflow-y-auto">
       {/* Logo & user */}
-      <div className="px-4 py-3 border-b border-border">
-        <div className="flex items-center gap-2 mb-1.5">
+      <div className="p-4 border-b border-border">
+        <div className="flex items-center gap-2 mb-3">
           <img src={logo} alt="Xenonowledge" className="h-5 w-5" />
           <h1 className="font-mono text-sm font-semibold">Xenonowledge</h1>
         </div>
@@ -77,33 +54,36 @@ export function FilterSidebar({
       </div>
 
       {/* Stats */}
-      <SidebarSection title="Overview" defaultOpen={true}>
-        <div className="grid grid-cols-2 gap-1.5">
-          <div className="bg-muted/50 rounded-md p-1.5 text-center">
-            <div className="text-base font-semibold font-mono">{linkCount}</div>
-            <div className="text-[9px] text-muted-foreground">Total</div>
+      <div className="p-4 border-b border-border space-y-2">
+        <h3 className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">Overview</h3>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="bg-muted/50 rounded-md p-2 text-center">
+            <div className="text-lg font-semibold font-mono">{linkCount}</div>
+            <div className="text-[10px] text-muted-foreground">Total</div>
           </div>
-          <div className="bg-primary/10 rounded-md p-1.5 text-center">
-            <div className="text-base font-semibold font-mono text-primary">{readyCount}</div>
-            <div className="text-[9px] text-muted-foreground">Ready</div>
+          <div className="bg-primary/10 rounded-md p-2 text-center">
+            <div className="text-lg font-semibold font-mono text-primary">{readyCount}</div>
+            <div className="text-[10px] text-muted-foreground">Ready</div>
           </div>
-          <div className="bg-chart-3/10 rounded-md p-1.5 text-center">
-            <div className="text-base font-semibold font-mono text-chart-3">{pendingCount}</div>
-            <div className="text-[9px] text-muted-foreground">Pending</div>
+          <div className="bg-chart-3/10 rounded-md p-2 text-center">
+            <div className="text-lg font-semibold font-mono text-chart-3">{pendingCount}</div>
+            <div className="text-[10px] text-muted-foreground">Pending</div>
           </div>
-          <div className="bg-destructive/10 rounded-md p-1.5 text-center">
-            <div className="text-base font-semibold font-mono text-destructive">{failedCount}</div>
-            <div className="text-[9px] text-muted-foreground">Failed</div>
+          <div className="bg-destructive/10 rounded-md p-2 text-center">
+            <div className="text-lg font-semibold font-mono text-destructive">{failedCount}</div>
+            <div className="text-[10px] text-muted-foreground">Failed</div>
           </div>
         </div>
-      </SidebarSection>
+      </div>
 
       {/* Filters */}
-      <SidebarSection title="Filters" defaultOpen={true}>
+      <div className="p-4 space-y-3 flex-1">
+        <h3 className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">Filters</h3>
+
         <div className="space-y-1.5">
           <label className="text-[10px] font-mono text-muted-foreground">Content Type</label>
           <Select value={contentType} onValueChange={setContentType}>
-            <SelectTrigger className="h-7 text-xs font-mono">
+            <SelectTrigger className="h-8 text-xs font-mono">
               <SelectValue placeholder="Type" />
             </SelectTrigger>
             <SelectContent>
@@ -122,7 +102,7 @@ export function FilterSidebar({
         <div className="space-y-1.5">
           <label className="text-[10px] font-mono text-muted-foreground">Status</label>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="h-7 text-xs font-mono">
+            <SelectTrigger className="h-8 text-xs font-mono">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -137,7 +117,7 @@ export function FilterSidebar({
         <div className="space-y-1.5">
           <label className="text-[10px] font-mono text-muted-foreground">Sort By</label>
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="h-7 text-xs font-mono">
+            <SelectTrigger className="h-8 text-xs font-mono">
               <SelectValue placeholder="Sort" />
             </SelectTrigger>
             <SelectContent>
@@ -153,36 +133,27 @@ export function FilterSidebar({
         <Button
           variant={showPinned ? "default" : "outline"}
           size="sm"
-          className="w-full h-7 text-xs font-mono gap-1.5"
+          className="w-full h-8 text-xs font-mono gap-1.5"
           onClick={() => setShowPinned(!showPinned)}
         >
           <Pin className="h-3 w-3" />
-          {showPinned ? "Showing Pinned" : "Pinned Only"}
+          {showPinned ? "Showing Pinned" : "Show Pinned Only"}
         </Button>
-      </SidebarSection>
-
-      {/* Quick Actions */}
-      <SidebarSection title="Actions" defaultOpen={true}>
-        <ImportDialog onSuccess={onRefresh} />
-      </SidebarSection>
-
-      {/* Spacer */}
-      <div className="flex-1" />
+      </div>
 
       {/* Bottom actions */}
-      <div className="px-4 py-2.5 border-t border-border">
-        <div className="flex items-center justify-between">
+      <div className="p-4 border-t border-border space-y-2">
+        <ImportDialog onSuccess={onRefresh} />
+        <div className="flex items-center gap-1">
           <ThemeToggle />
-          <div className="flex items-center gap-0.5">
-            <RouterLink to="/settings">
-              <Button variant="ghost" size="icon" className="h-7 w-7">
-                <Settings className="h-3.5 w-3.5" />
-              </Button>
-            </RouterLink>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onSignOut}>
-              <LogOut className="h-3.5 w-3.5" />
+          <RouterLink to="/settings">
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Settings className="h-3.5 w-3.5" />
             </Button>
-          </div>
+          </RouterLink>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onSignOut}>
+            <LogOut className="h-3.5 w-3.5" />
+          </Button>
         </div>
       </div>
     </aside>
