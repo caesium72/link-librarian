@@ -5,6 +5,7 @@ import { useRequireAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchLinks, updateLink, retryAnalysis, deleteLink, bulkDeleteLinks, bulkAddTag } from "@/lib/api/links";
 import { LinkCard } from "@/components/LinkCard";
+import { LinkSection } from "@/components/LinkSection";
 import { LinkDetail } from "@/components/LinkDetail";
 import { LinkDetailPanel } from "@/components/LinkDetailPanel";
 import { FilterSidebar } from "@/components/FilterSidebar";
@@ -256,21 +257,28 @@ const Index = () => {
               </p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {links.map((link, index) => (
-                <div key={link.id} className="animate-fade-in" style={{ animationDelay: `${Math.min(index * 0.03, 0.3)}s`, animationFillMode: "backwards" }}>
-                  <LinkCard
-                    link={link}
-                    onPin={(id, pinned) => handleUpdate(id, { is_pinned: !pinned })}
-                    onRetry={(id) => retryMutation.mutate(id)}
-                    onDelete={(id) => deleteMutation.mutate(id)}
-                    onClick={setSelectedLink}
-                    selectionMode={selectionMode}
-                    isSelected={selectedIds.has(link.id)}
-                    onToggleSelect={toggleSelect}
-                  />
-                </div>
-              ))}
+            <div className="space-y-6">
+              {(() => {
+                const readyLinks = links.filter((l) => l.status === "ready");
+                const pendingLinks = links.filter((l) => l.status === "pending");
+                const failedLinks = links.filter((l) => l.status === "failed");
+                const cardProps = {
+                  onPin: (id: string, pinned: boolean) => handleUpdate(id, { is_pinned: !pinned }),
+                  onRetry: (id: string) => retryMutation.mutate(id),
+                  onDelete: (id: string) => deleteMutation.mutate(id),
+                  onClick: setSelectedLink,
+                  selectionMode,
+                  selectedIds,
+                  onToggleSelect: toggleSelect,
+                };
+                return (
+                  <>
+                    <LinkSection status="ready" links={readyLinks} {...cardProps} indexOffset={0} />
+                    <LinkSection status="pending" links={pendingLinks} {...cardProps} indexOffset={readyLinks.length} />
+                    <LinkSection status="failed" links={failedLinks} {...cardProps} indexOffset={readyLinks.length + pendingLinks.length} />
+                  </>
+                );
+              })()}
             </div>
           )}
         </div>
@@ -570,25 +578,28 @@ function MobileLayout(props: any) {
             </p>
           </div>
         ) : (
-          <div className="space-y-2">
-            {links.map((link, index) => (
-              <div
-                key={link.id}
-                className="animate-fade-in"
-                style={{ animationDelay: `${Math.min(index * 0.05, 0.5)}s`, animationFillMode: "backwards" }}
-              >
-                <LinkCard
-                  link={link}
-                  onPin={(id, pinned) => handleUpdate(id, { is_pinned: !pinned })}
-                  onRetry={(id) => retryMutation.mutate(id)}
-                  onDelete={(id) => deleteMutation.mutate(id)}
-                  onClick={setSelectedLink}
-                  selectionMode={selectionMode}
-                  isSelected={selectedIds.has(link.id)}
-                  onToggleSelect={toggleSelect}
-                />
-              </div>
-            ))}
+          <div className="space-y-6">
+            {(() => {
+              const readyLinks = links.filter((l) => l.status === "ready");
+              const pendingLinks = links.filter((l) => l.status === "pending");
+              const failedLinks = links.filter((l) => l.status === "failed");
+              const cardProps = {
+                onPin: (id: string, pinned: boolean) => handleUpdate(id, { is_pinned: !pinned }),
+                onRetry: (id: string) => retryMutation.mutate(id),
+                onDelete: (id: string) => deleteMutation.mutate(id),
+                onClick: setSelectedLink,
+                selectionMode,
+                selectedIds,
+                onToggleSelect: toggleSelect,
+              };
+              return (
+                <>
+                  <LinkSection status="ready" links={readyLinks} {...cardProps} indexOffset={0} />
+                  <LinkSection status="pending" links={pendingLinks} {...cardProps} indexOffset={readyLinks.length} />
+                  <LinkSection status="failed" links={failedLinks} {...cardProps} indexOffset={readyLinks.length + pendingLinks.length} />
+                </>
+              );
+            })()}
           </div>
         )}
       </main>
