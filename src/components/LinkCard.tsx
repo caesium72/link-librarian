@@ -81,7 +81,13 @@ export function LinkCard({ link, onPin, onRetry, onDelete, onClick, selectionMod
             <div className="flex items-center gap-2 mb-1">
               {link.is_pinned && <Pin className="h-3 w-3 text-primary shrink-0" />}
               <StatusIcon className={`h-3 w-3 shrink-0 ${statusConfig[link.status as keyof typeof statusConfig]?.className?.split(" ").pop()}`} />
-              <h3 className="font-medium text-sm truncate">
+              <h3
+                className="font-medium text-sm truncate hover:underline hover:text-primary cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(link.original_url, "_blank");
+                }}
+              >
                 {link.title || link.original_url}
               </h3>
             </div>
