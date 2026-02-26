@@ -1,9 +1,10 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import logo from "@/assets/logo.png";
 import { useRequireAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchLinks, updateLink, retryAnalysis, deleteLink, bulkDeleteLinks, bulkAddTag } from "@/lib/api/links";
+import { supabase } from "@/integrations/supabase/client";
 import { LinkCard } from "@/components/LinkCard";
 import { LinkSection } from "@/components/LinkSection";
 import { LinkDetail } from "@/components/LinkDetail";
@@ -86,6 +87,22 @@ const Index = () => {
       }),
     enabled: !!user,
   });
+
+  // Realtime subscription for live updates
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel('links-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'links' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["links"] });
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user, queryClient]);
 
   const updateMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<Link> }) => updateLink(id, updates),
