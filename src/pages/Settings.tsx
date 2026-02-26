@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Bot, CheckCircle2, AlertCircle, Loader2, Eye, EyeOff, Lock, Trash2, RefreshCw } from "lucide-react";
+import { ArrowLeft, Bot, CheckCircle2, AlertCircle, Loader2, Eye, EyeOff, Lock, Trash2, RefreshCw, Download } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { ExportDialog } from "@/components/ExportDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -263,6 +264,22 @@ const Settings = () => {
                 )}
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Export Data */}
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 font-mono text-base">
+              <Download className="h-4 w-4" />
+              Export Data
+            </CardTitle>
+            <CardDescription className="text-sm">
+              Download your links, collections, and analytics as JSON or CSV.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ExportDialog />
           </CardContent>
         </Card>
 
