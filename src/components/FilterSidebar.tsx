@@ -13,7 +13,7 @@ import {
 import {
   Pin, FileText, Video, GitBranch, BookOpen, Wrench, MessageSquare,
   LayoutGrid, Filter, Clock, CheckCircle2, AlertCircle,
-  ArrowUpDown, ArrowDown, ArrowUp, Settings, LogOut, Menu, PanelLeftClose,
+  ArrowUpDown, ArrowDown, ArrowUp, Settings, LogOut, Menu, PanelLeftClose, BarChart3,
 } from "lucide-react";
 import { ImportDialog } from "@/components/ImportDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -82,6 +82,16 @@ export function FilterSidebar({
           </Tooltip>
           <div className="flex-1" />
           <ThemeToggle />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <RouterLink to="/analytics">
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <BarChart3 className="h-3.5 w-3.5" />
+                </Button>
+              </RouterLink>
+            </TooltipTrigger>
+            <TooltipContent side="right">Analytics</TooltipContent>
+          </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
               <RouterLink to="/settings">
@@ -222,6 +232,11 @@ export function FilterSidebar({
             <ImportDialog onSuccess={onRefresh} />
             <div className="flex items-center gap-1">
               <ThemeToggle />
+              <RouterLink to="/analytics">
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <BarChart3 className="h-3.5 w-3.5" />
+                </Button>
+              </RouterLink>
               <RouterLink to="/settings">
                 <Button variant="ghost" size="icon" className="h-8 w-8">
                   <Settings className="h-3.5 w-3.5" />
