@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { BookMarked, Mail, Lock } from "lucide-react";
+import { Mail, Lock, ArrowRight } from "lucide-react";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -52,22 +52,30 @@ const Auth = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md animate-scale-in">
-        <CardHeader className="space-y-1">
-          <div className="flex items-center gap-2 mb-2">
-            <img src={logo} alt="Xenonowledge" className="h-6 w-6 animate-fade-in" />
-            <CardTitle className="text-xl font-mono animate-fade-in">Xenonowledge</CardTitle>
+    <div className="flex min-h-screen items-center justify-center bg-background p-4 relative overflow-hidden">
+      {/* Animated gradient orbs */}
+      <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-primary/5 blur-3xl animate-float" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[400px] h-[400px] rounded-full bg-chart-2/5 blur-3xl animate-float" style={{ animationDelay: "2s" }} />
+      <div className="absolute top-[40%] left-[60%] w-[300px] h-[300px] rounded-full bg-chart-4/5 blur-3xl animate-float" style={{ animationDelay: "4s" }} />
+
+      <Card className="w-full max-w-md animate-slide-up relative backdrop-blur-sm bg-card/95 shadow-xl border-border/50">
+        <CardHeader className="space-y-1 pb-4">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="relative">
+              <img src={logo} alt="Xenonowledge" className="h-8 w-8 animate-scale-in relative z-10" />
+              <div className="absolute inset-0 bg-primary/20 blur-md rounded-full animate-pulse-glow" />
+            </div>
+            <CardTitle className="text-2xl font-mono animate-fade-in tracking-tight">Xenonowledge</CardTitle>
           </div>
-          <CardDescription>
-            {isLogin ? "Sign in to your dashboard" : "Create your account"}
+          <CardDescription className="animate-fade-in text-sm" style={{ animationDelay: "0.1s", animationFillMode: "backwards" }}>
+            {isLogin ? "Welcome back. Sign in to continue." : "Create your account to get started."}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="animate-fade-in" style={{ animationDelay: "0.15s", animationFillMode: "backwards" }}>
           <Button
             type="button"
             variant="outline"
-            className="w-full font-mono gap-2"
+            className="w-full font-mono gap-2 h-11 hover:bg-accent transition-all duration-200 hover:shadow-sm"
             onClick={async () => {
               const { error } = await lovable.auth.signInWithOAuth("google", {
                 redirect_uri: window.location.origin,
@@ -86,16 +94,18 @@ const Auth = () => {
             Continue with Google
           </Button>
 
-          <div className="relative my-4">
+          <div className="relative my-5">
             <Separator />
-            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
+            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card/95 px-3 text-xs text-muted-foreground font-mono">
               or
             </span>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email" className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" />Email</Label>
+              <Label htmlFor="email" className="flex items-center gap-1.5 text-xs font-mono">
+                <Mail className="h-3.5 w-3.5 text-muted-foreground" />Email
+              </Label>
               <Input
                 id="email"
                 type="email"
@@ -103,11 +113,13 @@ const Auth = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="font-mono text-sm"
+                className="font-mono text-sm h-10 transition-all duration-200 focus:shadow-sm focus:shadow-primary/10"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password" className="flex items-center gap-1.5"><Lock className="h-3.5 w-3.5" />Password</Label>
+              <Label htmlFor="password" className="flex items-center gap-1.5 text-xs font-mono">
+                <Lock className="h-3.5 w-3.5 text-muted-foreground" />Password
+              </Label>
               <Input
                 id="password"
                 type="password"
@@ -116,17 +128,25 @@ const Auth = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
+                className="h-10 transition-all duration-200 focus:shadow-sm focus:shadow-primary/10"
               />
             </div>
-            <Button type="submit" className="w-full font-mono" disabled={loading}>
-              {loading ? "..." : isLogin ? "Sign In" : "Sign Up"}
+            <Button type="submit" className="w-full font-mono h-11 gap-2 group" disabled={loading}>
+              {loading ? (
+                <span className="animate-pulse">Authenticating...</span>
+              ) : (
+                <>
+                  {isLogin ? "Sign In" : "Sign Up"}
+                  <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
+                </>
+              )}
             </Button>
           </form>
-          <div className="mt-4 text-center text-sm text-muted-foreground">
+          <div className="mt-5 text-center text-sm text-muted-foreground">
             {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
             <button
               onClick={() => setIsLogin(!isLogin)}
-              className="text-primary hover:underline font-medium"
+              className="text-primary hover:underline font-medium transition-colors"
             >
               {isLogin ? "Sign Up" : "Sign In"}
             </button>
