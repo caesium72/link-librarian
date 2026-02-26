@@ -120,6 +120,15 @@ export function LinkCard({ link, onPin, onRetry, onDelete, onClick, selectionMod
             </div>
           </div>
 
+          {link.domain && (
+            <img
+              src={`https://www.google.com/s2/favicons?domain=${link.domain}&sz=32`}
+              alt=""
+              className="h-8 w-8 rounded shrink-0 object-contain"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
+          )}
+
           {!selectionMode && (
             <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={copyUrl}>
