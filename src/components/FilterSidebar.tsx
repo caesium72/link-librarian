@@ -16,6 +16,7 @@ import {
   ArrowUpDown, ArrowDown, ArrowUp, Settings, LogOut, Menu, PanelLeftClose, BarChart3,
 } from "lucide-react";
 import { ImportDialog } from "@/components/ImportDialog";
+import { ExportDialog } from "@/components/ExportDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { CollectionManager } from "@/components/CollectionManager";
 
@@ -229,7 +230,10 @@ export function FilterSidebar({
 
           {/* Bottom actions */}
           <div className="p-4 border-t border-border space-y-2">
-            <ImportDialog onSuccess={onRefresh} />
+            <div className="flex items-center gap-1.5">
+              <ImportDialog onSuccess={onRefresh} />
+              <ExportDialog />
+            </div>
             <div className="flex items-center gap-1">
               <ThemeToggle />
               <RouterLink to="/analytics">
