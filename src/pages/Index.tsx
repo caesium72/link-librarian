@@ -267,26 +267,26 @@ const Index = () => {
 
       {/* Center: links list */}
       <main className="flex-1 min-w-0 flex flex-col">
-        <div className="p-4 border-b border-border bg-background/95 backdrop-blur sticky top-0 z-10 space-y-3">
+        <div className="p-4 border-b border-border/50 bg-background/80 backdrop-blur-md sticky top-0 z-10 space-y-3">
           <AddLinkInput onSuccess={handleRefresh} />
           <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <div className="relative flex-1 group/search">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground transition-colors group-focus-within/search:text-primary" />
               <Input
                 placeholder="Search links..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 font-mono text-sm h-9"
+                className="pl-9 font-mono text-sm h-9 transition-all duration-200 focus:shadow-sm focus:shadow-primary/10"
               />
             </div>
             <div className="flex items-center gap-1">
               {filteredLinks.length > 0 && !selectionMode && (
-                <Button variant="outline" size="sm" className="h-8 text-xs font-mono gap-1.5" onClick={() => setSelectionMode(true)}>
+                <Button variant="outline" size="sm" className="h-8 text-xs font-mono gap-1.5 hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all" onClick={() => setSelectionMode(true)}>
                   <CheckSquare className="h-3 w-3" /> Select
                 </Button>
               )}
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleRefresh} disabled={isLoading}>
-                <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
+              <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-all" onClick={handleRefresh} disabled={isLoading}>
+                <RefreshCw className={`h-3.5 w-3.5 transition-transform duration-500 ${isLoading ? "animate-spin" : "hover:rotate-180"}`} />
               </Button>
             </div>
           </div>
@@ -306,16 +306,23 @@ const Index = () => {
         {/* Links list */}
         <div className="flex-1 overflow-y-auto p-4">
           {isLoading ? (
-            <div className="space-y-2">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-24 bg-card rounded-lg animate-pulse border border-border" />
+            <div className="space-y-3">
+              {[1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className="h-24 rounded-lg border border-border/50 animate-shimmer"
+                  style={{ animationDelay: `${i * 0.15}s` }}
+                />
               ))}
             </div>
           ) : filteredLinks.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
-              <img src={logo} alt="Xenonowledge" className="h-12 w-12 opacity-30 mb-4 animate-scale-in" />
-              <h2 className="font-mono text-sm text-muted-foreground mb-1">No links yet</h2>
-              <p className="text-xs text-muted-foreground/70 max-w-sm">
+            <div className="flex flex-col items-center justify-center py-24 text-center">
+              <div className="relative mb-6">
+                <img src={logo} alt="Xenonowledge" className="h-16 w-16 opacity-20 animate-float" />
+                <div className="absolute inset-0 bg-primary/10 blur-xl rounded-full" />
+              </div>
+              <h2 className="font-mono text-sm text-muted-foreground mb-2 animate-fade-in">No links yet</h2>
+              <p className="text-xs text-muted-foreground/70 max-w-sm animate-fade-in" style={{ animationDelay: "0.1s", animationFillMode: "backwards" }}>
                 Add a link above or paste links in your Telegram channel and they'll appear here automatically.
               </p>
             </div>
@@ -349,7 +356,7 @@ const Index = () => {
 
       {/* Right panel: link detail */}
       {selectedLink && (
-        <aside className="w-80 xl:w-96 shrink-0 border-l border-border bg-card/30 h-screen sticky top-0 animate-fade-in">
+        <aside className="w-80 xl:w-96 shrink-0 border-l border-border/50 bg-card/30 backdrop-blur-sm h-screen sticky top-0 animate-slide-in-right">
           <LinkDetailPanel
             link={selectedLink}
             onClose={() => setSelectedLink(null)}
