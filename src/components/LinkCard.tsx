@@ -14,6 +14,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { AddToCollectionMenu } from "@/components/AddToCollectionMenu";
 
 const statusConfig = {
   pending: { icon: Clock, label: "Pending", className: "bg-muted text-muted-foreground" },
@@ -131,6 +132,7 @@ export function LinkCard({ link, onPin, onRetry, onDelete, onClick, selectionMod
 
           {!selectionMode && (
             <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <AddToCollectionMenu linkId={link.id} />
               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={copyUrl}>
                 <Copy className="h-3 w-3" />
               </Button>

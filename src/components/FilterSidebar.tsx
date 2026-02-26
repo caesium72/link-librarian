@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { ImportDialog } from "@/components/ImportDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { CollectionManager } from "@/components/CollectionManager";
 
 interface FilterSidebarProps {
   contentType: string;
@@ -36,6 +37,8 @@ interface FilterSidebarProps {
   onRefresh: () => void;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
+  selectedCollectionId: string | null;
+  onSelectCollection: (id: string | null) => void;
 }
 
 export function FilterSidebar({
@@ -46,6 +49,7 @@ export function FilterSidebar({
   linkCount, pendingCount, readyCount, failedCount,
   userEmail, onSignOut, onRefresh,
   collapsed = false, onToggleCollapse,
+  selectedCollectionId, onSelectCollection,
 }: FilterSidebarProps) {
   return (
     <TooltipProvider delayDuration={0}>
@@ -205,6 +209,12 @@ export function FilterSidebar({
               <Pin className="h-3 w-3" />
               {showPinned ? "Showing Pinned" : "Show Pinned Only"}
             </Button>
+
+            <CollectionManager
+              selectedCollectionId={selectedCollectionId}
+              onSelectCollection={onSelectCollection}
+              collapsed={collapsed}
+            />
           </div>
 
           {/* Bottom actions */}

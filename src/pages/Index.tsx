@@ -4,6 +4,7 @@ import logo from "@/assets/logo.png";
 import { useRequireAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchLinks, updateLink, retryAnalysis, deleteLink, bulkDeleteLinks, bulkAddTag } from "@/lib/api/links";
+import { fetchCollectionLinkIds } from "@/lib/api/collections";
 import { supabase } from "@/integrations/supabase/client";
 import { LinkCard } from "@/components/LinkCard";
 import { LinkSection } from "@/components/LinkSection";
@@ -50,6 +51,7 @@ const Index = () => {
   const [selectedLink, setSelectedLink] = useState<Link | null>(null);
   const [showPinned, setShowPinned] = useState(false);
   const [sortBy, setSortBy] = useState("date_desc");
+  const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try { return localStorage.getItem("sidebar-collapsed") === "true"; } catch { return false; }
   });
@@ -87,6 +89,18 @@ const Index = () => {
       }),
     enabled: !!user,
   });
+
+  // Fetch collection link IDs for filtering
+  const { data: collectionLinkIds } = useQuery({
+    queryKey: ["collection-links", selectedCollectionId],
+    queryFn: () => fetchCollectionLinkIds(selectedCollectionId!),
+    enabled: !!selectedCollectionId,
+  });
+
+  // Filter links by collection if one is selected
+  const filteredLinks = selectedCollectionId && collectionLinkIds
+    ? links.filter((l) => collectionLinkIds.includes(l.id))
+    : links;
 
   // Realtime subscription for live updates
   useEffect(() => {
@@ -169,7 +183,7 @@ const Index = () => {
     });
   }, []);
 
-  const selectAll = () => setSelectedIds(new Set(links.map((l) => l.id)));
+  const selectAll = () => setSelectedIds(new Set(filteredLinks.map((l) => l.id)));
 
   const exitSelectionMode = () => {
     setSelectionMode(false);
@@ -188,15 +202,15 @@ const Index = () => {
     );
   }
 
-  const pendingCount = links.filter((l) => l.status === "pending").length;
-  const readyCount = links.filter((l) => l.status === "ready").length;
-  const failedCount = links.filter((l) => l.status === "failed").length;
+  const pendingCount = filteredLinks.filter((l) => l.status === "pending").length;
+  const readyCount = filteredLinks.filter((l) => l.status === "ready").length;
+  const failedCount = filteredLinks.filter((l) => l.status === "failed").length;
 
   // Mobile: keep the old single-column layout with sheet detail
   if (isMobile) {
     return (
       <MobileLayout
-        user={user} signOut={signOut} links={links} isLoading={isLoading}
+        user={user} signOut={signOut} links={filteredLinks} isLoading={isLoading}
         search={search} setSearch={setSearch}
         contentType={contentType} setContentType={setContentType}
         statusFilter={statusFilter} setStatusFilter={setStatusFilter}
@@ -226,9 +240,10 @@ const Index = () => {
         statusFilter={statusFilter} setStatusFilter={setStatusFilter}
         sortBy={sortBy} setSortBy={setSortBy}
         showPinned={showPinned} setShowPinned={setShowPinned}
-        linkCount={links.length} pendingCount={pendingCount} readyCount={readyCount} failedCount={failedCount}
+        linkCount={filteredLinks.length} pendingCount={pendingCount} readyCount={readyCount} failedCount={failedCount}
         userEmail={user?.email} onSignOut={signOut} onRefresh={handleRefresh}
         collapsed={sidebarCollapsed} onToggleCollapse={toggleSidebar}
+        selectedCollectionId={selectedCollectionId} onSelectCollection={setSelectedCollectionId}
       />
 
       {/* Center: links list */}
@@ -246,7 +261,7 @@ const Index = () => {
               />
             </div>
             <div className="flex items-center gap-1">
-              {links.length > 0 && !selectionMode && (
+              {filteredLinks.length > 0 && !selectionMode && (
                 <Button variant="outline" size="sm" className="h-8 text-xs font-mono gap-1.5" onClick={() => setSelectionMode(true)}>
                   <CheckSquare className="h-3 w-3" /> Select
                 </Button>
@@ -277,7 +292,7 @@ const Index = () => {
                 <div key={i} className="h-24 bg-card rounded-lg animate-pulse border border-border" />
               ))}
             </div>
-          ) : links.length === 0 ? (
+          ) : filteredLinks.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
               <img src={logo} alt="Xenonowledge" className="h-12 w-12 opacity-30 mb-4 animate-scale-in" />
               <h2 className="font-mono text-sm text-muted-foreground mb-1">No links yet</h2>
@@ -288,9 +303,9 @@ const Index = () => {
           ) : (
             <div className="space-y-6">
               {(() => {
-                const readyLinks = links.filter((l) => l.status === "ready");
-                const pendingLinks = links.filter((l) => l.status === "pending");
-                const failedLinks = links.filter((l) => l.status === "failed");
+                const readyLinks = filteredLinks.filter((l) => l.status === "ready");
+                const pendingLinks = filteredLinks.filter((l) => l.status === "pending");
+                const failedLinks = filteredLinks.filter((l) => l.status === "failed");
                 const cardProps = {
                   onPin: (id: string, pinned: boolean) => handleUpdate(id, { is_pinned: !pinned }),
                   onRetry: (id: string) => retryMutation.mutate(id),
