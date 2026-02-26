@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "@/types/links";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,9 +13,11 @@ import {
   CheckCircle2,
   AlertCircle,
   Trash2,
+  ChevronDown,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AddToCollectionMenu } from "@/components/AddToCollectionMenu";
+import { cn } from "@/lib/utils";
 
 const statusConfig = {
   pending: { icon: Clock, label: "Pending", className: "bg-muted text-muted-foreground" },
@@ -45,6 +48,7 @@ interface LinkCardProps {
 
 export function LinkCard({ link, onPin, onRetry, onDelete, onClick, selectionMode, isSelected, onToggleSelect }: LinkCardProps) {
   const { toast } = useToast();
+  const [expanded, setExpanded] = useState(false);
   const StatusIcon = statusConfig[link.status as keyof typeof statusConfig]?.icon ?? Clock;
 
   const copyUrl = (e: React.MouseEvent) => {
@@ -57,15 +61,17 @@ export function LinkCard({ link, onPin, onRetry, onDelete, onClick, selectionMod
     if (selectionMode && onToggleSelect) {
       onToggleSelect(link.id);
     } else {
-      onClick(link);
+      setExpanded(!expanded);
     }
   };
 
   return (
     <Card
-      className={`cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 group ${
-        isSelected ? "border-primary ring-1 ring-primary/30" : "hover:border-primary/40"
-      }`}
+      className={cn(
+        "cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 group",
+        isSelected ? "border-primary ring-1 ring-primary/30" : "hover:border-primary/40",
+        expanded && "shadow-md border-primary/30"
+      )}
       onClick={handleClick}
     >
       <CardContent className="p-4">
@@ -91,10 +97,17 @@ export function LinkCard({ link, onPin, onRetry, onDelete, onClick, selectionMod
               >
                 {link.title || link.original_url}
               </h3>
+              <ChevronDown className={cn(
+                "h-3 w-3 shrink-0 text-muted-foreground transition-transform duration-200 ml-auto",
+                expanded && "rotate-180"
+              )} />
             </div>
 
             {link.summary && (
-              <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+              <p className={cn(
+                "text-xs text-muted-foreground mb-2",
+                expanded ? "line-clamp-none" : "line-clamp-2"
+              )}>
                 {link.summary}
               </p>
             )}
@@ -108,12 +121,12 @@ export function LinkCard({ link, onPin, onRetry, onDelete, onClick, selectionMod
                   {link.content_type}
                 </Badge>
               )}
-              {link.tags?.slice(0, 4).map((tag) => (
+              {link.tags?.slice(0, expanded ? undefined : 4).map((tag) => (
                 <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0 font-mono">
                   {tag}
                 </Badge>
               ))}
-              {(link.tags?.length ?? 0) > 4 && (
+              {!expanded && (link.tags?.length ?? 0) > 4 && (
                 <span className="text-[10px] text-muted-foreground">
                   +{(link.tags?.length ?? 0) - 4}
                 </span>
@@ -173,6 +186,75 @@ export function LinkCard({ link, onPin, onRetry, onDelete, onClick, selectionMod
               </Button>
             </div>
           )}
+        </div>
+
+        {/* Expanded content */}
+        <div className={cn(
+          "grid transition-all duration-300 ease-in-out",
+          expanded ? "grid-rows-[1fr] opacity-100 mt-3" : "grid-rows-[0fr] opacity-0"
+        )}>
+          <div className="overflow-hidden">
+            <div className="border-t border-border pt-3 space-y-3">
+              {/* Key points */}
+              {link.key_points && link.key_points.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider mb-1.5">Key Points</p>
+                  <ul className="space-y-1">
+                    {link.key_points.map((point, i) => (
+                      <li key={i} className="text-xs text-muted-foreground flex items-start gap-2">
+                        <span className="text-primary mt-0.5">•</span>
+                        <span>{point}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Notes */}
+              {link.notes && (
+                <div>
+                  <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider mb-1">Notes</p>
+                  <p className="text-xs text-foreground/80">{link.notes}</p>
+                </div>
+              )}
+
+              {/* Actions row */}
+              <div className="flex items-center gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs font-mono gap-1.5"
+                  onClick={() => window.open(link.original_url, "_blank")}
+                >
+                  <ExternalLink className="h-3 w-3" /> Open
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs font-mono gap-1.5"
+                  onClick={copyUrl}
+                >
+                  <Copy className="h-3 w-3" /> Copy
+                </Button>
+                <Button
+                  variant={link.is_pinned ? "default" : "outline"}
+                  size="sm"
+                  className="h-7 text-xs font-mono gap-1.5"
+                  onClick={() => onPin(link.id, link.is_pinned)}
+                >
+                  <Pin className="h-3 w-3" /> {link.is_pinned ? "Pinned" : "Pin"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs font-mono gap-1.5"
+                  onClick={() => onClick(link)}
+                >
+                  Edit Details
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="flex items-center gap-3 mt-2 text-[10px] text-muted-foreground font-mono">
