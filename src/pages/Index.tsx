@@ -103,20 +103,39 @@ const Index = () => {
     : links;
 
   // Realtime subscription for live updates
+  const linkCountRef = useRef(links.length);
+  useEffect(() => { linkCountRef.current = links.length; }, [links.length]);
+
   useEffect(() => {
     if (!user) return;
     const channel = supabase
       .channel('links-realtime')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'links' },
+        { event: 'INSERT', schema: 'public', table: 'links' },
+        (payload) => {
+          queryClient.invalidateQueries({ queryKey: ["links"] });
+          const title = (payload.new as any)?.title || (payload.new as any)?.original_url || "New link";
+          toast({ title: "📥 New link added", description: title });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'links' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["links"] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'links' },
         () => {
           queryClient.invalidateQueries({ queryKey: ["links"] });
         }
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, queryClient]);
+  }, [user, queryClient, toast]);
 
   const updateMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<Link> }) => updateLink(id, updates),
