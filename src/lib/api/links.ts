@@ -127,6 +127,11 @@ export async function addLink(url: string): Promise<Link> {
   // Check for duplicate
   const existing = await checkDuplicate(url);
   if (existing) {
+    // Increment duplicate_count
+    await supabase
+      .from("links")
+      .update({ duplicate_count: ((existing as any).duplicate_count || 0) + 1 } as any)
+      .eq("id", existing.id);
     throw new Error("DUPLICATE");
   }
 

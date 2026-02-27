@@ -50,12 +50,18 @@ Deno.serve(async (req) => {
     // Check for duplicate
     const { data: existing } = await serviceClient
       .from("links")
-      .select("id")
+      .select("id, duplicate_count")
       .eq("user_id", user.id)
       .eq("original_url", url)
       .maybeSingle();
 
     if (existing) {
+      // Increment duplicate_count on existing link
+      await serviceClient
+        .from("links")
+        .update({ duplicate_count: (existing.duplicate_count || 0) + 1 })
+        .eq("id", existing.id);
+
       return new Response(
         JSON.stringify({ success: true, id: existing.id, duplicate: true }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }

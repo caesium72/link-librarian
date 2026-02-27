@@ -43,13 +43,14 @@ interface LinkCardProps {
   onRetry: (id: string) => void;
   onDelete: (id: string) => void;
   onClick: (link: Link) => void;
+  onReview?: (link: Link) => void;
   selectionMode?: boolean;
   isSelected?: boolean;
   onToggleSelect?: (id: string) => void;
   isHighlighted?: boolean;
 }
 
-export function LinkCard({ link, onPin, onRetry, onDelete, onClick, selectionMode, isSelected, onToggleSelect, isHighlighted }: LinkCardProps) {
+export function LinkCard({ link, onPin, onRetry, onDelete, onClick, onReview, selectionMode, isSelected, onToggleSelect, isHighlighted }: LinkCardProps) {
   const { toast } = useToast();
   const [expanded, setExpanded] = useState(false);
   const statusInfo = statusConfig[link.status as keyof typeof statusConfig] ?? statusConfig.pending;
@@ -189,17 +190,33 @@ export function LinkCard({ link, onPin, onRetry, onDelete, onClick, selectionMod
                 <ExternalLink className="h-3 w-3" />
               </Button>
               {link.status === "failed" && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 rounded-md hover:bg-chart-3/10 hover:text-chart-3"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onRetry(link.id);
-                  }}
-                >
-                  <RefreshCw className="h-3 w-3" />
-                </Button>
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 rounded-md hover:bg-chart-3/10 hover:text-chart-3"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRetry(link.id);
+                    }}
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                  </Button>
+                  {onReview && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 rounded-md hover:bg-primary/10 hover:text-primary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onReview(link);
+                      }}
+                      title="Review failed link"
+                    >
+                      <Eye className="h-3 w-3" />
+                    </Button>
+                  )}
+                </>
               )}
               <Button
                 variant="ghost"
