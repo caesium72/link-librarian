@@ -15,9 +15,6 @@ import {
   LayoutGrid, Filter, Clock, CheckCircle2, AlertCircle,
   ArrowUpDown, ArrowDown, ArrowUp, Settings, LogOut, Menu, PanelLeftClose, BarChart3, Copy, Trash2,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 import { ImportDialog } from "@/components/ImportDialog";
 import { ExportDialog } from "@/components/ExportDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -179,18 +176,15 @@ export function FilterSidebar({
                 onClick={() => onStatClick?.("failed")}
               />
               <div className="col-span-2 grid grid-cols-2 gap-2">
-                <div className="flex items-stretch gap-1.5">
-                  <StatCard
-                    value={duplicateCount}
-                    label="Duplicates"
-                    className="bg-chart-4/10 flex-1"
-                    valueClassName="text-chart-4"
-                    active={activeStatFilter === "duplicates"}
-                    onClick={() => onStatClick?.("duplicates")}
-                    icon={<Copy className="h-3 w-3 text-chart-4" />}
-                  />
-                  <ClearDuplicatesButton />
-                </div>
+                <StatCard
+                  value={duplicateCount}
+                  label="Duplicates"
+                  className="bg-chart-4/10"
+                  valueClassName="text-chart-4"
+                  active={activeStatFilter === "duplicates"}
+                  onClick={() => onStatClick?.("duplicates")}
+                  icon={<Copy className="h-3 w-3 text-chart-4" />}
+                />
                 <StatCard
                   value={deletedCount}
                   label="Recycle Bin"
@@ -341,32 +335,3 @@ function StatCard({
   );
 }
 
-function ClearDuplicatesButton() {
-  const queryClient = useQueryClient();
-  const handleClear = async () => {
-    const { error } = await supabase
-      .from("links")
-      .update({ duplicate_count: 0 })
-      .gt("duplicate_count", 0);
-    if (error) {
-      toast.error("Failed to clear duplicates");
-    } else {
-      toast.success("Duplicate counts cleared");
-      queryClient.invalidateQueries({ queryKey: ["links"] });
-    }
-  };
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          type="button"
-          onClick={handleClear}
-          className="rounded-md border border-border bg-destructive/10 px-2 flex items-center justify-center hover:bg-destructive/20 transition-colors"
-        >
-          <Trash2 className="h-3.5 w-3.5 text-destructive" />
-        </button>
-      </TooltipTrigger>
-      <TooltipContent side="right">Clear all duplicate counts</TooltipContent>
-    </Tooltip>
-  );
-}
