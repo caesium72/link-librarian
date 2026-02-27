@@ -35,7 +35,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, LogOut, Pin, FileText, Video, GitBranch, BookOpen, Wrench, MessageSquare, LayoutGrid, LayoutList, Filter, Clock, CheckCircle2, AlertCircle, ArrowUpDown, ArrowDown, ArrowUp, Settings, RefreshCw, CheckSquare, X, Trash2, Tag, Eye, EyeOff } from "lucide-react";
+import { Search, LogOut, Pin, FileText, Video, GitBranch, BookOpen, Wrench, MessageSquare, LayoutGrid, LayoutList, Filter, Clock, CheckCircle2, AlertCircle, ArrowUpDown, ArrowDown, ArrowUp, Settings, RefreshCw, CheckSquare, X, Trash2, Tag, Eye, EyeOff, Sparkles } from "lucide-react";
 import { ImportDialog } from "@/components/ImportDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/hooks/use-toast";
@@ -454,6 +454,11 @@ const Index = () => {
                 </Button>
               )}
               <KeyboardShortcutsHelp />
+              <RouterLink to="/discover">
+                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-all" title="Discover AI & Tech Tools">
+                  <Sparkles className="h-3.5 w-3.5" />
+                </Button>
+              </RouterLink>
               <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-all" onClick={handleRefresh} disabled={isLoading}>
                 <RefreshCw className={`h-3.5 w-3.5 transition-transform duration-500 ${isLoading ? "animate-spin" : "hover:rotate-180"}`} />
               </Button>
@@ -632,6 +637,11 @@ function MobileLayout(props: any) {
               {user?.email}
             </span>
             <ImportDialog onSuccess={handleRefresh} />
+            <RouterLink to="/discover">
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Sparkles className="h-3.5 w-3.5" />
+              </Button>
+            </RouterLink>
             <ThemeToggle />
             <RouterLink to="/settings">
               <Button variant="ghost" size="icon" className="h-8 w-8">
