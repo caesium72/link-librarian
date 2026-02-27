@@ -1,5 +1,6 @@
 import { Link } from "@/types/links";
 import { LinkCard } from "@/components/LinkCard";
+import { LinkGridCard } from "@/components/LinkGridCard";
 import { Clock, CheckCircle2, AlertCircle } from "lucide-react";
 
 const sectionConfig = {
@@ -19,6 +20,8 @@ interface LinkSectionProps {
   selectedIds?: Set<string>;
   onToggleSelect?: (id: string) => void;
   indexOffset?: number;
+  viewMode?: "list" | "grid";
+  highlightedId?: string | null;
 }
 
 export function LinkSection({
@@ -32,6 +35,8 @@ export function LinkSection({
   selectedIds,
   onToggleSelect,
   indexOffset = 0,
+  viewMode = "list",
+  highlightedId,
 }: LinkSectionProps) {
   if (links.length === 0) return null;
 
@@ -49,27 +54,54 @@ export function LinkSection({
           ({links.length})
         </span>
       </div>
-      {links.map((link, index) => (
-        <div
-          key={link.id}
-          className="animate-fade-in"
-          style={{
-            animationDelay: `${Math.min((indexOffset + index) * 0.03, 0.3)}s`,
-            animationFillMode: "backwards",
-          }}
-        >
-          <LinkCard
-            link={link}
-            onPin={onPin}
-            onRetry={onRetry}
-            onDelete={onDelete}
-            onClick={onClick}
-            selectionMode={selectionMode}
-            isSelected={selectedIds?.has(link.id)}
-            onToggleSelect={onToggleSelect}
-          />
+      {viewMode === "grid" ? (
+        <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
+          {links.map((link, index) => (
+            <div
+              key={link.id}
+              className="animate-fade-in"
+              style={{
+                animationDelay: `${Math.min((indexOffset + index) * 0.03, 0.3)}s`,
+                animationFillMode: "backwards",
+              }}
+            >
+              <LinkGridCard
+                link={link}
+                onPin={onPin}
+                onDelete={onDelete}
+                onClick={onClick}
+                selectionMode={selectionMode}
+                isSelected={selectedIds?.has(link.id)}
+                onToggleSelect={onToggleSelect}
+                isHighlighted={highlightedId === link.id}
+              />
+            </div>
+          ))}
         </div>
-      ))}
+      ) : (
+        links.map((link, index) => (
+          <div
+            key={link.id}
+            className="animate-fade-in"
+            style={{
+              animationDelay: `${Math.min((indexOffset + index) * 0.03, 0.3)}s`,
+              animationFillMode: "backwards",
+            }}
+          >
+            <LinkCard
+              link={link}
+              onPin={onPin}
+              onRetry={onRetry}
+              onDelete={onDelete}
+              onClick={onClick}
+              selectionMode={selectionMode}
+              isSelected={selectedIds?.has(link.id)}
+              onToggleSelect={onToggleSelect}
+              isHighlighted={highlightedId === link.id}
+            />
+          </div>
+        ))
+      )}
     </div>
   );
 }
