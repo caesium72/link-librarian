@@ -212,13 +212,49 @@ Based on the URL, domain, title, and description, provide:
       });
     }
 
-    // Step 3: Update link with analysis results
+    // Step 3: Apply user's auto-tagging rules
+    let finalTags = analysis.tags || [];
+    try {
+      const { data: rules } = await supabase
+        .from("tagging_rules")
+        .select("condition_type, condition_value, tag")
+        .eq("user_id", link.user_id)
+        .eq("is_active", true);
+
+      if (rules) {
+        for (const rule of rules) {
+          let match = false;
+          const val = rule.condition_value.toLowerCase();
+          switch (rule.condition_type) {
+            case "domain_contains":
+              match = finalDomain.toLowerCase().includes(val);
+              break;
+            case "domain_equals":
+              match = finalDomain.toLowerCase() === val;
+              break;
+            case "url_contains":
+              match = url.toLowerCase().includes(val);
+              break;
+            case "title_contains":
+              match = (analysis.clean_title || "").toLowerCase().includes(val);
+              break;
+          }
+          if (match && !finalTags.includes(rule.tag)) {
+            finalTags.push(rule.tag);
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Failed to apply tagging rules:", e);
+    }
+
+    // Step 4: Update link with analysis results
     const { error: updateError } = await supabase
       .from("links")
       .update({
         title: analysis.clean_title,
         summary: analysis.summary,
-        tags: analysis.tags,
+        tags: finalTags,
         content_type: analysis.content_type,
         key_points: analysis.key_points,
         confidence_score: Math.min(1, Math.max(0, analysis.confidence)),
