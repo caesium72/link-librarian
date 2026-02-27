@@ -13,6 +13,7 @@ import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
 import SharedCollection from "./pages/SharedCollection";
 import Discover from "./pages/Discover";
+import Digest from "./pages/Digest";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/shared/:slug" element={<SharedCollection />} />
             <Route path="/discover" element={<Discover />} />
             <Route path="/analytics" element={<Analytics />} />
+            <Route path="/digest" element={<Digest />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
