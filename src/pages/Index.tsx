@@ -551,6 +551,7 @@ const Index = () => {
             onUpdate={handleUpdate}
             onRetry={(id) => retryMutation.mutate(id)}
             onDelete={(id) => deleteMutation.mutate(id)}
+            onSelectLink={(link) => setSelectedLink(link)}
           />
         </aside>
       )}
@@ -885,6 +886,7 @@ function MobileLayout(props: any) {
         onUpdate={handleUpdate}
         onRetry={(id) => retryMutation.mutate(id)}
         onDelete={(id) => deleteMutation.mutate(id)}
+        onSelectLink={(link) => setSelectedLink(link)}
       />
 
       {/* Bulk Delete Confirmation */}

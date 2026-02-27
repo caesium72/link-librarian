@@ -1,5 +1,6 @@
 import { Link } from "@/types/links";
 import { Badge } from "@/components/ui/badge";
+import { SimilarLinks } from "@/components/SimilarLinks";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -27,9 +28,10 @@ interface LinkDetailProps {
   onUpdate: (id: string, updates: Partial<Link>) => void;
   onRetry: (id: string) => void;
   onDelete: (id: string) => void;
+  onSelectLink?: (link: Link) => void;
 }
 
-export function LinkDetail({ link, open, onClose, onUpdate, onRetry, onDelete }: LinkDetailProps) {
+export function LinkDetail({ link, open, onClose, onUpdate, onRetry, onDelete, onSelectLink }: LinkDetailProps) {
   const { toast } = useToast();
   const [notes, setNotes] = useState("");
   const [tagsInput, setTagsInput] = useState("");
@@ -235,6 +237,11 @@ export function LinkDetail({ link, open, onClose, onUpdate, onRetry, onDelete }:
               Delete
             </Button>
           </div>
+
+          {/* Similar Links */}
+          {link.status === "ready" && (
+            <SimilarLinks linkId={link.id} onSelectLink={onSelectLink} />
+          )}
         </div>
       </SheetContent>
     </Sheet>
