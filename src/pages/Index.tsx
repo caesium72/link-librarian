@@ -36,6 +36,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Search, LogOut, Pin, FileText, Video, GitBranch, BookOpen, Wrench, MessageSquare, LayoutGrid, LayoutList, Filter, Clock, CheckCircle2, AlertCircle, ArrowUpDown, ArrowDown, ArrowUp, Settings, RefreshCw, CheckSquare, X, Trash2, Tag, Eye, EyeOff, Sparkles } from "lucide-react";
+import { SmartSearchDialog } from "@/components/SmartSearchDialog";
 import { ImportDialog } from "@/components/ImportDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/hooks/use-toast";
@@ -454,9 +455,10 @@ const Index = () => {
                 </Button>
               )}
               <KeyboardShortcutsHelp />
+              <SmartSearchDialog onSelectLink={(link) => setSelectedLink(link)} />
               <RouterLink to="/discover">
                 <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-all" title="Discover AI & Tech Tools">
-                  <Sparkles className="h-3.5 w-3.5" />
+                  <Search className="h-3.5 w-3.5" />
                 </Button>
               </RouterLink>
               <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-all" onClick={handleRefresh} disabled={isLoading}>
