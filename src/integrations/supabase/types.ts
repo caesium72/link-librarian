@@ -57,8 +57,10 @@ export type Database = {
           description: string | null
           icon: string | null
           id: string
+          is_public: boolean
           name: string
           position: number
+          public_slug: string | null
           updated_at: string
           user_id: string
         }
@@ -68,8 +70,10 @@ export type Database = {
           description?: string | null
           icon?: string | null
           id?: string
+          is_public?: boolean
           name: string
           position?: number
+          public_slug?: string | null
           updated_at?: string
           user_id: string
         }
@@ -79,8 +83,10 @@ export type Database = {
           description?: string | null
           icon?: string | null
           id?: string
+          is_public?: boolean
           name?: string
           position?: number
+          public_slug?: string | null
           updated_at?: string
           user_id?: string
         }

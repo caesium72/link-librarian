@@ -11,6 +11,7 @@ import Settings from "./pages/Settings";
 import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
+import SharedCollection from "./pages/SharedCollection";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/shared/:slug" element={<SharedCollection />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

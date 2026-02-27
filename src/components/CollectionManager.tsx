@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchCollections, createCollection, deleteCollection, updateCollection } from "@/lib/api/collections";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +12,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { FolderPlus, Folder, Trash2, Pencil, Check, X, Plus } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { FolderPlus, Folder, Trash2, Pencil, Check, X, Plus, Share2, Link2, LinkIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import type { Collection } from "@/types/collections";
@@ -151,6 +157,63 @@ export function CollectionManager({ selectedCollectionId, onSelectCollection, co
                 <span className="truncate">{col.name}</span>
               </Button>
               <div className="flex opacity-0 group-hover:opacity-100 transition-opacity">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={cn("h-6 w-6", col.is_public && "text-primary opacity-100")}
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        const isPublic = !col.is_public;
+                        const slug = isPublic && !col.public_slug
+                          ? col.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + "-" + col.id.slice(0, 6)
+                          : col.public_slug;
+
+                        const { error } = await supabase
+                          .from("collections")
+                          .update({ is_public: isPublic, public_slug: slug })
+                          .eq("id", col.id);
+
+                        if (error) {
+                          toast({ title: "Error", description: error.message, variant: "destructive" });
+                        } else if (isPublic) {
+                          const url = `${window.location.origin}/shared/${slug}`;
+                          navigator.clipboard.writeText(url);
+                          toast({ title: "Collection is now public!", description: "Share link copied to clipboard." });
+                        } else {
+                          toast({ title: "Collection is now private" });
+                        }
+                        queryClient.invalidateQueries({ queryKey: ["collections"] });
+                      }}
+                    >
+                      <Share2 className="h-2.5 w-2.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">
+                    {col.is_public ? "Make private" : "Share publicly"}
+                  </TooltipContent>
+                </Tooltip>
+                {col.is_public && col.public_slug && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 opacity-100"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const url = `${window.location.origin}/shared/${col.public_slug}`;
+                          navigator.clipboard.writeText(url);
+                          toast({ title: "Share link copied!" });
+                        }}
+                      >
+                        <LinkIcon className="h-2.5 w-2.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">Copy share link</TooltipContent>
+                  </Tooltip>
+                )}
                 <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setEditingId(col.id); setEditName(col.name); }}>
                   <Pencil className="h-2.5 w-2.5" />
                 </Button>
