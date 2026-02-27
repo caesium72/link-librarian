@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AddToCollectionMenu } from "@/components/AddToCollectionMenu";
+import { HealthStatusIndicator } from "@/components/HealthStatusIndicator";
 import { cn } from "@/lib/utils";
 
 const statusConfig = {
@@ -109,6 +110,11 @@ export function LinkCard({ link, onPin, onRetry, onDelete, onClick, onReview, se
               {!(link as any).is_read && (
                 <Eye className="h-3 w-3 text-primary shrink-0" />
               )}
+              <HealthStatusIndicator
+                healthStatus={(link as any).health_status}
+                healthStatusCode={(link as any).health_status_code}
+                lastHealthCheck={(link as any).last_health_check}
+              />
               <span className={cn(
                 "h-2 w-2 rounded-full shrink-0 transition-all duration-300",
                 statusInfo.dot,

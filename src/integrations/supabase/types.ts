@@ -102,10 +102,13 @@ export type Database = {
           domain: string | null
           duplicate_count: number
           fts: unknown
+          health_status: string | null
+          health_status_code: number | null
           id: string
           is_pinned: boolean
           is_read: boolean
           key_points: string[] | null
+          last_health_check: string | null
           notes: string | null
           original_url: string
           save_count: number
@@ -125,10 +128,13 @@ export type Database = {
           domain?: string | null
           duplicate_count?: number
           fts?: unknown
+          health_status?: string | null
+          health_status_code?: number | null
           id?: string
           is_pinned?: boolean
           is_read?: boolean
           key_points?: string[] | null
+          last_health_check?: string | null
           notes?: string | null
           original_url: string
           save_count?: number
@@ -148,10 +154,13 @@ export type Database = {
           domain?: string | null
           duplicate_count?: number
           fts?: unknown
+          health_status?: string | null
+          health_status_code?: number | null
           id?: string
           is_pinned?: boolean
           is_read?: boolean
           key_points?: string[] | null
+          last_health_check?: string | null
           notes?: string | null
           original_url?: string
           save_count?: number
