@@ -339,27 +339,63 @@ const Settings = () => {
             <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50 text-xs text-muted-foreground">
               <Globe className="h-3.5 w-3.5 mt-0.5 shrink-0" />
               <span>
-                For security, individual session details are not exposed. Use the button below to sign out from all other devices at once.
+                Individual session details are not exposed for security. Use the options below to manage your sessions.
               </span>
             </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="font-mono gap-2"
-              onClick={async () => {
-                try {
-                  const { error } = await supabase.auth.signOut({ scope: "others" as any });
-                  if (error) throw error;
-                  toast({ title: "Signed out from all other devices", description: "Only this session remains active." });
-                } catch (e: any) {
-                  toast({ title: "Error", description: e.message, variant: "destructive" });
-                }
-              }}
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              Sign out all other devices
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="font-mono gap-2"
+                onClick={async () => {
+                  try {
+                    await supabase.auth.signOut({ scope: "local" });
+                    navigate("/auth");
+                  } catch (e: any) {
+                    toast({ title: "Error", description: e.message, variant: "destructive" });
+                  }
+                }}
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                Sign out this device
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="font-mono gap-2"
+                onClick={async () => {
+                  try {
+                    const { error } = await supabase.auth.signOut({ scope: "others" as any });
+                    if (error) throw error;
+                    toast({ title: "Signed out from all other devices", description: "Only this session remains active." });
+                  } catch (e: any) {
+                    toast({ title: "Error", description: e.message, variant: "destructive" });
+                  }
+                }}
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                Sign out other devices
+              </Button>
+
+              <Button
+                variant="destructive"
+                size="sm"
+                className="font-mono gap-2"
+                onClick={async () => {
+                  try {
+                    await supabase.auth.signOut({ scope: "global" });
+                    navigate("/auth");
+                  } catch (e: any) {
+                    toast({ title: "Error", description: e.message, variant: "destructive" });
+                  }
+                }}
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                Sign out everywhere
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
