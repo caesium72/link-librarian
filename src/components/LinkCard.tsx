@@ -15,6 +15,7 @@ import {
   Trash2,
   ChevronDown,
   Sparkles,
+  Eye,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AddToCollectionMenu } from "@/components/AddToCollectionMenu";
@@ -45,9 +46,10 @@ interface LinkCardProps {
   selectionMode?: boolean;
   isSelected?: boolean;
   onToggleSelect?: (id: string) => void;
+  isHighlighted?: boolean;
 }
 
-export function LinkCard({ link, onPin, onRetry, onDelete, onClick, selectionMode, isSelected, onToggleSelect }: LinkCardProps) {
+export function LinkCard({ link, onPin, onRetry, onDelete, onClick, selectionMode, isSelected, onToggleSelect, isHighlighted }: LinkCardProps) {
   const { toast } = useToast();
   const [expanded, setExpanded] = useState(false);
   const statusInfo = statusConfig[link.status as keyof typeof statusConfig] ?? statusConfig.pending;
@@ -74,7 +76,9 @@ export function LinkCard({ link, onPin, onRetry, onDelete, onClick, selectionMod
         "before:absolute before:inset-0 before:rounded-[inherit] before:opacity-0 before:transition-opacity before:duration-300",
         "hover:before:opacity-100 before:bg-gradient-to-r before:from-primary/[0.03] before:to-transparent before:pointer-events-none",
         isSelected ? "border-primary ring-2 ring-primary/20 shadow-md" : "hover:border-primary/40",
-        expanded && "shadow-lg border-primary/30 ring-1 ring-primary/10"
+        expanded && "shadow-lg border-primary/30 ring-1 ring-primary/10",
+        isHighlighted && "ring-2 ring-primary/40 border-primary",
+        !(link as any).is_read && "border-l-2 border-l-primary"
       )}
       onClick={handleClick}
     >
@@ -100,6 +104,9 @@ export function LinkCard({ link, onPin, onRetry, onDelete, onClick, selectionMod
             <div className="flex items-center gap-2 mb-1">
               {link.is_pinned && (
                 <Pin className="h-3 w-3 text-primary shrink-0 animate-scale-in" />
+              )}
+              {!(link as any).is_read && (
+                <Eye className="h-3 w-3 text-primary shrink-0" />
               )}
               <span className={cn(
                 "h-2 w-2 rounded-full shrink-0 transition-all duration-300",

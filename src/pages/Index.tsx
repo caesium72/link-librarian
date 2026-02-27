@@ -14,6 +14,8 @@ import { FilterSidebar } from "@/components/FilterSidebar";
 import { Input } from "@/components/ui/input";
 import { AddLinkInput } from "@/components/AddLinkInput";
 import { Button } from "@/components/ui/button";
+import { KeyboardShortcutsHelp } from "@/components/KeyboardShortcutsHelp";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import {
   Select,
   SelectContent,
@@ -31,7 +33,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, LogOut, Pin, FileText, Video, GitBranch, BookOpen, Wrench, MessageSquare, LayoutGrid, Filter, Clock, CheckCircle2, AlertCircle, ArrowUpDown, ArrowDown, ArrowUp, Settings, RefreshCw, CheckSquare, X, Trash2, Tag } from "lucide-react";
+import { Search, LogOut, Pin, FileText, Video, GitBranch, BookOpen, Wrench, MessageSquare, LayoutGrid, LayoutList, Filter, Clock, CheckCircle2, AlertCircle, ArrowUpDown, ArrowDown, ArrowUp, Settings, RefreshCw, CheckSquare, X, Trash2, Tag, Eye, EyeOff } from "lucide-react";
 import { ImportDialog } from "@/components/ImportDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/hooks/use-toast";
@@ -55,11 +57,25 @@ const Index = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try { return localStorage.getItem("sidebar-collapsed") === "true"; } catch { return false; }
   });
+  const [viewMode, setViewMode] = useState<"list" | "grid">(() => {
+    try { return (localStorage.getItem("view-mode") as "list" | "grid") || "list"; } catch { return "list"; }
+  });
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [readFilter, setReadFilter] = useState<"all" | "unread" | "read">("all");
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const toggleSidebar = useCallback(() => {
     setSidebarCollapsed((prev) => {
       const next = !prev;
       try { localStorage.setItem("sidebar-collapsed", String(next)); } catch {}
+      return next;
+    });
+  }, []);
+
+  const toggleViewMode = useCallback(() => {
+    setViewMode((prev) => {
+      const next = prev === "list" ? "grid" : "list";
+      try { localStorage.setItem("view-mode", next); } catch {}
       return next;
     });
   }, []);
@@ -97,10 +113,15 @@ const Index = () => {
     enabled: !!selectedCollectionId,
   });
 
-  // Filter links by collection if one is selected
-  const filteredLinks = selectedCollectionId && collectionLinkIds
-    ? links.filter((l) => collectionLinkIds.includes(l.id))
-    : links;
+  // Filter links by collection and read status
+  const filteredLinks = (() => {
+    let result = selectedCollectionId && collectionLinkIds
+      ? links.filter((l) => collectionLinkIds.includes(l.id))
+      : links;
+    if (readFilter === "unread") result = result.filter((l) => !(l as any).is_read);
+    if (readFilter === "read") result = result.filter((l) => (l as any).is_read);
+    return result;
+  })();
 
   // Realtime subscription for live updates
   const linkCountRef = useRef(links.length);
@@ -213,6 +234,32 @@ const Index = () => {
 
   const handleRefresh = () => queryClient.invalidateQueries({ queryKey: ["links"] });
 
+  // Mark link as read when selected
+  const handleSelectLink = useCallback((link: Link) => {
+    setSelectedLink(link);
+    if (!(link as any).is_read) {
+      updateMutation.mutate({ id: link.id, updates: { is_read: true } as any });
+    }
+  }, [updateMutation]);
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    onFocusSearch: () => searchInputRef.current?.focus(),
+    onNavigateDown: () => setHighlightedIndex((prev) => Math.min(prev + 1, filteredLinks.length - 1)),
+    onNavigateUp: () => setHighlightedIndex((prev) => Math.max(prev - 1, 0)),
+    onOpenLink: () => {
+      if (highlightedIndex >= 0 && highlightedIndex < filteredLinks.length) {
+        handleSelectLink(filteredLinks[highlightedIndex]);
+      }
+    },
+    onCloseDetail: () => {
+      setSelectedLink(null);
+      setHighlightedIndex(-1);
+    },
+    onToggleView: toggleViewMode,
+    enabled: !selectionMode,
+  });
+
   if (authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -235,7 +282,7 @@ const Index = () => {
         statusFilter={statusFilter} setStatusFilter={setStatusFilter}
         sortBy={sortBy} setSortBy={setSortBy}
         showPinned={showPinned} setShowPinned={setShowPinned}
-        selectedLink={selectedLink} setSelectedLink={setSelectedLink}
+        selectedLink={selectedLink} setSelectedLink={handleSelectLink}
         selectionMode={selectionMode} setSelectionMode={setSelectionMode}
         selectedIds={selectedIds} toggleSelect={toggleSelect} selectAll={selectAll}
         exitSelectionMode={exitSelectionMode}
@@ -273,18 +320,38 @@ const Index = () => {
             <div className="relative flex-1 group/search">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground transition-colors group-focus-within/search:text-primary" />
               <Input
-                placeholder="Search links..."
+                ref={searchInputRef}
+                placeholder="Search links... (press /)"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9 font-mono text-sm h-9 transition-all duration-200 focus:shadow-sm focus:shadow-primary/10"
               />
             </div>
             <div className="flex items-center gap-1">
+              <Button
+                variant={readFilter === "unread" ? "default" : readFilter === "read" ? "secondary" : "ghost"}
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setReadFilter((prev) => prev === "all" ? "unread" : prev === "unread" ? "read" : "all")}
+                title={`Filter: ${readFilter}`}
+              >
+                {readFilter === "read" ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-all"
+                onClick={toggleViewMode}
+                title={viewMode === "list" ? "Switch to grid" : "Switch to list"}
+              >
+                {viewMode === "list" ? <LayoutGrid className="h-3.5 w-3.5" /> : <LayoutList className="h-3.5 w-3.5" />}
+              </Button>
               {filteredLinks.length > 0 && !selectionMode && (
                 <Button variant="outline" size="sm" className="h-8 text-xs font-mono gap-1.5 hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all" onClick={() => setSelectionMode(true)}>
                   <CheckSquare className="h-3 w-3" /> Select
                 </Button>
               )}
+              <KeyboardShortcutsHelp />
               <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-all" onClick={handleRefresh} disabled={isLoading}>
                 <RefreshCw className={`h-3.5 w-3.5 transition-transform duration-500 ${isLoading ? "animate-spin" : "hover:rotate-180"}`} />
               </Button>
@@ -332,14 +399,18 @@ const Index = () => {
                 const readyLinks = filteredLinks.filter((l) => l.status === "ready");
                 const pendingLinks = filteredLinks.filter((l) => l.status === "pending");
                 const failedLinks = filteredLinks.filter((l) => l.status === "failed");
+                const highlightedLinkId = highlightedIndex >= 0 && highlightedIndex < filteredLinks.length
+                  ? filteredLinks[highlightedIndex].id : null;
                 const cardProps = {
                   onPin: (id: string, pinned: boolean) => handleUpdate(id, { is_pinned: !pinned }),
                   onRetry: (id: string) => retryMutation.mutate(id),
                   onDelete: (id: string) => deleteMutation.mutate(id),
-                  onClick: setSelectedLink,
+                  onClick: handleSelectLink,
                   selectionMode,
                   selectedIds,
                   onToggleSelect: toggleSelect,
+                  viewMode,
+                  highlightedId: highlightedLinkId,
                 };
                 return (
                   <>
@@ -657,7 +728,7 @@ function MobileLayout(props: any) {
                 onPin: (id: string, pinned: boolean) => handleUpdate(id, { is_pinned: !pinned }),
                 onRetry: (id: string) => retryMutation.mutate(id),
                 onDelete: (id: string) => deleteMutation.mutate(id),
-                onClick: setSelectedLink,
+                onClick: props.setSelectedLink,
                 selectionMode,
                 selectedIds,
                 onToggleSelect: toggleSelect,

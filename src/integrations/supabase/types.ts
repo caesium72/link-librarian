@@ -96,6 +96,7 @@ export type Database = {
           fts: unknown
           id: string
           is_pinned: boolean
+          is_read: boolean
           key_points: string[] | null
           notes: string | null
           original_url: string
@@ -116,6 +117,7 @@ export type Database = {
           fts?: unknown
           id?: string
           is_pinned?: boolean
+          is_read?: boolean
           key_points?: string[] | null
           notes?: string | null
           original_url: string
@@ -136,6 +138,7 @@ export type Database = {
           fts?: unknown
           id?: string
           is_pinned?: boolean
+          is_read?: boolean
           key_points?: string[] | null
           notes?: string | null
           original_url?: string
