@@ -16,28 +16,43 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY not configured");
     }
 
-    const { category } = await req.json().catch(() => ({ category: "all" }));
+    const { category, searchQuery } = await req.json().catch(() => ({ category: "all", searchQuery: "" }));
 
     const categoryPrompts: Record<string, string> = {
-      all: "new AI tools, software development tools, and technology products",
-      ai: "new AI and machine learning tools, LLMs, AI assistants, and AI-powered applications",
-      dev: "new software development tools, IDEs, frameworks, libraries, and developer utilities",
-      productivity: "new productivity and automation tools for software engineers and tech workers",
-      opensource: "new trending open-source projects and tools on GitHub",
+      all: "new AI tools, software development tools, developer frameworks, CLI utilities, code editors, DevOps platforms, cloud services, and technology products",
+      ai: "new AI and machine learning tools, LLMs, AI agents, AI code assistants, AI-powered IDEs, computer vision tools, NLP libraries, vector databases, model fine-tuning platforms, prompt engineering tools, and AI infrastructure",
+      dev: "new software development tools, IDEs, code editors, debugging tools, testing frameworks, build tools, package managers, CI/CD platforms, API development tools, database tools, and developer utilities",
+      productivity: "new productivity and automation tools for software engineers including workflow automation, project management, documentation generators, note-taking for developers, time tracking, terminal tools, and developer experience platforms",
+      opensource: "new trending open-source projects on GitHub including libraries, frameworks, CLI tools, self-hosted alternatives, developer tools, infrastructure tools, and community-driven projects",
     };
 
     const focus = categoryPrompts[category] || categoryPrompts.all;
 
-    const prompt = `You are a tech researcher. Find and list 25 recently launched or trending ${focus}.
+    let searchContext = "";
+    if (searchQuery && searchQuery.trim()) {
+      searchContext = `\n\nIMPORTANT: The user is specifically searching for: "${searchQuery}". Focus your research heavily on tools related to this search query. Find tools that match this topic, solve problems in this domain, or are closely related alternatives.`;
+    }
+
+    const prompt = `You are an expert tech industry researcher and tool scout. Your job is to do DEEP research — not surface-level mainstream tools everyone already knows.
+
+Find and list 30 recently launched, trending, or hidden-gem ${focus}.${searchContext}
+
+RESEARCH DEPTH REQUIREMENTS:
+- Go beyond the obvious top-10 lists. Include niche, specialized, and indie tools.
+- Include tools from Product Hunt launches, GitHub trending, Hacker News discussions, indie hacker communities, and specialized tech blogs.
+- Mix well-known new releases (30%) with lesser-known gems and indie tools (70%).
+- Include tools at various stages: just launched, beta, growing traction, and recently pivoted.
+- Cover the FULL ecosystem: CLI tools, browser extensions, VS Code extensions, SaaS platforms, self-hosted solutions, libraries, frameworks, APIs, and infrastructure.
+- Prioritize tools from 2025-2026 but include standout 2024 tools gaining momentum now.
 
 For each tool, provide:
-1. name - The tool/product name
-2. url - The official website URL
-3. description - A concise 1-2 sentence description of what it does
+1. name - The tool/product name (be precise)
+2. url - The official website URL (must be accurate and real)
+3. description - A detailed 2-3 sentence description explaining what it does, what problem it solves, and why it's notable
 4. category - One of: "ai", "dev-tool", "productivity", "open-source", "framework", "saas"
-5. tags - 2-4 relevant lowercase tags
+5. tags - 3-5 relevant lowercase tags that help with filtering and discovery
 
-Focus on tools launched or gaining traction in 2025-2026. Include a mix of well-known new releases and hidden gems. Be specific and accurate with URLs.`;
+Be thorough, accurate, and diverse in your selections. Avoid listing generic well-known tools like "GitHub" or "VS Code" unless they have significant new features worth highlighting.`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -50,7 +65,7 @@ Focus on tools launched or gaining traction in 2025-2026. Include a mix of well-
         messages: [
           {
             role: "system",
-            content: "You are a tech industry researcher specializing in discovering new AI and software tools. Always return accurate, real tools with valid URLs.",
+            content: "You are a deep-research tech industry analyst specializing in discovering cutting-edge, niche, and emerging AI and software tools. You go far beyond surface-level mainstream tools. Always return accurate, real tools with valid URLs. Never make up tools or URLs.",
           },
           { role: "user", content: prompt },
         ],

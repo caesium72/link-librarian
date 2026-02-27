@@ -5,11 +5,12 @@ import { useRequireAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { addLink } from "@/lib/api/links";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/hooks/use-toast";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ArrowLeft, Search, Sparkles, ExternalLink, Plus, RefreshCw,
@@ -43,21 +44,22 @@ const categoryColors: Record<string, string> = {
 };
 
 export default function Discover() {
-  const { user, loading: authLoading } = useRequireAuth();
+  const { loading: authLoading } = useRequireAuth();
   const { toast } = useToast();
   const [tools, setTools] = useState<DiscoveredTool[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [savingUrl, setSavingUrl] = useState<string | null>(null);
   const [category, setCategory] = useState("all");
   const [hasSearched, setHasSearched] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const discover = async (cat: string) => {
+  const discover = async (cat: string, query?: string) => {
     setIsLoading(true);
     setCategory(cat);
     setHasSearched(true);
     try {
       const { data, error } = await supabase.functions.invoke("discover-tools", {
-        body: { category: cat },
+        body: { category: cat, searchQuery: query ?? searchQuery },
       });
       if (error) throw error;
       if (data?.tools) {
@@ -70,6 +72,12 @@ export default function Discover() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    discover(category, searchQuery);
   };
 
   const saveToLibrary = async (tool: DiscoveredTool) => {
@@ -114,16 +122,35 @@ export default function Discover() {
         </div>
       </header>
 
-      <main className="container px-4 py-6 max-w-4xl">
+      <main className="container px-4 py-6 max-w-5xl">
         {/* Hero */}
         <div className="text-center mb-6">
           <div className="inline-flex items-center gap-2 mb-2 text-primary">
             <Sparkles className="h-5 w-5" />
-            <span className="text-xs font-mono uppercase tracking-wider">AI-Powered Research</span>
+            <span className="text-xs font-mono uppercase tracking-wider">Deep AI-Powered Research</span>
           </div>
           <h2 className="text-2xl font-bold mb-1">Discover New AI & Tech Tools</h2>
-          <p className="text-sm text-muted-foreground">Let AI research the latest tools and save them to your library with one click.</p>
+          <p className="text-sm text-muted-foreground">Deep research beyond surface-level — find hidden gems, indie tools, and cutting-edge tech.</p>
         </div>
+
+        {/* Search bar */}
+        <form onSubmit={handleSearch} className="mb-5">
+          <div className="flex gap-2 max-w-2xl mx-auto">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search for specific tools, e.g. 'AI code review', 'vector database', 'terminal emulator'..."
+                className="pl-9 font-mono text-sm"
+              />
+            </div>
+            <Button type="submit" disabled={isLoading || !searchQuery.trim()} className="gap-1.5 font-mono text-sm">
+              <Search className="h-4 w-4" />
+              Research
+            </Button>
+          </div>
+        </form>
 
         {/* Category tabs */}
         <Tabs defaultValue="all" onValueChange={(v) => discover(v)} className="mb-6">
@@ -136,9 +163,13 @@ export default function Discover() {
           </TabsList>
         </Tabs>
 
-        {/* Refresh */}
+        {/* Refresh + count */}
         {hasSearched && !isLoading && (
-          <div className="flex justify-end mb-4">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-xs text-muted-foreground font-mono">
+              {tools.length} tools discovered
+              {searchQuery && <> for "<span className="text-foreground">{searchQuery}</span>"</>}
+            </span>
             <Button variant="outline" size="sm" className="gap-1.5 text-xs font-mono" onClick={() => discover(category)}>
               <RefreshCw className="h-3 w-3" /> Refresh
             </Button>
@@ -147,24 +178,31 @@ export default function Discover() {
 
         {/* Loading */}
         {isLoading && (
-          <div className="grid gap-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Card key={i}>
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <Skeleton className="h-10 w-10 rounded-lg shrink-0" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-4 w-48" />
-                      <Skeleton className="h-3 w-full" />
-                      <div className="flex gap-1.5">
-                        <Skeleton className="h-5 w-12 rounded-full" />
-                        <Skeleton className="h-5 w-16 rounded-full" />
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground font-mono text-center mb-4 animate-pulse">
+              🔍 Deep researching {searchQuery ? `"${searchQuery}"` : category} tools...
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <Card key={i}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <Skeleton className="h-10 w-10 rounded-lg shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-48" />
+                        <Skeleton className="h-3 w-full" />
+                        <Skeleton className="h-3 w-3/4" />
+                        <div className="flex gap-1.5">
+                          <Skeleton className="h-5 w-12 rounded-full" />
+                          <Skeleton className="h-5 w-16 rounded-full" />
+                          <Skeleton className="h-5 w-14 rounded-full" />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         )}
 
@@ -173,9 +211,10 @@ export default function Discover() {
           <Card className="border-dashed">
             <CardContent className="p-8 text-center">
               <Search className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground mb-4">Click a category above to discover the latest tools</p>
+              <p className="text-sm text-muted-foreground mb-1">Search for specific tools or click a category to start deep discovery</p>
+              <p className="text-xs text-muted-foreground mb-4">Try: "AI code generation", "self-hosted analytics", "Rust CLI tools"</p>
               <Button onClick={() => discover("all")} className="gap-1.5">
-                <Sparkles className="h-4 w-4" /> Start Discovering
+                <Sparkles className="h-4 w-4" /> Start Deep Discovery
               </Button>
             </CardContent>
           </Card>
@@ -183,7 +222,7 @@ export default function Discover() {
 
         {/* Results */}
         {!isLoading && tools.length > 0 && (
-          <div className="grid gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             {tools.map((tool, i) => (
               <Card key={i} className="group hover:border-primary/30 transition-colors">
                 <CardContent className="p-4">
@@ -193,7 +232,7 @@ export default function Discover() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
-                        <div>
+                        <div className="min-w-0">
                           <h3 className="font-semibold text-sm leading-tight">{tool.name}</h3>
                           <a href={tool.url} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-primary truncate block font-mono">
                             {tool.url.replace(/^https?:\/\//, "").replace(/\/$/, "")}
@@ -208,11 +247,11 @@ export default function Discover() {
                           onClick={() => saveToLibrary(tool)}
                         >
                           <Plus className="h-3 w-3" />
-                          {savingUrl === tool.url ? "Saving..." : "Save"}
+                          {savingUrl === tool.url ? "..." : "Save"}
                         </Button>
                       </div>
-                      <p className="text-sm text-muted-foreground mt-1">{tool.description}</p>
-                      <div className="flex flex-wrap gap-1.5 mt-2">
+                      <p className="text-xs text-muted-foreground mt-1.5 line-clamp-3">{tool.description}</p>
+                      <div className="flex flex-wrap gap-1 mt-2">
                         <Badge variant="secondary" className="text-[10px] font-mono">
                           {tool.category}
                         </Badge>
