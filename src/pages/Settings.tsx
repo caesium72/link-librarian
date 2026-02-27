@@ -11,6 +11,7 @@ import { ArrowLeft, Bot, CheckCircle2, AlertCircle, Loader2, Eye, EyeOff, Lock, 
 import { Link } from "react-router-dom";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ExportDialog } from "@/components/ExportDialog";
+import { BrowserExtensionCard } from "@/components/settings/BrowserExtensionCard";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,7 +44,7 @@ function getOSName() {
 }
 
 const Settings = () => {
-  const { user, loading: authLoading } = useRequireAuth();
+  const { user, session, loading: authLoading } = useRequireAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -285,6 +286,12 @@ const Settings = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Browser Bookmarklet */}
+        <BrowserExtensionCard
+          supabaseUrl={import.meta.env.VITE_SUPABASE_URL}
+          accessToken={session?.access_token ?? ""}
+        />
 
         {/* Export Data */}
         <Card className="mt-6">
