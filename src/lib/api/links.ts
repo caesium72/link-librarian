@@ -26,6 +26,7 @@ export async function fetchLinks({
   let query = supabase
     .from("links")
     .select("*")
+    .is("deleted_at", null)
     .order(sort.column, { ascending: sort.ascending });
 
   if (search && search.trim()) {
@@ -63,12 +64,51 @@ export async function updateLink(id: string, updates: Partial<Link>) {
 }
 
 export async function deleteLink(id: string) {
+  // Soft delete
+  const { error } = await supabase
+    .from("links")
+    .update({ deleted_at: new Date().toISOString() } as any)
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export async function permanentDeleteLink(id: string) {
   const { error } = await supabase.from("links").delete().eq("id", id);
   if (error) throw error;
 }
 
+export async function restoreLink(id: string) {
+  const { error } = await supabase
+    .from("links")
+    .update({ deleted_at: null } as any)
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export async function fetchDeletedLinks(): Promise<Link[]> {
+  const { data, error } = await supabase
+    .from("links")
+    .select("*")
+    .not("deleted_at", "is", null)
+    .order("deleted_at", { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function emptyTrash() {
+  const { error } = await supabase
+    .from("links")
+    .delete()
+    .not("deleted_at", "is", null);
+  if (error) throw error;
+}
+
 export async function bulkDeleteLinks(ids: string[]) {
-  const { error } = await supabase.from("links").delete().in("id", ids);
+  // Soft delete
+  const { error } = await supabase
+    .from("links")
+    .update({ deleted_at: new Date().toISOString() } as any)
+    .in("id", ids);
   if (error) throw error;
 }
 

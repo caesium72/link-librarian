@@ -3,7 +3,7 @@ import { Link as RouterLink } from "react-router-dom";
 import logo from "@/assets/logo.png";
 import { useRequireAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchLinks, updateLink, retryAnalysis, deleteLink, bulkDeleteLinks, bulkAddTag } from "@/lib/api/links";
+import { fetchLinks, updateLink, retryAnalysis, deleteLink, bulkDeleteLinks, bulkAddTag, fetchDeletedLinks, restoreLink, emptyTrash, permanentDeleteLink } from "@/lib/api/links";
 import { fetchCollectionLinkIds } from "@/lib/api/collections";
 import { supabase } from "@/integrations/supabase/client";
 import { LinkCard } from "@/components/LinkCard";
@@ -16,6 +16,7 @@ import { AddLinkInput } from "@/components/AddLinkInput";
 import { Button } from "@/components/ui/button";
 import { KeyboardShortcutsHelp } from "@/components/KeyboardShortcutsHelp";
 import { FailedLinkReviewDialog } from "@/components/FailedLinkReviewDialog";
+import { RecycleBinView } from "@/components/RecycleBinView";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import {
   Select,
@@ -128,6 +129,14 @@ const Index = () => {
     return result;
   })();
 
+  // Fetch deleted links count
+  const { data: deletedLinks = [] } = useQuery({
+    queryKey: ["deleted-links"],
+    queryFn: fetchDeletedLinks,
+    enabled: !!user,
+  });
+  const deletedCount = deletedLinks.length;
+
   // Compute stats
   const pendingCount = filteredLinks.filter((l) => l.status === "pending").length;
   const readyCount = filteredLinks.filter((l) => l.status === "ready").length;
@@ -136,7 +145,11 @@ const Index = () => {
 
   // Handle stat card clicks
   const handleStatClick = useCallback((stat: string) => {
-    if (stat === "duplicates") {
+    if (stat === "deleted") {
+      setActiveStatFilter((prev) => prev === "deleted" ? "all" : "deleted");
+      setDuplicateFilter(false);
+      setStatusFilter("all");
+    } else if (stat === "duplicates") {
       setDuplicateFilter((prev) => !prev);
       setStatusFilter("all");
       setActiveStatFilter((prev) => prev === "duplicates" ? "all" : "duplicates");
@@ -223,8 +236,37 @@ const Index = () => {
     mutationFn: deleteLink,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["links"] });
+      queryClient.invalidateQueries({ queryKey: ["deleted-links"] });
       if (selectedLink) setSelectedLink(null);
-      toast({ title: "Deleted" });
+      toast({ title: "Moved to recycle bin" });
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const restoreMutation = useMutation({
+    mutationFn: restoreLink,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["links"] });
+      queryClient.invalidateQueries({ queryKey: ["deleted-links"] });
+      toast({ title: "Link restored" });
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const permanentDeleteMutation = useMutation({
+    mutationFn: permanentDeleteLink,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["deleted-links"] });
+      toast({ title: "Permanently deleted" });
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const emptyTrashMutation = useMutation({
+    mutationFn: emptyTrash,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["deleted-links"] });
+      toast({ title: "Recycle bin emptied" });
     },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
@@ -233,7 +275,8 @@ const Index = () => {
     mutationFn: (ids: string[]) => bulkDeleteLinks(ids),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["links"] });
-      toast({ title: "Deleted", description: `${selectedIds.size} links removed.` });
+      queryClient.invalidateQueries({ queryKey: ["deleted-links"] });
+      toast({ title: "Moved to recycle bin", description: `${selectedIds.size} links moved.` });
       exitSelectionMode();
     },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
@@ -354,6 +397,7 @@ const Index = () => {
         showPinned={showPinned} setShowPinned={setShowPinned}
         linkCount={filteredLinks.length} pendingCount={pendingCount} readyCount={readyCount} failedCount={failedCount}
         duplicateCount={duplicateCount}
+        deletedCount={deletedCount}
         userEmail={user?.email} onSignOut={signOut} onRefresh={handleRefresh}
         collapsed={sidebarCollapsed} onToggleCollapse={toggleSidebar}
         selectedCollectionId={selectedCollectionId} onSelectCollection={setSelectedCollectionId}
@@ -421,7 +465,14 @@ const Index = () => {
 
         {/* Links list */}
         <div className="flex-1 overflow-y-auto p-4">
-          {isLoading ? (
+          {activeStatFilter === "deleted" ? (
+            <RecycleBinView
+              deletedLinks={deletedLinks}
+              onRestore={(id) => restoreMutation.mutate(id)}
+              onPermanentDelete={(id) => permanentDeleteMutation.mutate(id)}
+              onEmptyTrash={() => emptyTrashMutation.mutate()}
+            />
+          ) : isLoading ? (
             <div className="space-y-3">
               {[1, 2, 3, 4].map((i) => (
                 <div

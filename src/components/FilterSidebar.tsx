@@ -37,6 +37,7 @@ interface FilterSidebarProps {
   readyCount: number;
   failedCount: number;
   duplicateCount: number;
+  deletedCount: number;
   userEmail?: string;
   onSignOut: () => void;
   onRefresh: () => void;
@@ -53,7 +54,7 @@ export function FilterSidebar({
   statusFilter, setStatusFilter,
   sortBy, setSortBy,
   showPinned, setShowPinned,
-  linkCount, pendingCount, readyCount, failedCount, duplicateCount,
+  linkCount, pendingCount, readyCount, failedCount, duplicateCount, deletedCount,
   userEmail, onSignOut, onRefresh,
   collapsed = false, onToggleCollapse,
   selectedCollectionId, onSelectCollection,
@@ -177,17 +178,28 @@ export function FilterSidebar({
                 active={activeStatFilter === "failed"}
                 onClick={() => onStatClick?.("failed")}
               />
-              <div className="col-span-2 flex items-stretch gap-1.5">
+              <div className="col-span-2 grid grid-cols-2 gap-2">
+                <div className="flex items-stretch gap-1.5">
+                  <StatCard
+                    value={duplicateCount}
+                    label="Duplicates"
+                    className="bg-chart-4/10 flex-1"
+                    valueClassName="text-chart-4"
+                    active={activeStatFilter === "duplicates"}
+                    onClick={() => onStatClick?.("duplicates")}
+                    icon={<Copy className="h-3 w-3 text-chart-4" />}
+                  />
+                  <ClearDuplicatesButton />
+                </div>
                 <StatCard
-                  value={duplicateCount}
-                  label="Duplicates"
-                  className="bg-chart-4/10 flex-1"
-                  valueClassName="text-chart-4"
-                  active={activeStatFilter === "duplicates"}
-                  onClick={() => onStatClick?.("duplicates")}
-                  icon={<Copy className="h-3 w-3 text-chart-4" />}
+                  value={deletedCount}
+                  label="Recycle Bin"
+                  className="bg-muted/50"
+                  valueClassName="text-muted-foreground"
+                  active={activeStatFilter === "deleted"}
+                  onClick={() => onStatClick?.("deleted")}
+                  icon={<Trash2 className="h-3 w-3 text-muted-foreground" />}
                 />
-                <ClearDuplicatesButton />
               </div>
             </div>
           </div>

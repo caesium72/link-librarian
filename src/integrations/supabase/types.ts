@@ -92,6 +92,7 @@ export type Database = {
           confidence_score: number | null
           content_type: string | null
           created_at: string
+          deleted_at: string | null
           domain: string | null
           duplicate_count: number
           fts: unknown
@@ -114,6 +115,7 @@ export type Database = {
           confidence_score?: number | null
           content_type?: string | null
           created_at?: string
+          deleted_at?: string | null
           domain?: string | null
           duplicate_count?: number
           fts?: unknown
@@ -136,6 +138,7 @@ export type Database = {
           confidence_score?: number | null
           content_type?: string | null
           created_at?: string
+          deleted_at?: string | null
           domain?: string | null
           duplicate_count?: number
           fts?: unknown
