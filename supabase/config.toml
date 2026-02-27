@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.similar-links]
 verify_jwt = false
+
+[functions.check-link-health]
+verify_jwt = false

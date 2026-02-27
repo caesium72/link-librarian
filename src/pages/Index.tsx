@@ -4,6 +4,7 @@ import logo from "@/assets/logo.png";
 import { useRequireAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchLinks, updateLink, retryAnalysis, deleteLink, bulkDeleteLinks, bulkAddTag, fetchDeletedLinks, restoreLink, emptyTrash, permanentDeleteLink } from "@/lib/api/links";
+import { checkLinksHealth } from "@/lib/api/health";
 import { fetchCollectionLinkIds } from "@/lib/api/collections";
 import { supabase } from "@/integrations/supabase/client";
 import { LinkCard } from "@/components/LinkCard";
@@ -35,7 +36,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, LogOut, Pin, FileText, Video, GitBranch, BookOpen, Wrench, MessageSquare, LayoutGrid, LayoutList, Filter, Clock, CheckCircle2, AlertCircle, ArrowUpDown, ArrowDown, ArrowUp, Settings, RefreshCw, CheckSquare, X, Trash2, Tag, Eye, EyeOff, Sparkles } from "lucide-react";
+import { Search, LogOut, Pin, FileText, Video, GitBranch, BookOpen, Wrench, MessageSquare, LayoutGrid, LayoutList, Filter, Clock, CheckCircle2, AlertCircle, ArrowUpDown, ArrowDown, ArrowUp, Settings, RefreshCw, CheckSquare, X, Trash2, Tag, Eye, EyeOff, Sparkles, HeartPulse } from "lucide-react";
 import { SmartSearchDialog } from "@/components/SmartSearchDialog";
 import { ImportDialog } from "@/components/ImportDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -329,6 +330,23 @@ const Index = () => {
 
   const handleRefresh = () => queryClient.invalidateQueries({ queryKey: ["links"] });
 
+  const [healthChecking, setHealthChecking] = useState(false);
+  const handleHealthCheck = async () => {
+    setHealthChecking(true);
+    try {
+      const result = await checkLinksHealth();
+      toast({
+        title: "Health check complete",
+        description: `Checked ${result.checked} links: ${result.healthy} healthy, ${result.broken} broken`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["links"] });
+    } catch (e: any) {
+      toast({ title: "Health check failed", description: e.message, variant: "destructive" });
+    } finally {
+      setHealthChecking(false);
+    }
+  };
+
   // Mark link as read when selected (non-failed)
   const handleSelectLink = useCallback((link: Link) => {
     handleLinkClick(link);
@@ -461,6 +479,9 @@ const Index = () => {
                   <Search className="h-3.5 w-3.5" />
                 </Button>
               </RouterLink>
+              <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-all" onClick={handleHealthCheck} disabled={healthChecking} title="Check link health">
+                <HeartPulse className={`h-3.5 w-3.5 ${healthChecking ? "animate-pulse" : ""}`} />
+              </Button>
               <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-all" onClick={handleRefresh} disabled={isLoading}>
                 <RefreshCw className={`h-3.5 w-3.5 transition-transform duration-500 ${isLoading ? "animate-spin" : "hover:rotate-180"}`} />
               </Button>
