@@ -350,6 +350,24 @@ const Settings = () => {
               </span>
             </div>
 
+            {/* Primary action: sign out other devices */}
+            <Button
+              variant="default"
+              className="font-mono gap-2 w-full"
+              onClick={async () => {
+                try {
+                  const { error } = await supabase.auth.signOut({ scope: "others" as any });
+                  if (error) throw error;
+                  toast({ title: "Signed out from all other devices", description: "Only this session remains active." });
+                } catch (e: any) {
+                  toast({ title: "Error", description: e.message, variant: "destructive" });
+                }
+              }}
+            >
+              <LogOut className="h-4 w-4" />
+              Sign out all other devices
+            </Button>
+
             <div className="flex flex-wrap gap-2">
               <Button
                 variant="outline"
@@ -366,24 +384,6 @@ const Settings = () => {
               >
                 <LogOut className="h-3.5 w-3.5" />
                 Sign out this device
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                className="font-mono gap-2"
-                onClick={async () => {
-                  try {
-                    const { error } = await supabase.auth.signOut({ scope: "others" as any });
-                    if (error) throw error;
-                    toast({ title: "Signed out from all other devices", description: "Only this session remains active." });
-                  } catch (e: any) {
-                    toast({ title: "Error", description: e.message, variant: "destructive" });
-                  }
-                }}
-              >
-                <LogOut className="h-3.5 w-3.5" />
-                Sign out other devices
               </Button>
 
               <Button
