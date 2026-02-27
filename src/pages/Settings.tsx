@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Bot, CheckCircle2, AlertCircle, Loader2, Eye, EyeOff, Lock, Trash2, RefreshCw, Download } from "lucide-react";
+import { ArrowLeft, Bot, CheckCircle2, AlertCircle, Loader2, Eye, EyeOff, Lock, Trash2, RefreshCw, Download, Monitor, Smartphone, Globe, LogOut } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ExportDialog } from "@/components/ExportDialog";
@@ -22,6 +22,25 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+
+function getBrowserName() {
+  const ua = navigator.userAgent;
+  if (ua.includes("Firefox")) return "Firefox";
+  if (ua.includes("Edg")) return "Edge";
+  if (ua.includes("Chrome")) return "Chrome";
+  if (ua.includes("Safari")) return "Safari";
+  return "Browser";
+}
+
+function getOSName() {
+  const ua = navigator.userAgent;
+  if (ua.includes("Win")) return "Windows";
+  if (ua.includes("Mac")) return "macOS";
+  if (ua.includes("Linux")) return "Linux";
+  if (ua.includes("Android")) return "Android";
+  if (ua.includes("iPhone") || ua.includes("iPad")) return "iOS";
+  return "Unknown OS";
+}
 
 const Settings = () => {
   const { user, loading: authLoading } = useRequireAuth();
@@ -280,6 +299,67 @@ const Settings = () => {
           </CardHeader>
           <CardContent>
             <ExportDialog />
+          </CardContent>
+        </Card>
+
+        {/* Active Sessions */}
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 font-mono text-base">
+              <Monitor className="h-4 w-4" />
+              Active Sessions
+            </CardTitle>
+            <CardDescription className="text-sm">
+              You're currently signed in on this device. You can sign out from all other devices for security.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Current session info */}
+            <div className="flex items-center gap-3 p-3 rounded-lg border border-primary/30 bg-primary/5">
+              <div className="flex items-center justify-center h-10 w-10 rounded-full bg-primary/10">
+                {/Mobi|Android/i.test(navigator.userAgent) ? (
+                  <Smartphone className="h-5 w-5 text-primary" />
+                ) : (
+                  <Monitor className="h-5 w-5 text-primary" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-mono font-medium truncate">
+                  {getBrowserName()} on {getOSName()}
+                </p>
+                <p className="text-xs text-muted-foreground font-mono">
+                  This device · Current session
+                </p>
+              </div>
+              <span className="text-xs text-primary font-mono px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20">
+                Active
+              </span>
+            </div>
+
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50 text-xs text-muted-foreground">
+              <Globe className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <span>
+                For security, individual session details are not exposed. Use the button below to sign out from all other devices at once.
+              </span>
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="font-mono gap-2"
+              onClick={async () => {
+                try {
+                  const { error } = await supabase.auth.signOut({ scope: "others" as any });
+                  if (error) throw error;
+                  toast({ title: "Signed out from all other devices", description: "Only this session remains active." });
+                } catch (e: any) {
+                  toast({ title: "Error", description: e.message, variant: "destructive" });
+                }
+              }}
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              Sign out all other devices
+            </Button>
           </CardContent>
         </Card>
 
