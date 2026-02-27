@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Bot, CheckCircle2, AlertCircle, Loader2, Eye, EyeOff, Lock, Trash2, RefreshCw, Download, Monitor, Smartphone, Globe, LogOut } from "lucide-react";
+import { ArrowLeft, Bot, CheckCircle2, AlertCircle, Loader2, Eye, EyeOff, Lock, Trash2, RefreshCw, Download } from "lucide-react";
+import { ActiveSessionsCard } from "@/components/settings/ActiveSessionsCard";
 import { Link } from "react-router-dom";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ExportDialog } from "@/components/ExportDialog";
@@ -309,102 +310,7 @@ const Settings = () => {
           </CardContent>
         </Card>
 
-        {/* Active Sessions */}
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 font-mono text-base">
-              <Monitor className="h-4 w-4" />
-              Active Sessions
-            </CardTitle>
-            <CardDescription className="text-sm">
-              You're currently signed in on this device. You can sign out from all other devices for security.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Current session info */}
-            <div className="flex items-center gap-3 p-3 rounded-lg border border-primary/30 bg-primary/5">
-              <div className="flex items-center justify-center h-10 w-10 rounded-full bg-primary/10">
-                {/Mobi|Android/i.test(navigator.userAgent) ? (
-                  <Smartphone className="h-5 w-5 text-primary" />
-                ) : (
-                  <Monitor className="h-5 w-5 text-primary" />
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-mono font-medium truncate">
-                  {getBrowserName()} on {getOSName()}
-                </p>
-                <p className="text-xs text-muted-foreground font-mono">
-                  This device · Current session
-                </p>
-              </div>
-              <span className="text-xs text-primary font-mono px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20">
-                Active
-              </span>
-            </div>
-
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50 text-xs text-muted-foreground">
-              <Globe className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-              <span>
-                Individual session details are not exposed for security. Use the options below to manage your sessions.
-              </span>
-            </div>
-
-            {/* Primary action: sign out other devices */}
-            <Button
-              variant="default"
-              className="font-mono gap-2 w-full"
-              onClick={async () => {
-                try {
-                  const { error } = await supabase.auth.signOut({ scope: "others" as any });
-                  if (error) throw error;
-                  toast({ title: "Signed out from all other devices", description: "Only this session remains active." });
-                } catch (e: any) {
-                  toast({ title: "Error", description: e.message, variant: "destructive" });
-                }
-              }}
-            >
-              <LogOut className="h-4 w-4" />
-              Sign out all other devices
-            </Button>
-
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="font-mono gap-2"
-                onClick={async () => {
-                  try {
-                    await supabase.auth.signOut({ scope: "local" });
-                    navigate("/auth");
-                  } catch (e: any) {
-                    toast({ title: "Error", description: e.message, variant: "destructive" });
-                  }
-                }}
-              >
-                <LogOut className="h-3.5 w-3.5" />
-                Sign out this device
-              </Button>
-
-              <Button
-                variant="destructive"
-                size="sm"
-                className="font-mono gap-2"
-                onClick={async () => {
-                  try {
-                    await supabase.auth.signOut({ scope: "global" });
-                    navigate("/auth");
-                  } catch (e: any) {
-                    toast({ title: "Error", description: e.message, variant: "destructive" });
-                  }
-                }}
-              >
-                <LogOut className="h-3.5 w-3.5" />
-                Sign out everywhere
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <ActiveSessionsCard session={session} onSignedOut={() => navigate("/auth")} />
 
         {/* Change Password */}
         <Card className="mt-6">
