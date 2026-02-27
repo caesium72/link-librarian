@@ -28,7 +28,7 @@ serve(async (req) => {
 
     const focus = categoryPrompts[category] || categoryPrompts.all;
 
-    const prompt = `You are a tech researcher. Find and list 10 recently launched or trending ${focus}.
+    const prompt = `You are a tech researcher. Find and list 25 recently launched or trending ${focus}.
 
 For each tool, provide:
 1. name - The tool/product name
