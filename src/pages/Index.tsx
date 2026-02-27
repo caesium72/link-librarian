@@ -39,6 +39,7 @@ import { Search, LogOut, Pin, FileText, Video, GitBranch, BookOpen, Wrench, Mess
 import { ImportDialog } from "@/components/ImportDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { Link } from "@/types/links";
 
@@ -234,11 +235,19 @@ const Index = () => {
 
   const deleteMutation = useMutation({
     mutationFn: deleteLink,
-    onSuccess: () => {
+    onSuccess: (_data, deletedId) => {
       queryClient.invalidateQueries({ queryKey: ["links"] });
       queryClient.invalidateQueries({ queryKey: ["deleted-links"] });
       if (selectedLink) setSelectedLink(null);
-      toast({ title: "Moved to recycle bin" });
+      toast({
+        title: "Moved to recycle bin",
+        description: "Link has been deleted.",
+        action: (
+          <ToastAction altText="Undo delete" onClick={() => restoreMutation.mutate(deletedId)}>
+            Undo
+          </ToastAction>
+        ),
+      });
     },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
