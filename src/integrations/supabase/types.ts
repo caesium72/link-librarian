@@ -202,6 +202,39 @@ export type Database = {
           },
         ]
       }
+      tagging_rules: {
+        Row: {
+          condition_type: string
+          condition_value: string
+          created_at: string
+          id: string
+          is_active: boolean
+          tag: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          condition_type?: string
+          condition_value: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          tag: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          condition_type?: string
+          condition_value?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          tag?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_sessions: {
         Row: {
           browser: string | null

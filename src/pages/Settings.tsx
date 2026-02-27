@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Bot, CheckCircle2, AlertCircle, Loader2, Eye, EyeOff, Lock, Trash2, RefreshCw, Download } from "lucide-react";
 import { ActiveSessionsCard } from "@/components/settings/ActiveSessionsCard";
+import { AutoTaggingRulesCard } from "@/components/settings/AutoTaggingRulesCard";
 import { Link } from "react-router-dom";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ExportDialog } from "@/components/ExportDialog";
@@ -293,6 +294,9 @@ const Settings = () => {
           supabaseUrl={import.meta.env.VITE_SUPABASE_URL}
           accessToken={session?.access_token ?? ""}
         />
+
+        {/* Auto-Tagging Rules */}
+        {user && <AutoTaggingRulesCard userId={user.id} />}
 
         {/* Export Data */}
         <Card className="mt-6">
