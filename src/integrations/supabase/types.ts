@@ -164,6 +164,42 @@ export type Database = {
         }
         Relationships: []
       }
+      rss_feeds: {
+        Row: {
+          created_at: string
+          feed_url: string
+          id: string
+          is_active: boolean
+          last_error: string | null
+          last_fetched_at: string | null
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          feed_url: string
+          id?: string
+          is_active?: boolean
+          last_error?: string | null
+          last_fetched_at?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          feed_url?: string
+          id?: string
+          is_active?: boolean
+          last_error?: string | null
+          last_fetched_at?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       saves: {
         Row: {
           created_at: string
