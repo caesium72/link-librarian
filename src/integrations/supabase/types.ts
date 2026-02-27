@@ -328,7 +328,10 @@ export type Database = {
       user_settings: {
         Row: {
           created_at: string
+          digest_enabled: boolean | null
+          digest_frequency: string | null
           id: string
+          last_digest_sent_at: string | null
           telegram_bot_token: string | null
           telegram_chat_id: number | null
           telegram_webhook_set: boolean | null
@@ -337,7 +340,10 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          digest_enabled?: boolean | null
+          digest_frequency?: string | null
           id?: string
+          last_digest_sent_at?: string | null
           telegram_bot_token?: string | null
           telegram_chat_id?: number | null
           telegram_webhook_set?: boolean | null
@@ -346,7 +352,10 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          digest_enabled?: boolean | null
+          digest_frequency?: string | null
           id?: string
+          last_digest_sent_at?: string | null
           telegram_bot_token?: string | null
           telegram_chat_id?: number | null
           telegram_webhook_set?: boolean | null

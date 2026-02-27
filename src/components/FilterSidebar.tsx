@@ -13,7 +13,7 @@ import {
 import {
   Pin, FileText, Video, GitBranch, BookOpen, Wrench, MessageSquare,
   LayoutGrid, Filter, Clock, CheckCircle2, AlertCircle,
-  ArrowUpDown, ArrowDown, ArrowUp, Settings, LogOut, Menu, PanelLeftClose, BarChart3, Copy, Trash2,
+  ArrowUpDown, ArrowDown, ArrowUp, Settings, LogOut, Menu, PanelLeftClose, BarChart3, Copy, Trash2, Newspaper,
 } from "lucide-react";
 import { ImportDialog } from "@/components/ImportDialog";
 import { ExportDialog } from "@/components/ExportDialog";
@@ -98,6 +98,16 @@ export function FilterSidebar({
               </RouterLink>
             </TooltipTrigger>
             <TooltipContent side="right">Analytics</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <RouterLink to="/digest">
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Newspaper className="h-3.5 w-3.5" />
+                </Button>
+              </RouterLink>
+            </TooltipTrigger>
+            <TooltipContent side="right">Digest</TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -280,6 +290,11 @@ export function FilterSidebar({
               <RouterLink to="/analytics">
                 <Button variant="ghost" size="icon" className="h-8 w-8">
                   <BarChart3 className="h-3.5 w-3.5" />
+                </Button>
+              </RouterLink>
+              <RouterLink to="/digest">
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Newspaper className="h-3.5 w-3.5" />
                 </Button>
               </RouterLink>
               <RouterLink to="/settings">
