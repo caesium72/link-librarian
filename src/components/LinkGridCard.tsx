@@ -36,6 +36,7 @@ interface LinkGridCardProps {
   onPin: (id: string, pinned: boolean) => void;
   onDelete: (id: string) => void;
   onClick: (link: Link) => void;
+  onReview?: (link: Link) => void;
   selectionMode?: boolean;
   isSelected?: boolean;
   onToggleSelect?: (id: string) => void;
@@ -46,6 +47,7 @@ export function LinkGridCard({
   link,
   onPin,
   onClick,
+  onReview,
   selectionMode,
   isSelected,
   onToggleSelect,

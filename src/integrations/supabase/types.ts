@@ -93,6 +93,7 @@ export type Database = {
           content_type: string | null
           created_at: string
           domain: string | null
+          duplicate_count: number
           fts: unknown
           id: string
           is_pinned: boolean
@@ -114,6 +115,7 @@ export type Database = {
           content_type?: string | null
           created_at?: string
           domain?: string | null
+          duplicate_count?: number
           fts?: unknown
           id?: string
           is_pinned?: boolean
@@ -135,6 +137,7 @@ export type Database = {
           content_type?: string | null
           created_at?: string
           domain?: string | null
+          duplicate_count?: number
           fts?: unknown
           id?: string
           is_pinned?: boolean

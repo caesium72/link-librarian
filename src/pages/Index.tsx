@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { AddLinkInput } from "@/components/AddLinkInput";
 import { Button } from "@/components/ui/button";
 import { KeyboardShortcutsHelp } from "@/components/KeyboardShortcutsHelp";
+import { FailedLinkReviewDialog } from "@/components/FailedLinkReviewDialog";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import {
   Select,
@@ -62,6 +63,9 @@ const Index = () => {
   });
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [readFilter, setReadFilter] = useState<"all" | "unread" | "read">("all");
+  const [duplicateFilter, setDuplicateFilter] = useState(false);
+  const [activeStatFilter, setActiveStatFilter] = useState("all");
+  const [reviewLink, setReviewLink] = useState<Link | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const toggleSidebar = useCallback(() => {
@@ -113,15 +117,53 @@ const Index = () => {
     enabled: !!selectedCollectionId,
   });
 
-  // Filter links by collection and read status
+  // Filter links by collection, read status, and duplicates
   const filteredLinks = (() => {
     let result = selectedCollectionId && collectionLinkIds
       ? links.filter((l) => collectionLinkIds.includes(l.id))
       : links;
     if (readFilter === "unread") result = result.filter((l) => !(l as any).is_read);
     if (readFilter === "read") result = result.filter((l) => (l as any).is_read);
+    if (duplicateFilter) result = result.filter((l) => ((l as any).duplicate_count || 0) > 0);
     return result;
   })();
+
+  // Compute stats
+  const pendingCount = filteredLinks.filter((l) => l.status === "pending").length;
+  const readyCount = filteredLinks.filter((l) => l.status === "ready").length;
+  const failedCount = filteredLinks.filter((l) => l.status === "failed").length;
+  const duplicateCount = links.reduce((sum, l) => sum + ((l as any).duplicate_count || 0), 0);
+
+  // Handle stat card clicks
+  const handleStatClick = useCallback((stat: string) => {
+    if (stat === "duplicates") {
+      setDuplicateFilter((prev) => !prev);
+      setStatusFilter("all");
+      setActiveStatFilter((prev) => prev === "duplicates" ? "all" : "duplicates");
+    } else {
+      setDuplicateFilter(false);
+      if (stat === "all") {
+        setStatusFilter("all");
+        setActiveStatFilter("all");
+      } else {
+        const newStatus = activeStatFilter === stat ? "all" : stat;
+        setStatusFilter(newStatus);
+        setActiveStatFilter(newStatus === "all" ? "all" : stat);
+      }
+    }
+  }, [activeStatFilter]);
+
+  // Handle failed link click -> open review dialog
+  const handleLinkClick = useCallback((link: Link) => {
+    if (link.status === "failed") {
+      setReviewLink(link);
+    } else {
+      setSelectedLink(link);
+      if (!(link as any).is_read) {
+        updateMutation.mutate({ id: link.id, updates: { is_read: true } as any });
+      }
+    }
+  }, []);
 
   // Realtime subscription for live updates
   const linkCountRef = useRef(links.length);
@@ -234,13 +276,10 @@ const Index = () => {
 
   const handleRefresh = () => queryClient.invalidateQueries({ queryKey: ["links"] });
 
-  // Mark link as read when selected
+  // Mark link as read when selected (non-failed)
   const handleSelectLink = useCallback((link: Link) => {
-    setSelectedLink(link);
-    if (!(link as any).is_read) {
-      updateMutation.mutate({ id: link.id, updates: { is_read: true } as any });
-    }
-  }, [updateMutation]);
+    handleLinkClick(link);
+  }, [handleLinkClick]);
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
@@ -268,32 +307,39 @@ const Index = () => {
     );
   }
 
-  const pendingCount = filteredLinks.filter((l) => l.status === "pending").length;
-  const readyCount = filteredLinks.filter((l) => l.status === "ready").length;
-  const failedCount = filteredLinks.filter((l) => l.status === "failed").length;
 
   // Mobile: keep the old single-column layout with sheet detail
   if (isMobile) {
     return (
-      <MobileLayout
-        user={user} signOut={signOut} links={filteredLinks} isLoading={isLoading}
-        search={search} setSearch={setSearch}
-        contentType={contentType} setContentType={setContentType}
-        statusFilter={statusFilter} setStatusFilter={setStatusFilter}
-        sortBy={sortBy} setSortBy={setSortBy}
-        showPinned={showPinned} setShowPinned={setShowPinned}
-        selectedLink={selectedLink} setSelectedLink={handleSelectLink}
-        selectionMode={selectionMode} setSelectionMode={setSelectionMode}
-        selectedIds={selectedIds} toggleSelect={toggleSelect} selectAll={selectAll}
-        exitSelectionMode={exitSelectionMode}
-        showDeleteConfirm={showDeleteConfirm} setShowDeleteConfirm={setShowDeleteConfirm}
-        showTagInput={showTagInput} setShowTagInput={setShowTagInput}
-        tagInput={tagInput} setTagInput={setTagInput}
-        handleUpdate={handleUpdate} retryMutation={retryMutation} deleteMutation={deleteMutation}
-        bulkDeleteMutation={bulkDeleteMutation} bulkTagMutation={bulkTagMutation}
-        handleRefresh={handleRefresh}
-        pendingCount={pendingCount} readyCount={readyCount} failedCount={failedCount}
-      />
+      <>
+        <MobileLayout
+          user={user} signOut={signOut} links={filteredLinks} isLoading={isLoading}
+          search={search} setSearch={setSearch}
+          contentType={contentType} setContentType={setContentType}
+          statusFilter={statusFilter} setStatusFilter={setStatusFilter}
+          sortBy={sortBy} setSortBy={setSortBy}
+          showPinned={showPinned} setShowPinned={setShowPinned}
+          selectedLink={selectedLink} setSelectedLink={handleSelectLink}
+          selectionMode={selectionMode} setSelectionMode={setSelectionMode}
+          selectedIds={selectedIds} toggleSelect={toggleSelect} selectAll={selectAll}
+          exitSelectionMode={exitSelectionMode}
+          showDeleteConfirm={showDeleteConfirm} setShowDeleteConfirm={setShowDeleteConfirm}
+          showTagInput={showTagInput} setShowTagInput={setShowTagInput}
+          tagInput={tagInput} setTagInput={setTagInput}
+          handleUpdate={handleUpdate} retryMutation={retryMutation} deleteMutation={deleteMutation}
+          bulkDeleteMutation={bulkDeleteMutation} bulkTagMutation={bulkTagMutation}
+          handleRefresh={handleRefresh}
+          pendingCount={pendingCount} readyCount={readyCount} failedCount={failedCount}
+        />
+        <FailedLinkReviewDialog
+          link={reviewLink}
+          open={!!reviewLink}
+          onClose={() => setReviewLink(null)}
+          onRetry={(id) => retryMutation.mutate(id)}
+          onResolve={(id, updates) => handleUpdate(id, updates)}
+          onDelete={(id) => deleteMutation.mutate(id)}
+        />
+      </>
     );
   }
 
@@ -307,9 +353,12 @@ const Index = () => {
         sortBy={sortBy} setSortBy={setSortBy}
         showPinned={showPinned} setShowPinned={setShowPinned}
         linkCount={filteredLinks.length} pendingCount={pendingCount} readyCount={readyCount} failedCount={failedCount}
+        duplicateCount={duplicateCount}
         userEmail={user?.email} onSignOut={signOut} onRefresh={handleRefresh}
         collapsed={sidebarCollapsed} onToggleCollapse={toggleSidebar}
         selectedCollectionId={selectedCollectionId} onSelectCollection={setSelectedCollectionId}
+        onStatClick={handleStatClick}
+        activeStatFilter={activeStatFilter}
       />
 
       {/* Center: links list */}
@@ -406,6 +455,7 @@ const Index = () => {
                   onRetry: (id: string) => retryMutation.mutate(id),
                   onDelete: (id: string) => deleteMutation.mutate(id),
                   onClick: handleSelectLink,
+                  onReview: (link: Link) => setReviewLink(link),
                   selectionMode,
                   selectedIds,
                   onToggleSelect: toggleSelect,
@@ -437,6 +487,16 @@ const Index = () => {
           />
         </aside>
       )}
+
+      {/* Failed Link Review Dialog */}
+      <FailedLinkReviewDialog
+        link={reviewLink}
+        open={!!reviewLink}
+        onClose={() => setReviewLink(null)}
+        onRetry={(id) => retryMutation.mutate(id)}
+        onResolve={(id, updates) => handleUpdate(id, updates)}
+        onDelete={(id) => deleteMutation.mutate(id)}
+      />
 
       {/* Bulk Delete Confirmation */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
@@ -728,7 +788,7 @@ function MobileLayout(props: any) {
                 onPin: (id: string, pinned: boolean) => handleUpdate(id, { is_pinned: !pinned }),
                 onRetry: (id: string) => retryMutation.mutate(id),
                 onDelete: (id: string) => deleteMutation.mutate(id),
-                onClick: props.setSelectedLink,
+                onClick: setSelectedLink,
                 selectionMode,
                 selectedIds,
                 onToggleSelect: toggleSelect,

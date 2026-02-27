@@ -13,7 +13,7 @@ import {
 import {
   Pin, FileText, Video, GitBranch, BookOpen, Wrench, MessageSquare,
   LayoutGrid, Filter, Clock, CheckCircle2, AlertCircle,
-  ArrowUpDown, ArrowDown, ArrowUp, Settings, LogOut, Menu, PanelLeftClose, BarChart3,
+  ArrowUpDown, ArrowDown, ArrowUp, Settings, LogOut, Menu, PanelLeftClose, BarChart3, Copy,
 } from "lucide-react";
 import { ImportDialog } from "@/components/ImportDialog";
 import { ExportDialog } from "@/components/ExportDialog";
@@ -33,6 +33,7 @@ interface FilterSidebarProps {
   pendingCount: number;
   readyCount: number;
   failedCount: number;
+  duplicateCount: number;
   userEmail?: string;
   onSignOut: () => void;
   onRefresh: () => void;
@@ -40,6 +41,8 @@ interface FilterSidebarProps {
   onToggleCollapse?: () => void;
   selectedCollectionId: string | null;
   onSelectCollection: (id: string | null) => void;
+  onStatClick?: (stat: string) => void;
+  activeStatFilter?: string;
 }
 
 export function FilterSidebar({
@@ -47,10 +50,12 @@ export function FilterSidebar({
   statusFilter, setStatusFilter,
   sortBy, setSortBy,
   showPinned, setShowPinned,
-  linkCount, pendingCount, readyCount, failedCount,
+  linkCount, pendingCount, readyCount, failedCount, duplicateCount,
   userEmail, onSignOut, onRefresh,
   collapsed = false, onToggleCollapse,
   selectedCollectionId, onSelectCollection,
+  onStatClick,
+  activeStatFilter,
 }: FilterSidebarProps) {
   return (
     <TooltipProvider delayDuration={0}>
@@ -138,22 +143,46 @@ export function FilterSidebar({
           <div className="p-4 border-b border-border space-y-2">
             <h3 className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">Overview</h3>
             <div className="grid grid-cols-2 gap-2">
-              <div className="bg-muted/50 rounded-md p-2 text-center">
-                <div className="text-lg font-semibold font-mono">{linkCount}</div>
-                <div className="text-[10px] text-muted-foreground">Total</div>
-              </div>
-              <div className="bg-primary/10 rounded-md p-2 text-center">
-                <div className="text-lg font-semibold font-mono text-primary">{readyCount}</div>
-                <div className="text-[10px] text-muted-foreground">Ready</div>
-              </div>
-              <div className="bg-chart-3/10 rounded-md p-2 text-center">
-                <div className="text-lg font-semibold font-mono text-chart-3">{pendingCount}</div>
-                <div className="text-[10px] text-muted-foreground">Pending</div>
-              </div>
-              <div className="bg-destructive/10 rounded-md p-2 text-center">
-                <div className="text-lg font-semibold font-mono text-destructive">{failedCount}</div>
-                <div className="text-[10px] text-muted-foreground">Failed</div>
-              </div>
+              <StatCard
+                value={linkCount}
+                label="Total"
+                className="bg-muted/50"
+                active={activeStatFilter === "all"}
+                onClick={() => onStatClick?.("all")}
+              />
+              <StatCard
+                value={readyCount}
+                label="Ready"
+                className="bg-primary/10"
+                valueClassName="text-primary"
+                active={activeStatFilter === "ready"}
+                onClick={() => onStatClick?.("ready")}
+              />
+              <StatCard
+                value={pendingCount}
+                label="Pending"
+                className="bg-chart-3/10"
+                valueClassName="text-chart-3"
+                active={activeStatFilter === "pending"}
+                onClick={() => onStatClick?.("pending")}
+              />
+              <StatCard
+                value={failedCount}
+                label="Failed"
+                className="bg-destructive/10"
+                valueClassName="text-destructive"
+                active={activeStatFilter === "failed"}
+                onClick={() => onStatClick?.("failed")}
+              />
+              <StatCard
+                value={duplicateCount}
+                label="Duplicates"
+                className="bg-chart-4/10 col-span-2"
+                valueClassName="text-chart-4"
+                active={activeStatFilter === "duplicates"}
+                onClick={() => onStatClick?.("duplicates")}
+                icon={<Copy className="h-3 w-3 text-chart-4" />}
+              />
             </div>
           </div>
 
@@ -254,5 +283,42 @@ export function FilterSidebar({
         </div>
       </aside>
     </TooltipProvider>
+  );
+}
+
+function StatCard({
+  value,
+  label,
+  className,
+  valueClassName,
+  active,
+  onClick,
+  icon,
+}: {
+  value: number;
+  label: string;
+  className?: string;
+  valueClassName?: string;
+  active?: boolean;
+  onClick?: () => void;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "rounded-md p-2 text-center transition-all duration-200 cursor-pointer",
+        "hover:ring-2 hover:ring-primary/30 hover:scale-[1.02]",
+        active && "ring-2 ring-primary shadow-sm",
+        className
+      )}
+    >
+      <div className="flex items-center justify-center gap-1">
+        {icon}
+        <span className={cn("text-lg font-semibold font-mono", valueClassName)}>{value}</span>
+      </div>
+      <div className="text-[10px] text-muted-foreground">{label}</div>
+    </button>
   );
 }
