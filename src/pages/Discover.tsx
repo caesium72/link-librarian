@@ -12,6 +12,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 import {
   ArrowLeft, Search, Sparkles, ExternalLink, Plus, RefreshCw,
   Bot, Code, Zap, Github, Box, Cloud,
@@ -50,6 +51,8 @@ export default function Discover() {
   const [isLoading, setIsLoading] = useState(false);
   const [savingUrl, setSavingUrl] = useState<string | null>(null);
   const [savingAll, setSavingAll] = useState(false);
+  const [saveAllProgress, setSaveAllProgress] = useState(0);
+  const [saveAllTotal, setSaveAllTotal] = useState(0);
   const [savedUrls, setSavedUrls] = useState<Set<string>>(new Set());
   const [category, setCategory] = useState("all");
   const [hasSearched, setHasSearched] = useState(false);
@@ -101,22 +104,27 @@ export default function Discover() {
   };
 
   const saveAll = async () => {
+    const toSave = tools.filter(t => !savedUrls.has(t.url));
+    setSaveAllTotal(toSave.length);
+    setSaveAllProgress(0);
     setSavingAll(true);
     let saved = 0;
     let dupes = 0;
     let failed = 0;
-    for (const tool of tools) {
-      if (savedUrls.has(tool.url)) { dupes++; continue; }
+    for (const tool of toSave) {
       try {
         await addLink(tool.url);
         setSavedUrls((prev) => new Set(prev).add(tool.url));
         saved++;
+        setSaveAllProgress(saved + dupes + failed);
       } catch (e: any) {
         if (e.message === "DUPLICATE") {
           setSavedUrls((prev) => new Set(prev).add(tool.url));
           dupes++;
+          setSaveAllProgress(saved + dupes + failed);
         } else {
           failed++;
+          setSaveAllProgress(saved + dupes + failed);
         }
       }
     }
@@ -196,28 +204,38 @@ export default function Discover() {
 
         {/* Refresh + count */}
         {hasSearched && !isLoading && (
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-xs text-muted-foreground font-mono">
-              {tools.length} tools discovered
-              {searchQuery && <> for "<span className="text-foreground">{searchQuery}</span>"</>}
-              {savedUrls.size > 0 && <> · {savedUrls.size} saved</>}
-            </span>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="default"
-                size="sm"
-                className="gap-1.5 text-xs font-mono"
-                disabled={savingAll || tools.length === 0 || savedUrls.size === tools.length}
-                onClick={saveAll}
-              >
-                <Plus className="h-3 w-3" />
-                {savingAll ? "Saving..." : savedUrls.size === tools.length ? "All Saved" : "Save All"}
-              </Button>
-              <Button variant="outline" size="sm" className="gap-1.5 text-xs font-mono" onClick={() => discover(category)}>
-                <RefreshCw className="h-3 w-3" /> Refresh
-              </Button>
+          <>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-xs text-muted-foreground font-mono">
+                {tools.length} tools discovered
+                {searchQuery && <> for "<span className="text-foreground">{searchQuery}</span>"</>}
+                {savedUrls.size > 0 && <> · {savedUrls.size} saved</>}
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="gap-1.5 text-xs font-mono"
+                  disabled={savingAll || tools.length === 0 || savedUrls.size === tools.length}
+                  onClick={saveAll}
+                >
+                  <Plus className="h-3 w-3" />
+                  {savingAll ? "Saving..." : savedUrls.size === tools.length ? "All Saved" : "Save All"}
+                </Button>
+                <Button variant="outline" size="sm" className="gap-1.5 text-xs font-mono" onClick={() => discover(category)}>
+                  <RefreshCw className="h-3 w-3" /> Refresh
+                </Button>
+              </div>
             </div>
-          </div>
+            {savingAll && (
+              <div className="flex items-center gap-3 mb-4">
+                <Progress value={(saveAllProgress / saveAllTotal) * 100} className="h-2 flex-1" />
+                <span className="text-xs text-muted-foreground font-mono shrink-0">
+                  {saveAllProgress}/{saveAllTotal}
+                </span>
+              </div>
+            )}
+          </>
         )}
 
         {/* Loading */}
