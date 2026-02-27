@@ -49,6 +49,8 @@ export default function Discover() {
   const [tools, setTools] = useState<DiscoveredTool[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [savingUrl, setSavingUrl] = useState<string | null>(null);
+  const [savingAll, setSavingAll] = useState(false);
+  const [savedUrls, setSavedUrls] = useState<Set<string>>(new Set());
   const [category, setCategory] = useState("all");
   const [hasSearched, setHasSearched] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -84,9 +86,11 @@ export default function Discover() {
     setSavingUrl(tool.url);
     try {
       await addLink(tool.url);
+      setSavedUrls((prev) => new Set(prev).add(tool.url));
       toast({ title: "Saved!", description: `${tool.name} added to your library.` });
     } catch (e: any) {
       if (e.message === "DUPLICATE") {
+        setSavedUrls((prev) => new Set(prev).add(tool.url));
         toast({ title: "Already saved", description: `${tool.name} is already in your library.` });
       } else {
         toast({ title: "Save failed", description: e.message, variant: "destructive" });
@@ -94,6 +98,33 @@ export default function Discover() {
     } finally {
       setSavingUrl(null);
     }
+  };
+
+  const saveAll = async () => {
+    setSavingAll(true);
+    let saved = 0;
+    let dupes = 0;
+    let failed = 0;
+    for (const tool of tools) {
+      if (savedUrls.has(tool.url)) { dupes++; continue; }
+      try {
+        await addLink(tool.url);
+        setSavedUrls((prev) => new Set(prev).add(tool.url));
+        saved++;
+      } catch (e: any) {
+        if (e.message === "DUPLICATE") {
+          setSavedUrls((prev) => new Set(prev).add(tool.url));
+          dupes++;
+        } else {
+          failed++;
+        }
+      }
+    }
+    setSavingAll(false);
+    toast({
+      title: "Bulk save complete",
+      description: `${saved} saved, ${dupes} duplicates${failed ? `, ${failed} failed` : ""}`,
+    });
   };
 
   if (authLoading) {
@@ -169,10 +200,23 @@ export default function Discover() {
             <span className="text-xs text-muted-foreground font-mono">
               {tools.length} tools discovered
               {searchQuery && <> for "<span className="text-foreground">{searchQuery}</span>"</>}
+              {savedUrls.size > 0 && <> · {savedUrls.size} saved</>}
             </span>
-            <Button variant="outline" size="sm" className="gap-1.5 text-xs font-mono" onClick={() => discover(category)}>
-              <RefreshCw className="h-3 w-3" /> Refresh
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="default"
+                size="sm"
+                className="gap-1.5 text-xs font-mono"
+                disabled={savingAll || tools.length === 0 || savedUrls.size === tools.length}
+                onClick={saveAll}
+              >
+                <Plus className="h-3 w-3" />
+                {savingAll ? "Saving..." : savedUrls.size === tools.length ? "All Saved" : "Save All"}
+              </Button>
+              <Button variant="outline" size="sm" className="gap-1.5 text-xs font-mono" onClick={() => discover(category)}>
+                <RefreshCw className="h-3 w-3" /> Refresh
+              </Button>
+            </div>
           </div>
         )}
 
@@ -240,14 +284,14 @@ export default function Discover() {
                           </a>
                         </div>
                         <Button
-                          variant="outline"
+                          variant={savedUrls.has(tool.url) ? "secondary" : "outline"}
                           size="sm"
                           className="shrink-0 h-7 text-xs font-mono gap-1"
-                          disabled={savingUrl === tool.url}
+                          disabled={savingUrl === tool.url || savedUrls.has(tool.url)}
                           onClick={() => saveToLibrary(tool)}
                         >
                           <Plus className="h-3 w-3" />
-                          {savingUrl === tool.url ? "..." : "Save"}
+                          {savedUrls.has(tool.url) ? "Saved" : savingUrl === tool.url ? "..." : "Save"}
                         </Button>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1.5 line-clamp-3">{tool.description}</p>
