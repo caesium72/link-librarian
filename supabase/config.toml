@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.smart-search]
 verify_jwt = false
+
+[functions.similar-links]
+verify_jwt = false

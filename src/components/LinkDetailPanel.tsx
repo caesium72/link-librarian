@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { SimilarLinks } from "@/components/SimilarLinks";
 import {
   ExternalLink, Copy, Pin, PinOff, RefreshCw, Trash2, X,
 } from "lucide-react";
@@ -16,9 +17,10 @@ interface LinkDetailPanelProps {
   onUpdate: (id: string, updates: Partial<Link>) => void;
   onRetry: (id: string) => void;
   onDelete: (id: string) => void;
+  onSelectLink?: (link: Link) => void;
 }
 
-export function LinkDetailPanel({ link, onClose, onUpdate, onRetry, onDelete }: LinkDetailPanelProps) {
+export function LinkDetailPanel({ link, onClose, onUpdate, onRetry, onDelete, onSelectLink }: LinkDetailPanelProps) {
   const { toast } = useToast();
   const [notes, setNotes] = useState("");
   const [tagsInput, setTagsInput] = useState("");
@@ -188,6 +190,11 @@ export function LinkDetailPanel({ link, onClose, onUpdate, onRetry, onDelete }: 
             Delete
           </Button>
         </div>
+
+        {/* Similar Links */}
+        {link.status === "ready" && (
+          <SimilarLinks linkId={link.id} onSelectLink={onSelectLink} />
+        )}
       </div>
     </ScrollArea>
   );
