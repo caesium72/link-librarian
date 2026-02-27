@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Bot, CheckCircle2, AlertCircle, Loader2, Eye, EyeOff, Lock, Trash2, RefreshCw, Download } from "lucide-react";
 import { ActiveSessionsCard } from "@/components/settings/ActiveSessionsCard";
 import { AutoTaggingRulesCard } from "@/components/settings/AutoTaggingRulesCard";
+import { RssFeedsCard } from "@/components/settings/RssFeedsCard";
 import { Link } from "react-router-dom";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ExportDialog } from "@/components/ExportDialog";
@@ -297,6 +298,9 @@ const Settings = () => {
 
         {/* Auto-Tagging Rules */}
         {user && <AutoTaggingRulesCard userId={user.id} />}
+
+        {/* RSS Feeds */}
+        {user && <RssFeedsCard userId={user.id} />}
 
         {/* Export Data */}
         <Card className="mt-6">
