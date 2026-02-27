@@ -6,6 +6,8 @@ export interface Collection {
   color: string;
   icon: string;
   position: number;
+  is_public: boolean;
+  public_slug: string | null;
   created_at: string;
   updated_at: string;
 }
