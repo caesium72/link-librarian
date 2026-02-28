@@ -14,6 +14,7 @@ import ResetPassword from "./pages/ResetPassword";
 import SharedCollection from "./pages/SharedCollection";
 import Discover from "./pages/Discover";
 import Digest from "./pages/Digest";
+import PublicProfile from "./pages/PublicProfile";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +40,7 @@ const App = () => (
             <Route path="/discover" element={<Discover />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/digest" element={<Digest />} />
+            <Route path="/u/:username" element={<PublicProfile />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

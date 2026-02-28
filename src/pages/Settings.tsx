@@ -15,6 +15,7 @@ import { Link } from "react-router-dom";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ExportDialog } from "@/components/ExportDialog";
 import { BrowserExtensionCard } from "@/components/settings/BrowserExtensionCard";
+import { ProfileCard } from "@/components/settings/ProfileCard";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -173,6 +174,8 @@ const Settings = () => {
       </header>
 
       <main className="container px-4 py-6 max-w-xl">
+        <ProfileCard />
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 font-mono text-base">
