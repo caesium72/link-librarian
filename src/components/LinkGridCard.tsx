@@ -138,7 +138,7 @@ export function LinkGridCard({
 
         <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/30">
           <span className="text-[10px] text-muted-foreground font-mono truncate">
-            {link.domain || new Date(link.created_at).toLocaleDateString()}
+            {link.domain || new Date(link.created_at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
           </span>
           <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
             <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-primary/10 hover:text-primary" onClick={copyUrl}>

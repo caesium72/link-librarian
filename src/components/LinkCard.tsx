@@ -316,7 +316,7 @@ export function LinkCard({ link, onPin, onRetry, onDelete, onClick, onReview, se
 
         <div className="flex items-center gap-3 mt-2 text-[10px] text-muted-foreground font-mono">
           {link.domain && <span className="truncate max-w-[120px]">{link.domain}</span>}
-          <span>{new Date(link.created_at).toLocaleDateString()}</span>
+          <span>{new Date(link.created_at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}</span>
           {link.save_count > 1 && (
             <span className="inline-flex items-center gap-1">
               saved {link.save_count}×
