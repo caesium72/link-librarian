@@ -74,16 +74,27 @@ export function BrowserExtensionCard({ supabaseUrl, accessToken }: BrowserExtens
               </div>
               <div className="ml-8">
                 <p className="text-xs text-muted-foreground mb-2">
-                  Download the extension files, then unzip them into a folder.
+                  Create a new folder on your computer, then download <strong>all</strong> these files into it:
                 </p>
-                <a href="/extension/manifest.json" download>
-                  <Button variant="outline" size="sm" className="font-mono gap-2">
-                    <Download className="h-3.5 w-3.5" />
-                    Download Extension Files
-                  </Button>
-                </a>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { name: "manifest.json", path: "/extension/manifest.json" },
+                    { name: "popup.html", path: "/extension/popup.html" },
+                    { name: "popup.js", path: "/extension/popup.js" },
+                    { name: "icon16.png", path: "/extension/icon16.png" },
+                    { name: "icon48.png", path: "/extension/icon48.png" },
+                    { name: "icon128.png", path: "/extension/icon128.png" },
+                  ].map((file) => (
+                    <a key={file.name} href={file.path} download={file.name}>
+                      <Button variant="outline" size="sm" className="font-mono gap-2 w-full text-xs">
+                        <Download className="h-3 w-3" />
+                        {file.name}
+                      </Button>
+                    </a>
+                  ))}
+                </div>
                 <p className="text-xs text-muted-foreground mt-2">
-                  You need all files: <code>manifest.json</code>, <code>popup.html</code>, <code>popup.js</code>, and the icon files. Download each from <code>/extension/</code>.
+                  All 6 files must be in the <strong>same folder</strong> for the extension to work.
                 </p>
               </div>
             </div>
