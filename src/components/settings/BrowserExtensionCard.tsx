@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Bookmark, Copy, CheckCircle2, Download, Chrome, Puzzle } from "lucide-react";
+import { Bookmark, Copy, CheckCircle2, Download, Chrome, Puzzle, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import JSZip from "jszip";
 
 interface BrowserExtensionCardProps {
   supabaseUrl: string;
@@ -17,6 +18,41 @@ export function BrowserExtensionCard({ supabaseUrl, accessToken }: BrowserExtens
   const [copiedBookmarklet, setCopiedBookmarklet] = useState(false);
   const [copiedToken, setCopiedToken] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
+  const [downloadingZip, setDownloadingZip] = useState(false);
+
+  const handleDownloadZip = async () => {
+    setDownloadingZip(true);
+    try {
+      const zip = new JSZip();
+      const files = [
+        { name: "manifest.json", path: "/extension/manifest.json" },
+        { name: "popup.html", path: "/extension/popup.html" },
+        { name: "popup.js", path: "/extension/popup.js" },
+        { name: "icon16.png", path: "/extension/icon16.png" },
+        { name: "icon48.png", path: "/extension/icon48.png" },
+        { name: "icon128.png", path: "/extension/icon128.png" },
+      ];
+      await Promise.all(
+        files.map(async (file) => {
+          const response = await fetch(file.path);
+          const blob = await response.blob();
+          zip.file(file.name, blob);
+        })
+      );
+      const content = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(content);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "link-librarian-extension.zip";
+      a.click();
+      URL.revokeObjectURL(url);
+      toast({ title: "Downloaded!", description: "Unzip the file into a folder to install." });
+    } catch (e) {
+      toast({ title: "Download failed", variant: "destructive" });
+    } finally {
+      setDownloadingZip(false);
+    }
+  };
 
   const bookmarkletCode = `javascript:void(function(){var x=new XMLHttpRequest();x.open('POST','${supabaseUrl}/functions/v1/save-link');x.setRequestHeader('Content-Type','application/json');x.setRequestHeader('Authorization','Bearer ${accessToken}');x.onload=function(){var r=JSON.parse(x.responseText);if(r.duplicate){alert('Link Librarian: Already saved!')}else if(r.success){alert('Link Librarian: Saved!')}else{alert('Link Librarian: Error - '+r.error)}};x.onerror=function(){alert('Link Librarian: Network error')};x.send(JSON.stringify({url:location.href,title:document.title}))})()`;
 
@@ -72,30 +108,20 @@ export function BrowserExtensionCard({ supabaseUrl, accessToken }: BrowserExtens
                 <span className="flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">1</span>
                 <Label className="font-mono text-sm">Download the extension</Label>
               </div>
-              <div className="ml-8">
-                <p className="text-xs text-muted-foreground mb-2">
-                  Create a new folder on your computer, then download <strong>all</strong> these files into it:
+              <div className="ml-8 space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  Download the extension as a ZIP file, then unzip it into a folder.
                 </p>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { name: "manifest.json", path: "/extension/manifest.json" },
-                    { name: "popup.html", path: "/extension/popup.html" },
-                    { name: "popup.js", path: "/extension/popup.js" },
-                    { name: "icon16.png", path: "/extension/icon16.png" },
-                    { name: "icon48.png", path: "/extension/icon48.png" },
-                    { name: "icon128.png", path: "/extension/icon128.png" },
-                  ].map((file) => (
-                    <a key={file.name} href={file.path} download={file.name}>
-                      <Button variant="outline" size="sm" className="font-mono gap-2 w-full text-xs">
-                        <Download className="h-3 w-3" />
-                        {file.name}
-                      </Button>
-                    </a>
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  All 6 files must be in the <strong>same folder</strong> for the extension to work.
-                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="font-mono gap-2"
+                  onClick={handleDownloadZip}
+                  disabled={downloadingZip}
+                >
+                  {downloadingZip ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                  {downloadingZip ? "Bundling..." : "Download Extension (.zip)"}
+                </Button>
               </div>
             </div>
 
