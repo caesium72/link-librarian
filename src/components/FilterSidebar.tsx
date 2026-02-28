@@ -1,5 +1,6 @@
 import logo from "@/assets/logo.png";
 import { cn } from "@/lib/utils";
+import { useProfile } from "@/hooks/useProfile";
 import { Link as RouterLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
@@ -58,6 +59,8 @@ export function FilterSidebar({
   onStatClick,
   activeStatFilter,
 }: FilterSidebarProps) {
+  const { profile } = useProfile();
+  const sidebarName = profile?.display_name || profile?.username || userEmail;
   return (
     <TooltipProvider delayDuration={0}>
       <aside
@@ -147,7 +150,9 @@ export function FilterSidebar({
                 <PanelLeftClose className="h-4 w-4" />
               </Button>
             </div>
-            <p className="text-[10px] text-muted-foreground font-mono truncate">{userEmail}</p>
+            <p className="text-[10px] text-muted-foreground font-mono truncate" title={userEmail}>
+              {sidebarName}
+            </p>
           </div>
 
           {/* Stats */}
