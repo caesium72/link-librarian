@@ -13,8 +13,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft, Flame, Clock, Star, Sparkles, ExternalLink,
-  BookOpen, TrendingUp, Eye, RefreshCw,
+  BookOpen, TrendingUp, Eye, RefreshCw, Share2,
 } from "lucide-react";
+import { KnowledgeGraph } from "@/components/KnowledgeGraph";
 import type { Link } from "@/types/links";
 
 interface RecommendedLink extends Link {
@@ -163,10 +164,26 @@ export default function Knowledge() {
     </div>
   );
 
+  // All links for graph
+  const { data: allLinks = [], isLoading: allLinksLoading } = useQuery({
+    queryKey: ["knowledge-all-links"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("links")
+        .select("*")
+        .eq("status", "ready")
+        .is("deleted_at", null)
+        .limit(500);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
   const tabConfig = [
     { value: "trending", icon: <Flame className="h-4 w-4" />, label: "Trending", emoji: "🔥" },
     { value: "recent", icon: <Clock className="h-4 w-4" />, label: "Recently Updated", emoji: "📚" },
     { value: "valuable", icon: <Star className="h-4 w-4" />, label: "Most Valuable", emoji: "⭐" },
+    { value: "graph", icon: <Share2 className="h-4 w-4" />, label: "Graph", emoji: "🕸️" },
     { value: "recommendations", icon: <Sparkles className="h-4 w-4" />, label: "For You", emoji: "🤖" },
   ];
 
@@ -194,7 +211,7 @@ export default function Knowledge() {
 
       <main className="max-w-4xl mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4 mb-6">
+          <TabsList className="grid w-full grid-cols-5 mb-6">
             {tabConfig.map((tab) => (
               <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs">
                 <span className="hidden sm:inline">{tab.emoji}</span>
@@ -264,6 +281,16 @@ export default function Knowledge() {
                 {valuableLinks.map((link, i) => renderLinkCard(link, i))}
               </div>
             )}
+          </TabsContent>
+
+          {/* Knowledge Graph */}
+          <TabsContent value="graph">
+            <div className="flex items-center gap-2 mb-4">
+              <Share2 className="h-5 w-5 text-primary" />
+              <h2 className="text-base font-semibold">Knowledge Graph</h2>
+              <span className="text-xs text-muted-foreground">· Tag connections across your library</span>
+            </div>
+            <KnowledgeGraph links={allLinks} isLoading={allLinksLoading} />
           </TabsContent>
 
           {/* AI Recommendations */}
