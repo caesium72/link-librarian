@@ -13,9 +13,10 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft, Flame, Clock, Star, Sparkles, ExternalLink,
-  BookOpen, TrendingUp, Eye, RefreshCw, Share2,
+  BookOpen, TrendingUp, Eye, RefreshCw, Share2, Box, Layers,
 } from "lucide-react";
 import { KnowledgeGraph } from "@/components/KnowledgeGraph";
+import { KnowledgeGraph3D } from "@/components/KnowledgeGraph3D";
 import type { Link } from "@/types/links";
 
 interface RecommendedLink extends Link {
@@ -26,6 +27,7 @@ export default function Knowledge() {
   const { loading: authLoading } = useRequireAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("trending");
+  const [graphMode, setGraphMode] = useState<"3d" | "2d">("3d");
 
   // Trending: most read/completed links
   const { data: trendingLinks = [], isLoading: trendingLoading } = useQuery({
@@ -302,12 +304,38 @@ export default function Knowledge() {
 
           {/* Knowledge Graph */}
           <TabsContent value="graph" className="animate-in fade-in zoom-in-[0.98] duration-500">
-            <div className="flex items-center gap-2 mb-4 animate-in fade-in slide-in-from-left-3 duration-500">
-              <Share2 className="h-5 w-5 text-primary animate-pulse" style={{ animationDuration: "3s" }} />
-              <h2 className="text-base font-semibold">Knowledge Graph</h2>
-              <span className="text-xs text-muted-foreground">· Tag connections across your library</span>
+            <div className="flex items-center justify-between mb-4 animate-in fade-in slide-in-from-left-3 duration-500">
+              <div className="flex items-center gap-2">
+                <Share2 className="h-5 w-5 text-primary animate-pulse" style={{ animationDuration: "3s" }} />
+                <h2 className="text-base font-semibold">Knowledge Graph</h2>
+                <span className="text-xs text-muted-foreground">· Tag connections across your library</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant={graphMode === "3d" ? "default" : "outline"}
+                  size="sm"
+                  className="gap-1.5 text-xs h-7 transition-all duration-300"
+                  onClick={() => setGraphMode("3d")}
+                >
+                  <Box className="h-3 w-3" />
+                  3D
+                </Button>
+                <Button
+                  variant={graphMode === "2d" ? "default" : "outline"}
+                  size="sm"
+                  className="gap-1.5 text-xs h-7 transition-all duration-300"
+                  onClick={() => setGraphMode("2d")}
+                >
+                  <Layers className="h-3 w-3" />
+                  2D
+                </Button>
+              </div>
             </div>
-            <KnowledgeGraph links={allLinks} isLoading={allLinksLoading} />
+            {graphMode === "3d" ? (
+              <KnowledgeGraph3D links={allLinks} isLoading={allLinksLoading} />
+            ) : (
+              <KnowledgeGraph links={allLinks} isLoading={allLinksLoading} />
+            )}
           </TabsContent>
 
           {/* AI Recommendations */}
