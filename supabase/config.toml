@@ -26,3 +26,18 @@ verify_jwt = false
 
 [functions.send-digest]
 verify_jwt = false
+
+[functions.knowledge-recommendations]
+verify_jwt = false
+
+[functions.discover-tools]
+verify_jwt = false
+
+[functions.fetch-rss]
+verify_jwt = false
+
+[functions.save-link]
+verify_jwt = false
+
+[functions.delete-account]
+verify_jwt = false

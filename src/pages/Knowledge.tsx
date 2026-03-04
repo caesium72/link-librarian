@@ -1,0 +1,328 @@
+import { useState } from "react";
+import { Link as RouterLink } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import logo from "@/assets/logo.png";
+import { useRequireAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
+import {
+  ArrowLeft, Flame, Clock, Star, Sparkles, ExternalLink,
+  BookOpen, TrendingUp, Eye, RefreshCw,
+} from "lucide-react";
+import type { Link } from "@/types/links";
+
+interface RecommendedLink extends Link {
+  reason?: string;
+}
+
+export default function Knowledge() {
+  const { loading: authLoading } = useRequireAuth();
+  const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState("trending");
+
+  // Trending: most read/completed links
+  const { data: trendingLinks = [], isLoading: trendingLoading } = useQuery({
+    queryKey: ["knowledge-trending"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("links")
+        .select("*")
+        .eq("is_read", true)
+        .eq("status", "ready")
+        .is("deleted_at", null)
+        .order("reading_completed_at", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Recently updated
+  const { data: recentLinks = [], isLoading: recentLoading } = useQuery({
+    queryKey: ["knowledge-recent"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("links")
+        .select("*")
+        .eq("status", "ready")
+        .is("deleted_at", null)
+        .order("updated_at", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Most valuable: pinned + high save count
+  const { data: valuableLinks = [], isLoading: valuableLoading } = useQuery({
+    queryKey: ["knowledge-valuable"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("links")
+        .select("*")
+        .eq("status", "ready")
+        .is("deleted_at", null)
+        .or("is_pinned.eq.true,save_count.gt.1,duplicate_count.gt.0")
+        .order("save_count", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // AI Recommendations
+  const [recommendations, setRecommendations] = useState<RecommendedLink[]>([]);
+  const [recsLoading, setRecsLoading] = useState(false);
+  const [recsLoaded, setRecsLoaded] = useState(false);
+
+  const fetchRecommendations = async () => {
+    setRecsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("knowledge-recommendations");
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setRecommendations(data?.recommendations || []);
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setRecsLoading(false);
+      setRecsLoaded(true);
+    }
+  };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse text-muted-foreground font-mono text-sm">Loading...</div>
+      </div>
+    );
+  }
+
+  const renderLinkCard = (link: Link & { reason?: string }, index: number) => (
+    <Card key={link.id} className="group hover:border-primary/30 transition-all duration-200" style={{ animationDelay: `${index * 50}ms` }}>
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-medium text-sm truncate">{link.title || "Untitled"}</h3>
+            <p className="text-xs text-muted-foreground font-mono mt-0.5 truncate">{link.domain || "unknown"}</p>
+            {link.summary && (
+              <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">{link.summary}</p>
+            )}
+            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+              {link.content_type && link.content_type !== "other" && (
+                <Badge variant="secondary" className="text-[10px] h-5">{link.content_type}</Badge>
+              )}
+              {(link.tags || []).slice(0, 3).map((tag) => (
+                <Badge key={tag} variant="outline" className="text-[10px] h-5">{tag}</Badge>
+              ))}
+              {link.is_pinned && (
+                <Badge variant="default" className="text-[10px] h-5">⭐ Pinned</Badge>
+              )}
+              {link.is_read && (
+                <Badge variant="secondary" className="text-[10px] h-5">✓ Read</Badge>
+              )}
+            </div>
+            {(link as any).reason && (
+              <div className="flex items-center gap-1 mt-2">
+                <Sparkles className="h-3 w-3 text-primary" />
+                <span className="text-[11px] text-primary font-medium">{(link as any).reason}</span>
+              </div>
+            )}
+          </div>
+          <a
+            href={link.original_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ExternalLink className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+          </a>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  const renderSkeleton = () => (
+    <div className="space-y-3">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <Card key={i}>
+          <CardContent className="p-4 space-y-2">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-3 w-1/3" />
+            <Skeleton className="h-3 w-full" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+
+  const tabConfig = [
+    { value: "trending", icon: <Flame className="h-4 w-4" />, label: "Trending", emoji: "🔥" },
+    { value: "recent", icon: <Clock className="h-4 w-4" />, label: "Recently Updated", emoji: "📚" },
+    { value: "valuable", icon: <Star className="h-4 w-4" />, label: "Most Valuable", emoji: "⭐" },
+    { value: "recommendations", icon: <Sparkles className="h-4 w-4" />, label: "For You", emoji: "🤖" },
+  ];
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <RouterLink to="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+              <ArrowLeft className="h-4 w-4" />
+            </RouterLink>
+            <img src={logo} alt="Logo" className="h-6 w-6" />
+            <div>
+              <h1 className="text-lg font-semibold flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-primary" />
+                Knowledge Discovery
+              </h1>
+              <p className="text-xs text-muted-foreground">Explore and discover your knowledge</p>
+            </div>
+          </div>
+          <ThemeToggle />
+        </div>
+      </header>
+
+      <main className="max-w-4xl mx-auto px-4 py-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-4 mb-6">
+            {tabConfig.map((tab) => (
+              <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs">
+                <span className="hidden sm:inline">{tab.emoji}</span>
+                <span>{tab.label}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          {/* Trending */}
+          <TabsContent value="trending">
+            <div className="flex items-center gap-2 mb-4">
+              <Flame className="h-5 w-5 text-destructive" />
+              <h2 className="text-base font-semibold">Trending Knowledge</h2>
+              <span className="text-xs text-muted-foreground">· Your most read content</span>
+            </div>
+            {trendingLoading ? renderSkeleton() : trendingLinks.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <Eye className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">No read links yet. Start reading to see trends!</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {trendingLinks.map((link, i) => renderLinkCard(link, i))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Recently Updated */}
+          <TabsContent value="recent">
+            <div className="flex items-center gap-2 mb-4">
+              <Clock className="h-5 w-5 text-chart-2" />
+              <h2 className="text-base font-semibold">Recently Updated</h2>
+              <span className="text-xs text-muted-foreground">· Latest changes in your library</span>
+            </div>
+            {recentLoading ? renderSkeleton() : recentLinks.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <BookOpen className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">No links yet. Add some to get started!</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {recentLinks.map((link, i) => renderLinkCard(link, i))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Most Valuable */}
+          <TabsContent value="valuable">
+            <div className="flex items-center gap-2 mb-4">
+              <Star className="h-5 w-5 text-chart-4" />
+              <h2 className="text-base font-semibold">Most Valuable</h2>
+              <span className="text-xs text-muted-foreground">· Pinned, saved & referenced often</span>
+            </div>
+            {valuableLoading ? renderSkeleton() : valuableLinks.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <Star className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">Pin or save links to see your most valuable knowledge.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {valuableLinks.map((link, i) => renderLinkCard(link, i))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* AI Recommendations */}
+          <TabsContent value="recommendations">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                <h2 className="text-base font-semibold">Recommended For You</h2>
+                <span className="text-xs text-muted-foreground">· AI-powered suggestions</span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs"
+                onClick={fetchRecommendations}
+                disabled={recsLoading}
+              >
+                <RefreshCw className={`h-3 w-3 ${recsLoading ? "animate-spin" : ""}`} />
+                {recsLoaded ? "Refresh" : "Get Recommendations"}
+              </Button>
+            </div>
+
+            {!recsLoaded && !recsLoading && (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <Sparkles className="h-8 w-8 text-primary mx-auto mb-3" />
+                  <p className="text-sm font-medium mb-1">AI Knowledge Recommendations</p>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    Based on your reading history, AI will suggest what to read next.
+                  </p>
+                  <Button onClick={fetchRecommendations} className="gap-2">
+                    <Sparkles className="h-4 w-4" />
+                    Generate Recommendations
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {recsLoading && renderSkeleton()}
+
+            {recsLoaded && !recsLoading && recommendations.length === 0 && (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <BookOpen className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    Read more links to unlock personalized recommendations!
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
+            {recsLoaded && !recsLoading && recommendations.length > 0 && (
+              <div className="space-y-3">
+                {recommendations.map((link, i) => renderLinkCard(link, i))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </main>
+    </div>
+  );
+}
