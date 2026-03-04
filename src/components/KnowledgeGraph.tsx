@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Search, ZoomIn, ZoomOut, Maximize2, GripHorizontal,
-  ExternalLink, Filter,
+  ExternalLink, Filter, MapIcon,
 } from "lucide-react";
 import type { Link } from "@/types/links";
 
@@ -18,6 +18,7 @@ interface GraphNode {
   y: number;
   vx: number;
   vy: number;
+  radius: number;
 }
 
 interface GraphEdge {
@@ -26,7 +27,7 @@ interface GraphEdge {
   weight: number;
 }
 
-function buildGraph(links: Link[], minCount: number = 1) {
+function buildGraph(links: Link[]) {
   const tagCount: Record<string, number> = {};
   const cooccurrence: Record<string, number> = {};
   const tagLinks: Record<string, Link[]> = {};
@@ -47,24 +48,26 @@ function buildGraph(links: Link[], minCount: number = 1) {
   }
 
   const topTags = Object.entries(tagCount)
-    .filter(([, c]) => c >= minCount)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 50)
     .map(([tag]) => tag);
 
   const topSet = new Set(topTags);
+  const maxC = Math.max(...topTags.map((t) => tagCount[t]), 1);
 
   const nodes: GraphNode[] = topTags.map((tag, i) => {
     const angle = (2 * Math.PI * i) / topTags.length;
-    const radius = 220;
+    const radius = 250;
+    const r = 12 + (tagCount[tag] / maxC) * 22;
     return {
       id: tag,
       label: tag,
       count: tagCount[tag],
-      x: 400 + radius * Math.cos(angle) + (Math.random() - 0.5) * 50,
-      y: 350 + radius * Math.sin(angle) + (Math.random() - 0.5) * 50,
+      x: 400 + radius * Math.cos(angle) + (Math.random() - 0.5) * 30,
+      y: 350 + radius * Math.sin(angle) + (Math.random() - 0.5) * 30,
       vx: 0,
       vy: 0,
+      radius: r,
     };
   });
 
@@ -79,6 +82,11 @@ function buildGraph(links: Link[], minCount: number = 1) {
   return { nodes, edges, tagLinks };
 }
 
+interface SimPositions {
+  x: number;
+  y: number;
+}
+
 function useSimulation(
   initialNodes: GraphNode[],
   edges: GraphEdge[],
@@ -86,25 +94,31 @@ function useSimulation(
   height: number
 ) {
   const nodesRef = useRef<GraphNode[]>([]);
-  const [positions, setPositions] = useState<{ x: number; y: number }[]>([]);
+  const [positions, setPositions] = useState<SimPositions[]>([]);
   const frameRef = useRef<number>(0);
   const iterRef = useRef(0);
   const dragRef = useRef<string | null>(null);
   const dragPosRef = useRef<{ x: number; y: number } | null>(null);
+  // Interpolated display positions for smooth rendering
+  const displayRef = useRef<SimPositions[]>([]);
 
   useEffect(() => {
     if (initialNodes.length === 0) return;
 
     nodesRef.current = initialNodes.map((n) => ({ ...n }));
     iterRef.current = 0;
+    displayRef.current = initialNodes.map((n) => ({ x: n.x, y: n.y }));
 
     const cx = width / 2;
     const cy = height / 2;
-    const nodeMap = new Map(nodesRef.current.map((n) => [n.id, n]));
+    const nodeMap = new Map<string, GraphNode>(nodesRef.current.map((n) => [n.id, n] as [string, GraphNode]));
+    const padding = 60;
 
     const tick = () => {
       const nodes = nodesRef.current;
-      const alpha = Math.max(0.005, 1 - iterRef.current / 300);
+      // Smooth alpha decay: starts fast, slows gracefully
+      const progress = iterRef.current / 500;
+      const alpha = Math.max(0.002, Math.exp(-3 * progress));
 
       // Apply drag position
       if (dragRef.current && dragPosRef.current) {
@@ -117,13 +131,22 @@ function useSimulation(
         }
       }
 
-      // Repulsion
+      // Repulsion (with collision avoidance using node radii)
       for (let i = 0; i < nodes.length; i++) {
         for (let j = i + 1; j < nodes.length; j++) {
           const dx = nodes[j].x - nodes[i].x;
           const dy = nodes[j].y - nodes[i].y;
-          const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
-          const force = (1000 * alpha) / (dist * dist);
+          const dist = Math.sqrt(dx * dx + dy * dy) || 0.1;
+          const minDist = nodes[i].radius + nodes[j].radius + 20; // minimum gap
+
+          // Standard repulsion
+          let force = (1200 * alpha) / (dist * dist);
+
+          // Extra collision force when overlapping
+          if (dist < minDist) {
+            force += ((minDist - dist) / minDist) * 8 * alpha;
+          }
+
           const fx = (dx / dist) * force;
           const fy = (dy / dist) * force;
           if (nodes[i].id !== dragRef.current) {
@@ -144,8 +167,9 @@ function useSimulation(
         if (!s || !t) continue;
         const dx = t.x - s.x;
         const dy = t.y - s.y;
-        const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
-        const force = (dist - 120) * 0.008 * alpha * Math.min(edge.weight, 4);
+        const dist = Math.sqrt(dx * dx + dy * dy) || 0.1;
+        const idealDist = s.radius + t.radius + 60;
+        const force = (dist - idealDist) * 0.006 * alpha * Math.min(edge.weight, 5);
         const fx = (dx / dist) * force;
         const fy = (dy / dist) * force;
         if (s.id !== dragRef.current) { s.vx += fx; s.vy += fy; }
@@ -155,25 +179,41 @@ function useSimulation(
       // Center gravity
       for (const node of nodes) {
         if (node.id === dragRef.current) continue;
-        node.vx += (cx - node.x) * 0.003 * alpha;
-        node.vy += (cy - node.y) * 0.003 * alpha;
+        node.vx += (cx - node.x) * 0.004 * alpha;
+        node.vy += (cy - node.y) * 0.004 * alpha;
       }
 
-      // Apply velocity
+      // Apply velocity with smooth damping
+      const damping = 0.7;
       for (const node of nodes) {
         if (node.id === dragRef.current) continue;
-        node.vx *= 0.55;
-        node.vy *= 0.55;
+        node.vx *= damping;
+        node.vy *= damping;
+        // Clamp max velocity for stability
+        const maxV = 8;
+        node.vx = Math.max(-maxV, Math.min(maxV, node.vx));
+        node.vy = Math.max(-maxV, Math.min(maxV, node.vy));
         node.x += node.vx;
         node.y += node.vy;
-        node.x = Math.max(50, Math.min(width - 50, node.x));
-        node.y = Math.max(50, Math.min(height - 50, node.y));
+        node.x = Math.max(padding, Math.min(width - padding, node.x));
+        node.y = Math.max(padding, Math.min(height - padding, node.y));
       }
 
-      setPositions(nodes.map((n) => ({ x: n.x, y: n.y })));
+      // Smooth interpolation for display positions (lerp)
+      const lerpFactor = 0.35;
+      const newDisplay = nodes.map((n, i) => {
+        const prev = displayRef.current[i] || { x: n.x, y: n.y };
+        return {
+          x: prev.x + (n.x - prev.x) * lerpFactor,
+          y: prev.y + (n.y - prev.y) * lerpFactor,
+        };
+      });
+      displayRef.current = newDisplay;
+
+      setPositions([...newDisplay]);
       iterRef.current++;
 
-      if (iterRef.current < 400 || dragRef.current) {
+      if (iterRef.current < 600 || dragRef.current) {
         frameRef.current = requestAnimationFrame(tick);
       }
     };
@@ -184,7 +224,7 @@ function useSimulation(
 
   const startDrag = useCallback((nodeId: string) => {
     dragRef.current = nodeId;
-    iterRef.current = Math.min(iterRef.current, 350); // keep simulation alive
+    iterRef.current = Math.min(iterRef.current, 500);
   }, []);
 
   const updateDrag = useCallback((x: number, y: number) => {
@@ -199,6 +239,122 @@ function useSimulation(
   return { nodes: initialNodes, positions, startDrag, updateDrag, endDrag };
 }
 
+// ─── Minimap Component ───
+function Minimap({
+  nodes,
+  positions,
+  edges,
+  dims,
+  zoom,
+  pan,
+  selectedTag,
+  connectedTags,
+  onNavigate,
+}: {
+  nodes: GraphNode[];
+  positions: SimPositions[];
+  edges: GraphEdge[];
+  dims: { w: number; h: number };
+  zoom: number;
+  pan: { x: number; y: number };
+  selectedTag: string | null;
+  connectedTags: Set<string>;
+  onNavigate: (x: number, y: number) => void;
+}) {
+  const mmW = 160;
+  const mmH = (dims.h / dims.w) * mmW;
+  const scale = mmW / dims.w;
+
+  // Viewport rectangle in minimap coords
+  const vpX = (-pan.x / zoom) * scale;
+  const vpY = (-pan.y / zoom) * scale;
+  const vpW = (dims.w / zoom) * scale;
+  const vpH = (dims.h / zoom) * scale;
+
+  const handleClick = (e: React.MouseEvent<SVGSVGElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    // Convert minimap coords to graph coords, then to pan
+    const gx = mx / scale;
+    const gy = my / scale;
+    onNavigate(gx, gy);
+  };
+
+  return (
+    <div className="absolute bottom-3 right-3 rounded-lg border border-border/60 bg-background/90 backdrop-blur-sm shadow-lg overflow-hidden">
+      <div className="flex items-center gap-1 px-2 py-1 border-b border-border/40">
+        <MapIcon className="h-3 w-3 text-muted-foreground" />
+        <span className="text-[9px] text-muted-foreground font-medium">Minimap</span>
+      </div>
+      <svg
+        width={mmW}
+        height={mmH}
+        className="bg-muted/30 cursor-crosshair"
+        onClick={handleClick}
+      >
+        {/* Edges */}
+        {edges.map((edge) => {
+          const si = nodes.findIndex((n) => n.id === edge.source);
+          const ti = nodes.findIndex((n) => n.id === edge.target);
+          const s = positions[si];
+          const t = positions[ti];
+          if (!s || !t) return null;
+          return (
+            <line
+              key={`mm-${edge.source}-${edge.target}`}
+              x1={s.x * scale}
+              y1={s.y * scale}
+              x2={t.x * scale}
+              y2={t.y * scale}
+              stroke="hsl(var(--border))"
+              strokeWidth={0.5}
+              strokeOpacity={0.4}
+            />
+          );
+        })}
+
+        {/* Nodes */}
+        {nodes.map((node, idx) => {
+          const pos = positions[idx];
+          if (!pos) return null;
+          const isSelected = selectedTag === node.id;
+          const isConnected = connectedTags.has(node.id);
+          return (
+            <circle
+              key={`mm-${node.id}`}
+              cx={pos.x * scale}
+              cy={pos.y * scale}
+              r={Math.max(2, node.radius * scale * 0.6)}
+              fill={
+                isSelected
+                  ? "hsl(var(--primary))"
+                  : isConnected
+                  ? "hsl(var(--primary) / 0.6)"
+                  : "hsl(var(--primary) / 0.3)"
+              }
+            />
+          );
+        })}
+
+        {/* Viewport rect */}
+        <rect
+          x={vpX}
+          y={vpY}
+          width={vpW}
+          height={vpH}
+          fill="hsl(var(--primary) / 0.08)"
+          stroke="hsl(var(--primary))"
+          strokeWidth={1.5}
+          strokeDasharray="3 2"
+          rx={2}
+        />
+      </svg>
+    </div>
+  );
+}
+
+// ─── Main Component ───
 interface KnowledgeGraphProps {
   links: Link[];
   isLoading: boolean;
@@ -212,6 +368,7 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [draggingNode, setDraggingNode] = useState<string | null>(null);
+  const [showMinimap, setShowMinimap] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [dims, setDims] = useState({ w: 800, h: 600 });
@@ -221,7 +378,7 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
     if (!el) return;
     const ro = new ResizeObserver((entries) => {
       const { width } = entries[0].contentRect;
-      setDims({ w: width, h: Math.max(450, Math.min(width * 0.7, 650)) });
+      setDims({ w: width, h: Math.max(480, Math.min(width * 0.7, 650)) });
     });
     ro.observe(el);
     return () => ro.disconnect();
@@ -248,7 +405,6 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
     [edges]
   );
 
-  // Search highlighting
   const matchedTags = useMemo(() => {
     if (!searchQuery.trim()) return new Set<string>();
     const q = searchQuery.toLowerCase();
@@ -265,7 +421,6 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
     return set;
   }, [selectedTag, edges]);
 
-  // Links for selected tag
   const selectedTagLinks = useMemo(() => {
     if (!selectedTag || !tagLinks[selectedTag]) return [];
     return tagLinks[selectedTag].slice(0, 10);
@@ -280,19 +435,16 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
     [nodes, positions]
   );
 
-  // Zoom handlers
   const handleZoomIn = () => setZoom((z) => Math.min(z * 1.3, 3));
   const handleZoomOut = () => setZoom((z) => Math.max(z / 1.3, 0.3));
   const handleReset = () => { setZoom(1); setPan({ x: 0, y: 0 }); setSelectedTag(null); setSearchQuery(""); };
 
-  // Wheel zoom
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
-    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+    const delta = e.deltaY > 0 ? 0.92 : 1.08;
     setZoom((z) => Math.max(0.3, Math.min(3, z * delta)));
   }, []);
 
-  // Pan handlers
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (draggingNode) return;
     if (e.button === 0) {
@@ -322,7 +474,6 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
     setIsPanning(false);
   }, [draggingNode, endDrag]);
 
-  // Node drag start
   const handleNodeDragStart = useCallback((e: React.MouseEvent, nodeId: string) => {
     e.stopPropagation();
     e.preventDefault();
@@ -330,11 +481,19 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
     startDrag(nodeId);
   }, [startDrag]);
 
+  // Minimap navigation: center view on clicked point
+  const handleMinimapNavigate = useCallback((gx: number, gy: number) => {
+    setPan({
+      x: -(gx * zoom - dims.w / 2),
+      y: -(gy * zoom - dims.h / 2),
+    });
+  }, [zoom, dims]);
+
   if (isLoading) {
     return (
       <Card>
         <CardContent className="p-6">
-          <Skeleton className="h-[450px] w-full rounded-lg" />
+          <Skeleton className="h-[480px] w-full rounded-lg" />
         </CardContent>
       </Card>
     );
@@ -376,6 +535,15 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
           <Button variant="outline" size="icon" className="h-8 w-8" onClick={handleReset} title="Reset view">
             <Maximize2 className="h-3.5 w-3.5" />
           </Button>
+          <Button
+            variant={showMinimap ? "default" : "outline"}
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setShowMinimap((v) => !v)}
+            title="Toggle minimap"
+          >
+            <MapIcon className="h-3.5 w-3.5" />
+          </Button>
         </div>
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <GripHorizontal className="h-3.5 w-3.5" />
@@ -384,7 +552,7 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
       </div>
 
       <div ref={containerRef} className="w-full">
-        <Card className="overflow-hidden">
+        <Card className="overflow-hidden relative">
           <CardContent className="p-0">
             <svg
               ref={svgRef}
@@ -400,7 +568,7 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
               onClick={() => { if (!draggingNode) setSelectedTag(null); }}
             >
               <g transform={`translate(${pan.x},${pan.y}) scale(${zoom})`}>
-                {/* Edges */}
+                {/* Edges with smooth curves */}
                 {edges.map((edge) => {
                   const s = getNodePos(edge.source);
                   const t = getNodePos(edge.target);
@@ -410,13 +578,22 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
                   const isSearchMatch =
                     searchQuery && (matchedTags.has(edge.source) || matchedTags.has(edge.target));
                   const isDimmed = (selectedTag || searchQuery) && !isHighlighted && !isSearchMatch;
+
+                  // Curved edge using quadratic bezier
+                  const mx = (s.x + t.x) / 2;
+                  const my = (s.y + t.y) / 2;
+                  const dx = t.x - s.x;
+                  const dy = t.y - s.y;
+                  const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                  const curvature = Math.min(dist * 0.08, 20);
+                  const cx = mx + (-dy / dist) * curvature;
+                  const cy = my + (dx / dist) * curvature;
+
                   return (
-                    <line
+                    <path
                       key={`${edge.source}-${edge.target}`}
-                      x1={s.x}
-                      y1={s.y}
-                      x2={t.x}
-                      y2={t.y}
+                      d={`M ${s.x} ${s.y} Q ${cx} ${cy} ${t.x} ${t.y}`}
+                      fill="none"
                       stroke={
                         isHighlighted
                           ? "hsl(var(--primary))"
@@ -424,8 +601,9 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
                           ? "hsl(var(--chart-2))"
                           : "hsl(var(--border))"
                       }
-                      strokeWidth={Math.max(1, (edge.weight / maxWeight) * 4)}
-                      strokeOpacity={isDimmed ? 0.08 : isHighlighted ? 0.9 : isSearchMatch ? 0.7 : 0.35}
+                      strokeWidth={Math.max(1, (edge.weight / maxWeight) * 3.5)}
+                      strokeOpacity={isDimmed ? 0.06 : isHighlighted ? 0.85 : isSearchMatch ? 0.65 : 0.3}
+                      style={{ transition: "stroke-opacity 0.3s ease" }}
                     />
                   );
                 })}
@@ -433,7 +611,7 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
                 {/* Nodes */}
                 {nodes.map((node, idx) => {
                   const pos = positions[idx] || { x: node.x, y: node.y };
-                  const r = 10 + (node.count / maxCount) * 22;
+                  const r = node.radius;
                   const isSelected = selectedTag === node.id;
                   const isConnected = connectedTags.has(node.id);
                   const isSearched = matchedTags.has(node.id);
@@ -441,9 +619,9 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
                     (selectedTag && !isSelected && !isConnected) ||
                     (searchQuery && !isSearched && !selectedTag);
 
-                  let fillColor = "hsl(var(--primary) / 0.25)";
+                  let fillColor = "hsl(var(--primary) / 0.22)";
                   if (isSelected) fillColor = "hsl(var(--primary))";
-                  else if (isConnected) fillColor = "hsl(var(--primary) / 0.55)";
+                  else if (isConnected) fillColor = "hsl(var(--primary) / 0.5)";
                   else if (isSearched) fillColor = "hsl(var(--chart-2))";
 
                   let strokeColor = "hsl(var(--border))";
@@ -453,33 +631,39 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
                   return (
                     <g
                       key={node.id}
-                      style={{ cursor: draggingNode === node.id ? "grabbing" : "pointer" }}
-                      opacity={isDimmed ? 0.2 : 1}
+                      style={{
+                        cursor: draggingNode === node.id ? "grabbing" : "pointer",
+                        transition: "opacity 0.3s ease",
+                      }}
+                      opacity={isDimmed ? 0.15 : 1}
                       onMouseDown={(e) => handleNodeDragStart(e, node.id)}
                       onClick={(e) => {
                         e.stopPropagation();
                         if (!draggingNode) setSelectedTag(selectedTag === node.id ? null : node.id);
                       }}
                     >
-                      {/* Glow ring for selected/searched */}
+                      {/* Outer glow for selected/searched */}
                       {(isSelected || isSearched) && (
                         <circle
                           cx={pos.x}
                           cy={pos.y}
-                          r={r + 5}
+                          r={r + 6}
                           fill="none"
                           stroke={isSelected ? "hsl(var(--primary))" : "hsl(var(--chart-2))"}
                           strokeWidth={2}
-                          strokeOpacity={0.3}
+                          strokeOpacity={0.25}
+                          style={{ transition: "r 0.3s ease" }}
                         />
                       )}
+                      {/* Node circle */}
                       <circle
                         cx={pos.x}
                         cy={pos.y}
                         r={r}
                         fill={fillColor}
                         stroke={strokeColor}
-                        strokeWidth={isSelected ? 2.5 : 1.2}
+                        strokeWidth={isSelected ? 2.5 : 1}
+                        style={{ transition: "fill 0.3s ease, stroke 0.3s ease" }}
                       />
                       {/* Label */}
                       <text
@@ -490,15 +674,16 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
                         fill="hsl(var(--foreground))"
                         fontWeight={isSelected || isSearched ? 600 : 400}
                         className="select-none pointer-events-none"
+                        style={{ transition: "font-weight 0.2s ease" }}
                       >
                         {node.label}
                       </text>
-                      {/* Count inside */}
+                      {/* Count */}
                       <text
                         x={pos.x}
                         y={pos.y + 4}
                         textAnchor="middle"
-                        fontSize={r > 16 ? 10 : 8}
+                        fontSize={r > 18 ? 10 : 8}
                         fill="hsl(var(--primary-foreground))"
                         fontWeight={600}
                         className="select-none pointer-events-none"
@@ -510,6 +695,21 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
                 })}
               </g>
             </svg>
+
+            {/* Minimap overlay */}
+            {showMinimap && positions.length > 0 && (
+              <Minimap
+                nodes={nodes}
+                positions={positions}
+                edges={edges}
+                dims={dims}
+                zoom={zoom}
+                pan={pan}
+                selectedTag={selectedTag}
+                connectedTags={connectedTags}
+                onNavigate={handleMinimapNavigate}
+              />
+            )}
           </CardContent>
         </Card>
       </div>
@@ -531,7 +731,6 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
               </Button>
             </div>
 
-            {/* Connected tags */}
             {connectedTags.size > 0 && (
               <div>
                 <p className="text-xs text-muted-foreground mb-1.5">Connected tags</p>
@@ -560,7 +759,6 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
               </div>
             )}
 
-            {/* Links for this tag */}
             {selectedTagLinks.length > 0 && (
               <div>
                 <p className="text-xs text-muted-foreground mb-1.5">Links with this tag</p>
