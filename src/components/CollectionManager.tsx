@@ -124,7 +124,7 @@ export function CollectionManager({ selectedCollectionId, onSelectCollection, co
         All Links
       </Button>
 
-      {collections.map((col) => (
+      {[...collections].sort((a, b) => (a.name === "Discovered" ? -1 : b.name === "Discovered" ? 1 : 0)).map((col) => (
         <div key={col.id} className="group flex items-center gap-0.5">
           {editingId === col.id ? (
             <div className="flex gap-1 flex-1">
