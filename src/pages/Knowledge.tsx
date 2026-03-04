@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft, Flame, Clock, Star, Sparkles, ExternalLink,
   BookOpen, TrendingUp, Eye, RefreshCw, Share2, Box, Layers,
+  Maximize2, Minimize2,
 } from "lucide-react";
 import { KnowledgeGraph } from "@/components/KnowledgeGraph";
 import { KnowledgeGraph3D } from "@/components/KnowledgeGraph3D";
@@ -28,6 +29,7 @@ export default function Knowledge() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("trending");
   const [graphMode, setGraphMode] = useState<"3d" | "2d">("3d");
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [displayMode, setDisplayMode] = useState<"3d" | "2d">("3d");
   const graphContainerRef = useRef<HTMLDivElement>(null);
@@ -43,6 +45,14 @@ export default function Knowledge() {
       setTimeout(() => setIsTransitioning(false), 500);
     }, 350);
   };
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isFullscreen) setIsFullscreen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isFullscreen]);
 
   // Trending: most read/completed links
   const { data: trendingLinks = [], isLoading: trendingLoading } = useQuery({
@@ -318,8 +328,8 @@ export default function Knowledge() {
           </TabsContent>
 
           {/* Knowledge Graph */}
-          <TabsContent value="graph" className="animate-in fade-in zoom-in-[0.98] duration-500">
-            <div className="flex items-center justify-between mb-4 animate-in fade-in slide-in-from-left-3 duration-500">
+          <TabsContent value="graph" className={`animate-in fade-in zoom-in-[0.98] duration-500 ${isFullscreen ? "fixed inset-0 z-50 bg-background p-4 flex flex-col" : ""}`}>
+            <div className={`flex items-center justify-between mb-4 animate-in fade-in slide-in-from-left-3 duration-500 ${isFullscreen ? "shrink-0" : ""}`}>
               <div className="flex items-center gap-2">
                 <Share2 className="h-5 w-5 text-primary animate-pulse" style={{ animationDuration: "3s" }} />
                 <h2 className="text-base font-semibold">Knowledge Graph</h2>
@@ -344,11 +354,20 @@ export default function Knowledge() {
                   <Layers className="h-3 w-3" />
                   2D
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 text-xs h-7 ml-1 transition-all duration-300"
+                  onClick={() => setIsFullscreen((f) => !f)}
+                >
+                  {isFullscreen ? <Minimize2 className="h-3 w-3" /> : <Maximize2 className="h-3 w-3" />}
+                  {isFullscreen ? "Exit" : "Fullscreen"}
+                </Button>
               </div>
             </div>
             <div
               ref={graphContainerRef}
-              className="transition-all duration-500 ease-out"
+              className={`transition-all duration-500 ease-out ${isFullscreen ? "flex-1 [&_.h-\\[500px\\]]:h-full" : ""}`}
               style={{
                 opacity: isTransitioning ? 0 : 1,
                 transform: isTransitioning
