@@ -78,6 +78,21 @@ export default function Knowledge() {
   });
 
   // AI Recommendations
+  // All links for graph
+  const { data: allLinks = [], isLoading: allLinksLoading } = useQuery({
+    queryKey: ["knowledge-all-links"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("links")
+        .select("*")
+        .eq("status", "ready")
+        .is("deleted_at", null)
+        .limit(500);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
   const [recommendations, setRecommendations] = useState<RecommendedLink[]>([]);
   const [recsLoading, setRecsLoading] = useState(false);
   const [recsLoaded, setRecsLoaded] = useState(false);
@@ -164,20 +179,6 @@ export default function Knowledge() {
     </div>
   );
 
-  // All links for graph
-  const { data: allLinks = [], isLoading: allLinksLoading } = useQuery({
-    queryKey: ["knowledge-all-links"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("links")
-        .select("*")
-        .eq("status", "ready")
-        .is("deleted_at", null)
-        .limit(500);
-      if (error) throw error;
-      return data || [];
-    },
-  });
 
   const tabConfig = [
     { value: "trending", icon: <Flame className="h-4 w-4" />, label: "Trending", emoji: "🔥" },
