@@ -36,7 +36,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, LogOut, Pin, FileText, Video, GitBranch, BookOpen, Wrench, MessageSquare, LayoutGrid, LayoutList, Filter, Clock, CheckCircle2, AlertCircle, ArrowUpDown, ArrowDown, ArrowUp, Settings, RefreshCw, CheckSquare, X, Trash2, Tag, Eye, EyeOff, Sparkles, HeartPulse } from "lucide-react";
+import { Search, LogOut, Pin, FileText, Video, GitBranch, BookOpen, Wrench, MessageSquare, LayoutGrid, LayoutList, Filter, Clock, CheckCircle2, AlertCircle, ArrowUpDown, ArrowDown, ArrowUp, Settings, RefreshCw, CheckSquare, X, Trash2, Tag, Eye, EyeOff, Sparkles, HeartPulse, TrendingUp } from "lucide-react";
 import { SmartSearchDialog } from "@/components/SmartSearchDialog";
 import { ImportDialog } from "@/components/ImportDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -477,6 +477,11 @@ const Index = () => {
               <RouterLink to="/discover">
                 <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-all" title="Discover AI & Tech Tools">
                   <Search className="h-3.5 w-3.5" />
+                </Button>
+              </RouterLink>
+              <RouterLink to="/knowledge">
+                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-all" title="Knowledge Discovery">
+                  <TrendingUp className="h-3.5 w-3.5" />
                 </Button>
               </RouterLink>
               <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-all" onClick={handleHealthCheck} disabled={healthChecking} title="Check link health">

@@ -15,6 +15,7 @@ import SharedCollection from "./pages/SharedCollection";
 import Discover from "./pages/Discover";
 import Digest from "./pages/Digest";
 import PublicProfile from "./pages/PublicProfile";
+import Knowledge from "./pages/Knowledge";
 
 const queryClient = new QueryClient();
 
@@ -40,6 +41,7 @@ const App = () => (
             <Route path="/discover" element={<Discover />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/digest" element={<Digest />} />
+            <Route path="/knowledge" element={<Knowledge />} />
             <Route path="/u/:username" element={<PublicProfile />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
