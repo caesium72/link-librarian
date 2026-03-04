@@ -282,7 +282,7 @@ function Minimap({
   };
 
   return (
-    <div className="absolute bottom-3 right-3 rounded-lg border border-border/60 bg-background/90 backdrop-blur-sm shadow-lg overflow-hidden">
+    <div className="absolute bottom-3 right-3 rounded-lg border border-border/60 bg-background/90 backdrop-blur-sm shadow-lg overflow-hidden animate-in fade-in slide-in-from-bottom-right-2 zoom-in-95 duration-300">
       <div className="flex items-center gap-1 px-2 py-1 border-b border-border/40">
         <MapIcon className="h-3 w-3 text-muted-foreground" />
         <span className="text-[9px] text-muted-foreground font-medium">Minimap</span>
@@ -514,7 +514,7 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center gap-2 flex-wrap animate-in fade-in slide-in-from-bottom-2 duration-400">
         <div className="relative flex-1 min-w-[200px] max-w-xs">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
@@ -716,26 +716,26 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
 
       {/* Detail panel */}
       {selectedTag && (
-        <Card>
+        <Card className="animate-in fade-in slide-in-from-bottom-3 duration-400 hover:border-primary/20 transition-all">
           <CardContent className="p-4 space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between animate-in fade-in slide-in-from-left-2 duration-300">
               <p className="text-sm font-semibold flex items-center gap-2">
-                <Filter className="h-3.5 w-3.5 text-primary" />
-                Tag: <Badge variant="default">{selectedTag}</Badge>
+                <Filter className="h-3.5 w-3.5 text-primary animate-pulse" />
+                Tag: <Badge variant="default" className="animate-in zoom-in-95 duration-200">{selectedTag}</Badge>
                 <span className="text-muted-foreground font-normal">
                   · {tagLinks[selectedTag]?.length || 0} links
                 </span>
               </p>
-              <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setSelectedTag(null)}>
+              <Button variant="ghost" size="sm" className="text-xs h-7 hover:text-destructive transition-colors duration-200" onClick={() => setSelectedTag(null)}>
                 Clear
               </Button>
             </div>
 
             {connectedTags.size > 0 && (
-              <div>
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300" style={{ animationDelay: "100ms", animationFillMode: "both" }}>
                 <p className="text-xs text-muted-foreground mb-1.5">Connected tags</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {Array.from(connectedTags).map((tag) => {
+                  {Array.from(connectedTags).map((tag, i) => {
                     const edge = edges.find(
                       (e) =>
                         (e.source === selectedTag && e.target === tag) ||
@@ -745,7 +745,8 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
                       <Badge
                         key={tag}
                         variant="secondary"
-                        className="text-xs cursor-pointer hover:bg-secondary/80 transition-colors"
+                        className="text-xs cursor-pointer hover:bg-secondary/80 hover:scale-105 hover:shadow-sm transition-all duration-200 animate-in fade-in zoom-in-90"
+                        style={{ animationDelay: `${i * 40}ms`, animationFillMode: "both" }}
                         onClick={() => setSelectedTag(tag)}
                       >
                         {tag}
@@ -760,23 +761,24 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
             )}
 
             {selectedTagLinks.length > 0 && (
-              <div>
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300" style={{ animationDelay: "200ms", animationFillMode: "both" }}>
                 <p className="text-xs text-muted-foreground mb-1.5">Links with this tag</p>
                 <div className="space-y-1.5">
-                  {selectedTagLinks.map((link) => (
+                  {selectedTagLinks.map((link, i) => (
                     <div
                       key={link.id}
-                      className="flex items-center gap-2 p-2 rounded-md bg-muted/50 hover:bg-muted transition-colors group"
+                      className="flex items-center gap-2 p-2 rounded-md bg-muted/50 hover:bg-muted hover:-translate-y-px hover:shadow-sm transition-all duration-200 group animate-in fade-in slide-in-from-left-2"
+                      style={{ animationDelay: `${200 + i * 60}ms`, animationFillMode: "both" }}
                     >
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium truncate">{link.title || "Untitled"}</p>
+                        <p className="text-xs font-medium truncate group-hover:text-primary transition-colors duration-200">{link.title || "Untitled"}</p>
                         <p className="text-[10px] text-muted-foreground truncate">{link.domain}</p>
                       </div>
                       <a
                         href={link.original_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                        className="opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-1 group-hover:translate-x-0 shrink-0"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <ExternalLink className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
@@ -784,7 +786,7 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
                     </div>
                   ))}
                   {(tagLinks[selectedTag]?.length || 0) > 10 && (
-                    <p className="text-[10px] text-muted-foreground text-center">
+                    <p className="text-[10px] text-muted-foreground text-center animate-in fade-in duration-500" style={{ animationDelay: "500ms" }}>
                       +{(tagLinks[selectedTag]?.length || 0) - 10} more
                     </p>
                   )}
