@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   ArrowLeft, LinkIcon, CheckCircle2, Clock, AlertCircle, TrendingUp,
-  CalendarIcon, Flame, Hash, Globe, Zap, BarChart3, BookOpen, Eye, Target,
+  CalendarIcon, Flame, Hash, Globe, Zap, BarChart3,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -160,42 +160,6 @@ const Analytics = () => {
     }
     return count;
   }, [links]);
-
-  // Reading stats
-  const readingStats = useMemo(() => {
-    const totalRead = links.filter(l => l.is_read).length;
-    const totalUnread = links.filter(l => !l.is_read).length;
-    const totalReadingTime = links.reduce((sum, l) => sum + ((l as any).reading_time_estimate || 0), 0);
-    const readReadingTime = links.filter(l => l.is_read).reduce((sum, l) => sum + ((l as any).reading_time_estimate || 0), 0);
-    const inProgress = links.filter(l => (l as any).reading_started_at && !l.is_read).length;
-    const readPercentage = links.length > 0 ? Math.round((totalRead / links.length) * 100) : 0;
-    return { totalRead, totalUnread, totalReadingTime, readReadingTime, inProgress, readPercentage };
-  }, [links]);
-
-  // Topic trends - tags over time (group by week)
-  const topicTrends = useMemo(() => {
-    if (!dateRange?.from || links.length === 0) return [];
-    const weeklyTags: Record<string, Record<string, number>> = {};
-    links.forEach(l => {
-      const week = l.created_at.slice(0, 10);
-      const weekStart = new Date(week);
-      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-      const key = format(weekStart, "MMM d");
-      if (!weeklyTags[key]) weeklyTags[key] = {};
-      l.tags?.forEach(tag => {
-        weeklyTags[key][tag] = (weeklyTags[key][tag] || 0) + 1;
-      });
-    });
-    // Get top 5 tags overall
-    const tagTotals: Record<string, number> = {};
-    links.forEach(l => l.tags?.forEach(t => { tagTotals[t] = (tagTotals[t] || 0) + 1; }));
-    const top5Tags = Object.entries(tagTotals).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([t]) => t);
-    
-    return Object.entries(weeklyTags).map(([week, tags]) => ({
-      week,
-      ...Object.fromEntries(top5Tags.map(t => [t, tags[t] || 0])),
-    }));
-  }, [links, dateRange]);
 
   // Average per day
   const avgPerDay = useMemo(() => {
@@ -351,54 +315,6 @@ const Analytics = () => {
               </CardContent>
             </Card>
           </div>
-        </div>
-
-        {/* Reading Insights */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="group hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-chart-2/10 group-hover:bg-chart-2/20 transition-colors">
-                <BookOpen className="h-5 w-5 text-chart-2" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold font-mono">{readingStats.totalRead}</p>
-                <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">Read</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="group hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-chart-3/10 group-hover:bg-chart-3/20 transition-colors">
-                <Eye className="h-5 w-5 text-chart-3" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold font-mono">{readingStats.totalUnread}</p>
-                <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">Unread</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="group hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-chart-4/10 group-hover:bg-chart-4/20 transition-colors">
-                <Target className="h-5 w-5 text-chart-4" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold font-mono">{readingStats.readPercentage}%</p>
-                <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">Completion</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="group hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                <Clock className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold font-mono">{readingStats.totalReadingTime}m</p>
-                <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">Est. Reading</p>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Activity Heatmap */}
@@ -652,32 +568,6 @@ const Analytics = () => {
             </CardContent>
           </Card>
         </div>
-
-        {/* Topic Trends Over Time */}
-        {topicTrends.length > 1 && (
-          <Card className="overflow-hidden group hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-mono flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-chart-2" />
-                Topic Trends (Weekly)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={topicTrends}>
-                    <XAxis dataKey="week" tick={{ fontSize: 9, fontFamily: "JetBrains Mono" }} stroke="hsl(215, 12%, 45%)" />
-                    <YAxis tick={{ fontSize: 10, fontFamily: "JetBrains Mono" }} stroke="hsl(215, 12%, 45%)" allowDecimals={false} />
-                    <Tooltip content={<CustomTooltip />} />
-                    {Object.keys(topicTrends[0] || {}).filter(k => k !== "week").map((tag, i) => (
-                      <Area key={tag} type="monotone" dataKey={tag} stackId="1" stroke={CHART_COLORS[i % CHART_COLORS.length]} fill={CHART_COLORS[i % CHART_COLORS.length]} fillOpacity={0.3} strokeWidth={1.5} />
-                    ))}
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Tag Cloud */}
         {topTags.length > 0 && (

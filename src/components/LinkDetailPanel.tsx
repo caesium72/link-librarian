@@ -6,11 +6,10 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SimilarLinks } from "@/components/SimilarLinks";
 import {
-  ExternalLink, Copy, Pin, PinOff, RefreshCw, Trash2, X, BookOpen, CheckCircle2, Clock,
+  ExternalLink, Copy, Pin, PinOff, RefreshCw, Trash2, X,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { markAsReading, markAsRead } from "@/lib/api/reading";
 
 interface LinkDetailPanelProps {
   link: Link | null;
@@ -163,47 +162,6 @@ export function LinkDetailPanel({ link, onClose, onUpdate, onRetry, onDelete, on
           <h4 className="text-xs font-mono text-muted-foreground mb-1">Notes</h4>
           <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Add your notes..." className="font-mono text-xs min-h-[80px]" onBlur={saveNotes} />
         </div>
-
-        {/* Reading Progress */}
-        {(link as any).reading_time_estimate && (
-          <div className="bg-muted/30 rounded-lg p-3 border border-border/30">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-mono text-muted-foreground flex items-center gap-1.5">
-                <Clock className="h-3 w-3" />
-                {(link as any).reading_time_estimate} min read
-              </span>
-              {link.is_read ? (
-                <Badge variant="secondary" className="text-[10px] font-mono gap-1">
-                  <CheckCircle2 className="h-3 w-3" /> Read
-                </Badge>
-              ) : (link as any).reading_started_at ? (
-                <Badge variant="outline" className="text-[10px] font-mono gap-1 text-chart-3">
-                  <BookOpen className="h-3 w-3" /> In Progress
-                </Badge>
-              ) : null}
-            </div>
-            <div className="flex gap-2 mt-2">
-              {!link.is_read && !(link as any).reading_started_at && (
-                <Button variant="outline" size="sm" className="h-7 text-xs font-mono gap-1" onClick={async () => {
-                  await markAsReading(link.id);
-                  onUpdate(link.id, { is_read: false } as any);
-                  toast({ title: "Started reading" });
-                }}>
-                  <BookOpen className="h-3 w-3" /> Start Reading
-                </Button>
-              )}
-              {!link.is_read && (
-                <Button variant="outline" size="sm" className="h-7 text-xs font-mono gap-1" onClick={async () => {
-                  await markAsRead(link.id);
-                  onUpdate(link.id, { is_read: true });
-                  toast({ title: "Marked as read! 🎉" });
-                }}>
-                  <CheckCircle2 className="h-3 w-3" /> Mark as Read
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
 
         {/* Metadata */}
         <div className="space-y-1 text-xs text-muted-foreground font-mono">
