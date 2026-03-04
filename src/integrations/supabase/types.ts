@@ -111,6 +111,9 @@ export type Database = {
           last_health_check: string | null
           notes: string | null
           original_url: string
+          reading_completed_at: string | null
+          reading_started_at: string | null
+          reading_time_estimate: number | null
           save_count: number
           source: string
           status: string
@@ -138,6 +141,9 @@ export type Database = {
           last_health_check?: string | null
           notes?: string | null
           original_url: string
+          reading_completed_at?: string | null
+          reading_started_at?: string | null
+          reading_time_estimate?: number | null
           save_count?: number
           source?: string
           status?: string
@@ -165,6 +171,9 @@ export type Database = {
           last_health_check?: string | null
           notes?: string | null
           original_url?: string
+          reading_completed_at?: string | null
+          reading_started_at?: string | null
+          reading_time_estimate?: number | null
           save_count?: number
           source?: string
           status?: string
@@ -206,6 +215,33 @@ export type Database = {
           updated_at?: string
           user_id?: string
           username?: string | null
+        }
+        Relationships: []
+      }
+      reading_streaks: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          links_read: number
+          reading_minutes: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          links_read?: number
+          reading_minutes?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          links_read?: number
+          reading_minutes?: number
+          user_id?: string
         }
         Relationships: []
       }

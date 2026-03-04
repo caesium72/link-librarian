@@ -316,6 +316,12 @@ export function LinkCard({ link, onPin, onRetry, onDelete, onClick, onReview, se
 
         <div className="flex items-center gap-3 mt-2 text-[10px] text-muted-foreground font-mono">
           {link.domain && <span className="truncate max-w-[120px]">{link.domain}</span>}
+          {(link as any).reading_time_estimate && (
+            <span className="inline-flex items-center gap-1">
+              <Clock className="h-2.5 w-2.5" />
+              {(link as any).reading_time_estimate} min read
+            </span>
+          )}
           <span>{new Date(link.created_at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}</span>
           {link.save_count > 1 && (
             <span className="inline-flex items-center gap-1">

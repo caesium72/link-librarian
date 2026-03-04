@@ -156,8 +156,12 @@ Based on the URL, domain, title, and description, provide:
                     type: "number",
                     description: "Confidence score 0.0 to 1.0",
                   },
+                  reading_time_minutes: {
+                    type: "integer",
+                    description: "Estimated reading time in minutes (1-60). Estimate based on content type: articles 3-15 min, docs 5-20 min, videos use the video duration, repos 2-5 min for README overview, threads 2-10 min.",
+                  },
                 },
-                required: ["clean_title", "summary", "tags", "content_type", "key_points", "confidence"],
+                required: ["clean_title", "summary", "tags", "content_type", "key_points", "confidence", "reading_time_minutes"],
                 additionalProperties: false,
               },
             },
@@ -261,6 +265,7 @@ Based on the URL, domain, title, and description, provide:
         canonical_url: canonicalUrl,
         domain: finalDomain,
         status: "ready",
+        reading_time_estimate: analysis.reading_time_minutes ? Math.min(60, Math.max(1, analysis.reading_time_minutes)) : null,
       })
       .eq("id", linkId);
 
