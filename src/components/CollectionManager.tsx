@@ -17,7 +17,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { FolderPlus, Folder, Trash2, Pencil, Check, X, Plus, Share2, Link2, LinkIcon } from "lucide-react";
+import { FolderPlus, Folder, Trash2, Pencil, Check, X, Plus, Share2, Link2, LinkIcon, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import type { Collection } from "@/types/collections";
@@ -153,8 +153,17 @@ export function CollectionManager({ selectedCollectionId, onSelectCollection, co
                 className="flex-1 h-7 justify-start text-xs font-mono gap-1.5 px-2 min-w-0"
                 onClick={() => onSelectCollection(selectedCollectionId === col.id ? null : col.id)}
               >
-                <Folder className="h-3 w-3 shrink-0" />
+                {col.name === "Discovered" ? (
+                  <Sparkles className="h-3 w-3 shrink-0 text-primary" />
+                ) : (
+                  <Folder className="h-3 w-3 shrink-0" />
+                )}
                 <span className="truncate">{col.name}</span>
+                {col.name === "Discovered" && (
+                  <Badge variant="secondary" className="ml-auto text-[9px] font-mono px-1 py-0 h-4 bg-primary/10 text-primary border-primary/20">
+                    AI
+                  </Badge>
+                )}
               </Button>
               <div className="flex opacity-0 group-hover:opacity-100 transition-opacity">
                 <Tooltip>
