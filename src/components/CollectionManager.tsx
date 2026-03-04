@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchCollections, createCollection, deleteCollection, updateCollection, fetchCollectionLinkIds } from "@/lib/api/collections";
+import { fetchCollections, createCollection, deleteCollection, updateCollection } from "@/lib/api/collections";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,12 +41,24 @@ export function CollectionManager({ selectedCollectionId, onSelectCollection, co
     queryFn: fetchCollections,
   });
 
-  const discoveredCollection = collections.find((c) => c.name === "Discovered");
+  const collectionIds = collections.map((c) => c.id);
 
-  const { data: discoveredLinkIds = [] } = useQuery({
-    queryKey: ["collection-links", discoveredCollection?.id],
-    queryFn: () => fetchCollectionLinkIds(discoveredCollection!.id),
-    enabled: !!discoveredCollection,
+  const { data: collectionCounts = {} } = useQuery({
+    queryKey: ["collection-counts", collectionIds],
+    queryFn: async () => {
+      if (collectionIds.length === 0) return {};
+      const { data, error } = await supabase
+        .from("collection_links")
+        .select("collection_id")
+        .in("collection_id", collectionIds);
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      (data || []).forEach((r: any) => {
+        counts[r.collection_id] = (counts[r.collection_id] || 0) + 1;
+      });
+      return counts;
+    },
+    enabled: collectionIds.length > 0,
   });
 
   const createMutation = useMutation({
@@ -167,11 +179,15 @@ export function CollectionManager({ selectedCollectionId, onSelectCollection, co
                   <Folder className="h-3 w-3 shrink-0" />
                 )}
                 <span className="truncate">{col.name}</span>
-                {col.name === "Discovered" && (
+                {col.name === "Discovered" ? (
                   <Badge variant="secondary" className="ml-auto text-[9px] font-mono px-1 py-0 h-4 bg-primary/10 text-primary border-primary/20">
-                    {discoveredLinkIds.length > 0 ? discoveredLinkIds.length : "AI"}
+                    {(collectionCounts[col.id] || 0) > 0 ? collectionCounts[col.id] : "AI"}
                   </Badge>
-                )}
+                ) : (collectionCounts[col.id] || 0) > 0 ? (
+                  <span className="ml-auto text-[9px] font-mono text-muted-foreground/60">
+                    {collectionCounts[col.id]}
+                  </span>
+                ) : null}
               </Button>
               <div className="flex opacity-0 group-hover:opacity-100 transition-opacity">
                 <Tooltip>
