@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import logo from "@/assets/logo.png";
@@ -28,6 +28,21 @@ export default function Knowledge() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("trending");
   const [graphMode, setGraphMode] = useState<"3d" | "2d">("3d");
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [displayMode, setDisplayMode] = useState<"3d" | "2d">("3d");
+  const graphContainerRef = useRef<HTMLDivElement>(null);
+
+  const handleGraphModeSwitch = (mode: "3d" | "2d") => {
+    if (mode === graphMode || isTransitioning) return;
+    setIsTransitioning(true);
+    // Phase 1: fade/scale out current
+    setTimeout(() => {
+      setDisplayMode(mode);
+      setGraphMode(mode);
+      // Phase 2: fade/scale in new (handled by CSS)
+      setTimeout(() => setIsTransitioning(false), 500);
+    }, 350);
+  };
 
   // Trending: most read/completed links
   const { data: trendingLinks = [], isLoading: trendingLoading } = useQuery({
@@ -314,8 +329,8 @@ export default function Knowledge() {
                 <Button
                   variant={graphMode === "3d" ? "default" : "outline"}
                   size="sm"
-                  className="gap-1.5 text-xs h-7 transition-all duration-300"
-                  onClick={() => setGraphMode("3d")}
+                  className={`gap-1.5 text-xs h-7 transition-all duration-300 ${isTransitioning ? "pointer-events-none" : ""}`}
+                  onClick={() => handleGraphModeSwitch("3d")}
                 >
                   <Box className="h-3 w-3" />
                   3D
@@ -323,19 +338,34 @@ export default function Knowledge() {
                 <Button
                   variant={graphMode === "2d" ? "default" : "outline"}
                   size="sm"
-                  className="gap-1.5 text-xs h-7 transition-all duration-300"
-                  onClick={() => setGraphMode("2d")}
+                  className={`gap-1.5 text-xs h-7 transition-all duration-300 ${isTransitioning ? "pointer-events-none" : ""}`}
+                  onClick={() => handleGraphModeSwitch("2d")}
                 >
                   <Layers className="h-3 w-3" />
                   2D
                 </Button>
               </div>
             </div>
-            {graphMode === "3d" ? (
-              <KnowledgeGraph3D links={allLinks} isLoading={allLinksLoading} />
-            ) : (
-              <KnowledgeGraph links={allLinks} isLoading={allLinksLoading} />
-            )}
+            <div
+              ref={graphContainerRef}
+              className="transition-all duration-500 ease-out"
+              style={{
+                opacity: isTransitioning ? 0 : 1,
+                transform: isTransitioning
+                  ? graphMode === "3d"
+                    ? "scale(0.92) rotateX(8deg) perspective(800px)"
+                    : "scale(0.92) rotateX(-8deg) perspective(800px)"
+                  : "scale(1) rotateX(0deg) perspective(800px)",
+                transformOrigin: "center center",
+                filter: isTransitioning ? "blur(4px)" : "blur(0px)",
+              }}
+            >
+              {displayMode === "3d" ? (
+                <KnowledgeGraph3D links={allLinks} isLoading={allLinksLoading} />
+              ) : (
+                <KnowledgeGraph links={allLinks} isLoading={allLinksLoading} />
+              )}
+            </div>
           </TabsContent>
 
           {/* AI Recommendations */}
