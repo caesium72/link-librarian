@@ -27,6 +27,7 @@ export async function fetchLinks({
     .from("links")
     .select("*")
     .is("deleted_at", null)
+    .eq("source", "manual")
     .order(sort.column, { ascending: sort.ascending });
 
   if (search && search.trim()) {
@@ -160,7 +161,7 @@ export async function checkDuplicate(url: string): Promise<Link | null> {
   return data || null;
 }
 
-export async function addLink(url: string): Promise<Link> {
+export async function addLink(url: string, source: string = "manual"): Promise<Link> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
@@ -182,7 +183,7 @@ export async function addLink(url: string): Promise<Link> {
   // Insert link
   const { data, error } = await supabase
     .from("links")
-    .insert({ original_url: url, domain, user_id: user.id, status: "pending" })
+    .insert({ original_url: url, domain, user_id: user.id, status: "pending", source } as any)
     .select()
     .single();
   if (error) throw error;

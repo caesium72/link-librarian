@@ -89,7 +89,7 @@ export default function Discover() {
   const saveToLibrary = async (tool: DiscoveredTool) => {
     setSavingUrl(tool.url);
     try {
-      const link = await addLink(tool.url);
+      const link = await addLink(tool.url, "discovered");
       const collectionId = await getOrCreateDiscoveredCollection();
       await addLinkToCollection(collectionId, link.id);
       setSavedUrls((prev) => new Set(prev).add(tool.url));
@@ -120,7 +120,7 @@ export default function Discover() {
     } catch {}
     for (const tool of toSave) {
       try {
-        const link = await addLink(tool.url);
+        const link = await addLink(tool.url, "discovered");
         if (collectionId) {
           await addLinkToCollection(collectionId, link.id).catch(() => {});
         }
