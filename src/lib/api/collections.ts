@@ -78,3 +78,27 @@ export async function addLinksToCollection(collectionId: string, linkIds: string
   const { error } = await supabase.from("collection_links").upsert(rows, { onConflict: "collection_id,link_id" });
   if (error) throw error;
 }
+
+export async function getOrCreateDiscoveredCollection(): Promise<string> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  // Try to find existing "Discovered" collection
+  const { data: existing } = await supabase
+    .from("collections")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("name", "Discovered")
+    .maybeSingle();
+
+  if (existing) return existing.id;
+
+  // Create it
+  const { data, error } = await supabase
+    .from("collections")
+    .insert({ name: "Discovered", user_id: user.id, icon: "sparkles", color: "purple" })
+    .select("id")
+    .single();
+  if (error) throw error;
+  return data.id;
+}

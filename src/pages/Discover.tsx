@@ -4,6 +4,7 @@ import logo from "@/assets/logo.png";
 import { useRequireAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { addLink } from "@/lib/api/links";
+import { getOrCreateDiscoveredCollection, addLinkToCollection } from "@/lib/api/collections";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -88,9 +89,11 @@ export default function Discover() {
   const saveToLibrary = async (tool: DiscoveredTool) => {
     setSavingUrl(tool.url);
     try {
-      await addLink(tool.url);
+      const link = await addLink(tool.url);
+      const collectionId = await getOrCreateDiscoveredCollection();
+      await addLinkToCollection(collectionId, link.id);
       setSavedUrls((prev) => new Set(prev).add(tool.url));
-      toast({ title: "Saved!", description: `${tool.name} added to your library.` });
+      toast({ title: "Saved!", description: `${tool.name} added to Discovered collection.` });
     } catch (e: any) {
       if (e.message === "DUPLICATE") {
         setSavedUrls((prev) => new Set(prev).add(tool.url));
@@ -111,9 +114,16 @@ export default function Discover() {
     let saved = 0;
     let dupes = 0;
     let failed = 0;
+    let collectionId: string | null = null;
+    try {
+      collectionId = await getOrCreateDiscoveredCollection();
+    } catch {}
     for (const tool of toSave) {
       try {
-        await addLink(tool.url);
+        const link = await addLink(tool.url);
+        if (collectionId) {
+          await addLinkToCollection(collectionId, link.id).catch(() => {});
+        }
         setSavedUrls((prev) => new Set(prev).add(tool.url));
         saved++;
         setSaveAllProgress(saved + dupes + failed);
