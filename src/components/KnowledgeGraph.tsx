@@ -1,7 +1,13 @@
 import { useMemo, useState, useRef, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Search, ZoomIn, ZoomOut, Maximize2, GripHorizontal,
+  ExternalLink, Filter,
+} from "lucide-react";
 import type { Link } from "@/types/links";
 
 interface GraphNode {
@@ -20,14 +26,17 @@ interface GraphEdge {
   weight: number;
 }
 
-function buildGraph(links: Link[]) {
+function buildGraph(links: Link[], minCount: number = 1) {
   const tagCount: Record<string, number> = {};
   const cooccurrence: Record<string, number> = {};
+  const tagLinks: Record<string, Link[]> = {};
 
   for (const link of links) {
     const tags = link.tags || [];
     for (const tag of tags) {
       tagCount[tag] = (tagCount[tag] || 0) + 1;
+      if (!tagLinks[tag]) tagLinks[tag] = [];
+      tagLinks[tag].push(link);
     }
     for (let i = 0; i < tags.length; i++) {
       for (let j = i + 1; j < tags.length; j++) {
@@ -38,21 +47,22 @@ function buildGraph(links: Link[]) {
   }
 
   const topTags = Object.entries(tagCount)
+    .filter(([, c]) => c >= minCount)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 30)
+    .slice(0, 50)
     .map(([tag]) => tag);
 
   const topSet = new Set(topTags);
 
   const nodes: GraphNode[] = topTags.map((tag, i) => {
     const angle = (2 * Math.PI * i) / topTags.length;
-    const radius = 180;
+    const radius = 220;
     return {
       id: tag,
       label: tag,
       count: tagCount[tag],
-      x: 300 + radius * Math.cos(angle) + (Math.random() - 0.5) * 40,
-      y: 250 + radius * Math.sin(angle) + (Math.random() - 0.5) * 40,
+      x: 400 + radius * Math.cos(angle) + (Math.random() - 0.5) * 50,
+      y: 350 + radius * Math.sin(angle) + (Math.random() - 0.5) * 50,
       vx: 0,
       vy: 0,
     };
@@ -66,7 +76,7 @@ function buildGraph(links: Link[]) {
     }
   }
 
-  return { nodes, edges };
+  return { nodes, edges, tagLinks };
 }
 
 function useSimulation(
@@ -79,6 +89,8 @@ function useSimulation(
   const [positions, setPositions] = useState<{ x: number; y: number }[]>([]);
   const frameRef = useRef<number>(0);
   const iterRef = useRef(0);
+  const dragRef = useRef<string | null>(null);
+  const dragPosRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     if (initialNodes.length === 0) return;
@@ -92,7 +104,18 @@ function useSimulation(
 
     const tick = () => {
       const nodes = nodesRef.current;
-      const alpha = Math.max(0.01, 1 - iterRef.current / 200);
+      const alpha = Math.max(0.005, 1 - iterRef.current / 300);
+
+      // Apply drag position
+      if (dragRef.current && dragPosRef.current) {
+        const dragNode = nodeMap.get(dragRef.current);
+        if (dragNode) {
+          dragNode.x = dragPosRef.current.x;
+          dragNode.y = dragPosRef.current.y;
+          dragNode.vx = 0;
+          dragNode.vy = 0;
+        }
+      }
 
       // Repulsion
       for (let i = 0; i < nodes.length; i++) {
@@ -100,13 +123,17 @@ function useSimulation(
           const dx = nodes[j].x - nodes[i].x;
           const dy = nodes[j].y - nodes[i].y;
           const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
-          const force = (800 * alpha) / (dist * dist);
+          const force = (1000 * alpha) / (dist * dist);
           const fx = (dx / dist) * force;
           const fy = (dy / dist) * force;
-          nodes[i].vx -= fx;
-          nodes[i].vy -= fy;
-          nodes[j].vx += fx;
-          nodes[j].vy += fy;
+          if (nodes[i].id !== dragRef.current) {
+            nodes[i].vx -= fx;
+            nodes[i].vy -= fy;
+          }
+          if (nodes[j].id !== dragRef.current) {
+            nodes[j].vx += fx;
+            nodes[j].vy += fy;
+          }
         }
       }
 
@@ -118,35 +145,35 @@ function useSimulation(
         const dx = t.x - s.x;
         const dy = t.y - s.y;
         const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
-        const force = (dist - 100) * 0.01 * alpha * Math.min(edge.weight, 3);
+        const force = (dist - 120) * 0.008 * alpha * Math.min(edge.weight, 4);
         const fx = (dx / dist) * force;
         const fy = (dy / dist) * force;
-        s.vx += fx;
-        s.vy += fy;
-        t.vx -= fx;
-        t.vy -= fy;
+        if (s.id !== dragRef.current) { s.vx += fx; s.vy += fy; }
+        if (t.id !== dragRef.current) { t.vx -= fx; t.vy -= fy; }
       }
 
       // Center gravity
       for (const node of nodes) {
-        node.vx += (cx - node.x) * 0.005 * alpha;
-        node.vy += (cy - node.y) * 0.005 * alpha;
+        if (node.id === dragRef.current) continue;
+        node.vx += (cx - node.x) * 0.003 * alpha;
+        node.vy += (cy - node.y) * 0.003 * alpha;
       }
 
       // Apply velocity
       for (const node of nodes) {
-        node.vx *= 0.6;
-        node.vy *= 0.6;
+        if (node.id === dragRef.current) continue;
+        node.vx *= 0.55;
+        node.vy *= 0.55;
         node.x += node.vx;
         node.y += node.vy;
-        node.x = Math.max(40, Math.min(width - 40, node.x));
-        node.y = Math.max(40, Math.min(height - 40, node.y));
+        node.x = Math.max(50, Math.min(width - 50, node.x));
+        node.y = Math.max(50, Math.min(height - 50, node.y));
       }
 
       setPositions(nodes.map((n) => ({ x: n.x, y: n.y })));
       iterRef.current++;
 
-      if (iterRef.current < 250) {
+      if (iterRef.current < 400 || dragRef.current) {
         frameRef.current = requestAnimationFrame(tick);
       }
     };
@@ -155,7 +182,21 @@ function useSimulation(
     return () => cancelAnimationFrame(frameRef.current);
   }, [initialNodes, edges, width, height]);
 
-  return { nodes: initialNodes, positions };
+  const startDrag = useCallback((nodeId: string) => {
+    dragRef.current = nodeId;
+    iterRef.current = Math.min(iterRef.current, 350); // keep simulation alive
+  }, []);
+
+  const updateDrag = useCallback((x: number, y: number) => {
+    dragPosRef.current = { x, y };
+  }, []);
+
+  const endDrag = useCallback(() => {
+    dragRef.current = null;
+    dragPosRef.current = null;
+  }, []);
+
+  return { nodes: initialNodes, positions, startDrag, updateDrag, endDrag };
 }
 
 interface KnowledgeGraphProps {
@@ -165,26 +206,33 @@ interface KnowledgeGraphProps {
 
 export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+  const [draggingNode, setDraggingNode] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [dims, setDims] = useState({ w: 600, h: 500 });
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [dims, setDims] = useState({ w: 800, h: 600 });
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     const ro = new ResizeObserver((entries) => {
       const { width } = entries[0].contentRect;
-      setDims({ w: width, h: Math.max(400, Math.min(width * 0.75, 600)) });
+      setDims({ w: width, h: Math.max(450, Math.min(width * 0.7, 650)) });
     });
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
 
-  const { nodes: initialNodes, edges } = useMemo(
+  const { nodes: initialNodes, edges, tagLinks } = useMemo(
     () => buildGraph(links),
     [links]
   );
 
-  const { nodes, positions } = useSimulation(
+  const { nodes, positions, startDrag, updateDrag, endDrag } = useSimulation(
     initialNodes,
     edges,
     dims.w,
@@ -200,6 +248,13 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
     [edges]
   );
 
+  // Search highlighting
+  const matchedTags = useMemo(() => {
+    if (!searchQuery.trim()) return new Set<string>();
+    const q = searchQuery.toLowerCase();
+    return new Set(initialNodes.filter((n) => n.label.toLowerCase().includes(q)).map((n) => n.id));
+  }, [searchQuery, initialNodes]);
+
   const connectedTags = useMemo(() => {
     if (!selectedTag) return new Set<string>();
     const set = new Set<string>();
@@ -210,6 +265,12 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
     return set;
   }, [selectedTag, edges]);
 
+  // Links for selected tag
+  const selectedTagLinks = useMemo(() => {
+    if (!selectedTag || !tagLinks[selectedTag]) return [];
+    return tagLinks[selectedTag].slice(0, 10);
+  }, [selectedTag, tagLinks]);
+
   const getNodePos = useCallback(
     (id: string) => {
       const idx = nodes.findIndex((n) => n.id === id);
@@ -219,11 +280,61 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
     [nodes, positions]
   );
 
+  // Zoom handlers
+  const handleZoomIn = () => setZoom((z) => Math.min(z * 1.3, 3));
+  const handleZoomOut = () => setZoom((z) => Math.max(z / 1.3, 0.3));
+  const handleReset = () => { setZoom(1); setPan({ x: 0, y: 0 }); setSelectedTag(null); setSearchQuery(""); };
+
+  // Wheel zoom
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+    setZoom((z) => Math.max(0.3, Math.min(3, z * delta)));
+  }, []);
+
+  // Pan handlers
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (draggingNode) return;
+    if (e.button === 0) {
+      setIsPanning(true);
+      setPanStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+    }
+  }, [pan, draggingNode]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (draggingNode && svgRef.current) {
+      const rect = svgRef.current.getBoundingClientRect();
+      const x = (e.clientX - rect.left - pan.x) / zoom;
+      const y = (e.clientY - rect.top - pan.y) / zoom;
+      updateDrag(x, y);
+      return;
+    }
+    if (isPanning) {
+      setPan({ x: e.clientX - panStart.x, y: e.clientY - panStart.y });
+    }
+  }, [isPanning, panStart, draggingNode, zoom, pan, updateDrag]);
+
+  const handleMouseUp = useCallback(() => {
+    if (draggingNode) {
+      setDraggingNode(null);
+      endDrag();
+    }
+    setIsPanning(false);
+  }, [draggingNode, endDrag]);
+
+  // Node drag start
+  const handleNodeDragStart = useCallback((e: React.MouseEvent, nodeId: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setDraggingNode(nodeId);
+    startDrag(nodeId);
+  }, [startDrag]);
+
   if (isLoading) {
     return (
       <Card>
         <CardContent className="p-6">
-          <Skeleton className="h-[400px] w-full rounded-lg" />
+          <Skeleton className="h-[450px] w-full rounded-lg" />
         </CardContent>
       </Card>
     );
@@ -243,147 +354,245 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
 
   return (
     <div className="space-y-4">
+      {/* Toolbar */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="relative flex-1 min-w-[200px] max-w-xs">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Search tags..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-8 h-8 text-xs"
+          />
+        </div>
+        <div className="flex items-center gap-1">
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={handleZoomOut} title="Zoom out">
+            <ZoomOut className="h-3.5 w-3.5" />
+          </Button>
+          <span className="text-xs text-muted-foreground w-12 text-center">{Math.round(zoom * 100)}%</span>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={handleZoomIn} title="Zoom in">
+            <ZoomIn className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={handleReset} title="Reset view">
+            <Maximize2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <GripHorizontal className="h-3.5 w-3.5" />
+          <span>Drag nodes · Scroll to zoom · Click to select</span>
+        </div>
+      </div>
+
       <div ref={containerRef} className="w-full">
         <Card className="overflow-hidden">
           <CardContent className="p-0">
             <svg
+              ref={svgRef}
               width={dims.w}
               height={dims.h}
-              className="bg-muted/30"
-              onClick={() => setSelectedTag(null)}
+              className="bg-muted/20 select-none"
+              style={{ cursor: draggingNode ? "grabbing" : isPanning ? "grabbing" : "grab" }}
+              onWheel={handleWheel}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+              onClick={() => { if (!draggingNode) setSelectedTag(null); }}
             >
-              {/* Edges */}
-              {edges.map((edge) => {
-                const s = getNodePos(edge.source);
-                const t = getNodePos(edge.target);
-                const isHighlighted =
-                  selectedTag &&
-                  (edge.source === selectedTag || edge.target === selectedTag);
-                const isDimmed = selectedTag && !isHighlighted;
-                return (
-                  <line
-                    key={`${edge.source}-${edge.target}`}
-                    x1={s.x}
-                    y1={s.y}
-                    x2={t.x}
-                    y2={t.y}
-                    stroke={
-                      isHighlighted
-                        ? "hsl(var(--primary))"
-                        : "hsl(var(--border))"
-                    }
-                    strokeWidth={Math.max(
-                      1,
-                      (edge.weight / maxWeight) * 3
-                    )}
-                    strokeOpacity={isDimmed ? 0.15 : isHighlighted ? 0.9 : 0.4}
-                  />
-                );
-              })}
-
-              {/* Nodes */}
-              {nodes.map((node, idx) => {
-                const pos = positions[idx] || { x: node.x, y: node.y };
-                const r = 8 + (node.count / maxCount) * 18;
-                const isSelected = selectedTag === node.id;
-                const isConnected = connectedTags.has(node.id);
-                const isDimmed =
-                  selectedTag && !isSelected && !isConnected;
-
-                return (
-                  <g
-                    key={node.id}
-                    style={{ cursor: "pointer" }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedTag(
-                        selectedTag === node.id ? null : node.id
-                      );
-                    }}
-                    opacity={isDimmed ? 0.25 : 1}
-                  >
-                    <circle
-                      cx={pos.x}
-                      cy={pos.y}
-                      r={r}
-                      fill={
-                        isSelected
-                          ? "hsl(var(--primary))"
-                          : isConnected
-                          ? "hsl(var(--primary) / 0.6)"
-                          : "hsl(var(--primary) / 0.3)"
-                      }
+              <g transform={`translate(${pan.x},${pan.y}) scale(${zoom})`}>
+                {/* Edges */}
+                {edges.map((edge) => {
+                  const s = getNodePos(edge.source);
+                  const t = getNodePos(edge.target);
+                  const isHighlighted =
+                    selectedTag &&
+                    (edge.source === selectedTag || edge.target === selectedTag);
+                  const isSearchMatch =
+                    searchQuery && (matchedTags.has(edge.source) || matchedTags.has(edge.target));
+                  const isDimmed = (selectedTag || searchQuery) && !isHighlighted && !isSearchMatch;
+                  return (
+                    <line
+                      key={`${edge.source}-${edge.target}`}
+                      x1={s.x}
+                      y1={s.y}
+                      x2={t.x}
+                      y2={t.y}
                       stroke={
-                        isSelected
+                        isHighlighted
                           ? "hsl(var(--primary))"
+                          : isSearchMatch
+                          ? "hsl(var(--chart-2))"
                           : "hsl(var(--border))"
                       }
-                      strokeWidth={isSelected ? 2.5 : 1}
+                      strokeWidth={Math.max(1, (edge.weight / maxWeight) * 4)}
+                      strokeOpacity={isDimmed ? 0.08 : isHighlighted ? 0.9 : isSearchMatch ? 0.7 : 0.35}
                     />
-                    <text
-                      x={pos.x}
-                      y={pos.y + r + 12}
-                      textAnchor="middle"
-                      fontSize={11}
-                      fill="hsl(var(--foreground))"
-                      fontWeight={isSelected ? 600 : 400}
-                      className="select-none pointer-events-none"
+                  );
+                })}
+
+                {/* Nodes */}
+                {nodes.map((node, idx) => {
+                  const pos = positions[idx] || { x: node.x, y: node.y };
+                  const r = 10 + (node.count / maxCount) * 22;
+                  const isSelected = selectedTag === node.id;
+                  const isConnected = connectedTags.has(node.id);
+                  const isSearched = matchedTags.has(node.id);
+                  const isDimmed =
+                    (selectedTag && !isSelected && !isConnected) ||
+                    (searchQuery && !isSearched && !selectedTag);
+
+                  let fillColor = "hsl(var(--primary) / 0.25)";
+                  if (isSelected) fillColor = "hsl(var(--primary))";
+                  else if (isConnected) fillColor = "hsl(var(--primary) / 0.55)";
+                  else if (isSearched) fillColor = "hsl(var(--chart-2))";
+
+                  let strokeColor = "hsl(var(--border))";
+                  if (isSelected) strokeColor = "hsl(var(--primary))";
+                  else if (isSearched) strokeColor = "hsl(var(--chart-2))";
+
+                  return (
+                    <g
+                      key={node.id}
+                      style={{ cursor: draggingNode === node.id ? "grabbing" : "pointer" }}
+                      opacity={isDimmed ? 0.2 : 1}
+                      onMouseDown={(e) => handleNodeDragStart(e, node.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!draggingNode) setSelectedTag(selectedTag === node.id ? null : node.id);
+                      }}
                     >
-                      {node.label}
-                    </text>
-                    <text
-                      x={pos.x}
-                      y={pos.y + 4}
-                      textAnchor="middle"
-                      fontSize={9}
-                      fill="hsl(var(--primary-foreground))"
-                      className="select-none pointer-events-none"
-                    >
-                      {node.count}
-                    </text>
-                  </g>
-                );
-              })}
+                      {/* Glow ring for selected/searched */}
+                      {(isSelected || isSearched) && (
+                        <circle
+                          cx={pos.x}
+                          cy={pos.y}
+                          r={r + 5}
+                          fill="none"
+                          stroke={isSelected ? "hsl(var(--primary))" : "hsl(var(--chart-2))"}
+                          strokeWidth={2}
+                          strokeOpacity={0.3}
+                        />
+                      )}
+                      <circle
+                        cx={pos.x}
+                        cy={pos.y}
+                        r={r}
+                        fill={fillColor}
+                        stroke={strokeColor}
+                        strokeWidth={isSelected ? 2.5 : 1.2}
+                      />
+                      {/* Label */}
+                      <text
+                        x={pos.x}
+                        y={pos.y + r + 14}
+                        textAnchor="middle"
+                        fontSize={10}
+                        fill="hsl(var(--foreground))"
+                        fontWeight={isSelected || isSearched ? 600 : 400}
+                        className="select-none pointer-events-none"
+                      >
+                        {node.label}
+                      </text>
+                      {/* Count inside */}
+                      <text
+                        x={pos.x}
+                        y={pos.y + 4}
+                        textAnchor="middle"
+                        fontSize={r > 16 ? 10 : 8}
+                        fill="hsl(var(--primary-foreground))"
+                        fontWeight={600}
+                        className="select-none pointer-events-none"
+                      >
+                        {node.count}
+                      </text>
+                    </g>
+                  );
+                })}
+              </g>
             </svg>
           </CardContent>
         </Card>
       </div>
 
+      {/* Detail panel */}
       {selectedTag && (
         <Card>
-          <CardContent className="p-4">
-            <p className="text-sm font-medium mb-2">
-              Connected to <Badge variant="default">{selectedTag}</Badge>
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {Array.from(connectedTags).map((tag) => {
-                const edge = edges.find(
-                  (e) =>
-                    (e.source === selectedTag && e.target === tag) ||
-                    (e.target === selectedTag && e.source === tag)
-                );
-                return (
-                  <Badge
-                    key={tag}
-                    variant="secondary"
-                    className="text-xs cursor-pointer"
-                    onClick={() => setSelectedTag(tag)}
-                  >
-                    {tag}
-                    {edge && (
-                      <span className="ml-1 text-muted-foreground">
-                        ({edge.weight})
-                      </span>
-                    )}
-                  </Badge>
-                );
-              })}
-              {connectedTags.size === 0 && (
-                <span className="text-xs text-muted-foreground">
-                  No connected tags
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold flex items-center gap-2">
+                <Filter className="h-3.5 w-3.5 text-primary" />
+                Tag: <Badge variant="default">{selectedTag}</Badge>
+                <span className="text-muted-foreground font-normal">
+                  · {tagLinks[selectedTag]?.length || 0} links
                 </span>
-              )}
+              </p>
+              <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setSelectedTag(null)}>
+                Clear
+              </Button>
             </div>
+
+            {/* Connected tags */}
+            {connectedTags.size > 0 && (
+              <div>
+                <p className="text-xs text-muted-foreground mb-1.5">Connected tags</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {Array.from(connectedTags).map((tag) => {
+                    const edge = edges.find(
+                      (e) =>
+                        (e.source === selectedTag && e.target === tag) ||
+                        (e.target === selectedTag && e.source === tag)
+                    );
+                    return (
+                      <Badge
+                        key={tag}
+                        variant="secondary"
+                        className="text-xs cursor-pointer hover:bg-secondary/80 transition-colors"
+                        onClick={() => setSelectedTag(tag)}
+                      >
+                        {tag}
+                        {edge && (
+                          <span className="ml-1 text-muted-foreground">×{edge.weight}</span>
+                        )}
+                      </Badge>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Links for this tag */}
+            {selectedTagLinks.length > 0 && (
+              <div>
+                <p className="text-xs text-muted-foreground mb-1.5">Links with this tag</p>
+                <div className="space-y-1.5">
+                  {selectedTagLinks.map((link) => (
+                    <div
+                      key={link.id}
+                      className="flex items-center gap-2 p-2 rounded-md bg-muted/50 hover:bg-muted transition-colors group"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium truncate">{link.title || "Untitled"}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{link.domain}</p>
+                      </div>
+                      <a
+                        href={link.original_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <ExternalLink className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                      </a>
+                    </div>
+                  ))}
+                  {(tagLinks[selectedTag]?.length || 0) > 10 && (
+                    <p className="text-[10px] text-muted-foreground text-center">
+                      +{(tagLinks[selectedTag]?.length || 0) - 10} more
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
