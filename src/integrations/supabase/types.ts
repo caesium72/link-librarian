@@ -112,6 +112,7 @@ export type Database = {
           notes: string | null
           original_url: string
           save_count: number
+          source: string
           status: string
           summary: string | null
           tags: string[] | null
@@ -138,6 +139,7 @@ export type Database = {
           notes?: string | null
           original_url: string
           save_count?: number
+          source?: string
           status?: string
           summary?: string | null
           tags?: string[] | null
@@ -164,6 +166,7 @@ export type Database = {
           notes?: string | null
           original_url?: string
           save_count?: number
+          source?: string
           status?: string
           summary?: string | null
           tags?: string[] | null
