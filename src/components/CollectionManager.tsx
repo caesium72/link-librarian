@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchCollections, createCollection, deleteCollection, updateCollection } from "@/lib/api/collections";
+import { fetchCollections, createCollection, deleteCollection, updateCollection, fetchCollectionLinkIds } from "@/lib/api/collections";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +39,14 @@ export function CollectionManager({ selectedCollectionId, onSelectCollection, co
   const { data: collections = [] } = useQuery({
     queryKey: ["collections"],
     queryFn: fetchCollections,
+  });
+
+  const discoveredCollection = collections.find((c) => c.name === "Discovered");
+
+  const { data: discoveredLinkIds = [] } = useQuery({
+    queryKey: ["collection-links", discoveredCollection?.id],
+    queryFn: () => fetchCollectionLinkIds(discoveredCollection!.id),
+    enabled: !!discoveredCollection,
   });
 
   const createMutation = useMutation({
@@ -161,7 +169,7 @@ export function CollectionManager({ selectedCollectionId, onSelectCollection, co
                 <span className="truncate">{col.name}</span>
                 {col.name === "Discovered" && (
                   <Badge variant="secondary" className="ml-auto text-[9px] font-mono px-1 py-0 h-4 bg-primary/10 text-primary border-primary/20">
-                    AI
+                    {discoveredLinkIds.length > 0 ? discoveredLinkIds.length : "AI"}
                   </Badge>
                 )}
               </Button>
