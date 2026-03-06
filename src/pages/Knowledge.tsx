@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import logo from "@/assets/logo.png";
@@ -14,10 +14,12 @@ import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft, Flame, Clock, Star, Sparkles, ExternalLink,
   BookOpen, TrendingUp, Eye, RefreshCw, Share2, Box, Layers,
-  Maximize2, Minimize2,
+  Maximize2, Minimize2, Save, Loader2, Wand2,
 } from "lucide-react";
 import { KnowledgeGraph } from "@/components/KnowledgeGraph";
 import { KnowledgeGraph3D } from "@/components/KnowledgeGraph3D";
+import { addLink } from "@/lib/api/links";
+import { getOrCreateDiscoveredCollection, addLinkToCollection } from "@/lib/api/collections";
 import type { Link } from "@/types/links";
 
 interface RecommendedLink extends Link {
@@ -33,26 +35,120 @@ export default function Knowledge() {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [displayMode, setDisplayMode] = useState<"3d" | "2d">("3d");
   const graphContainerRef = useRef<HTMLDivElement>(null);
+  const graphWrapperRef = useRef<HTMLDivElement>(null);
+
+  // Auto-discover state
+  const [autoDiscovering, setAutoDiscovering] = useState(false);
+  const [autoDiscoverProgress, setAutoDiscoverProgress] = useState("");
+
+  // Save state for link cards
+  const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
 
   const handleGraphModeSwitch = (mode: "3d" | "2d") => {
     if (mode === graphMode || isTransitioning) return;
     setIsTransitioning(true);
-    // Phase 1: fade/scale out current
     setTimeout(() => {
       setDisplayMode(mode);
       setGraphMode(mode);
-      // Phase 2: fade/scale in new (handled by CSS)
       setTimeout(() => setIsTransitioning(false), 500);
     }, 350);
   };
 
+  // Native browser fullscreen
+  const toggleNativeFullscreen = useCallback(async () => {
+    if (!graphWrapperRef.current) return;
+    if (!document.fullscreenElement) {
+      try {
+        await graphWrapperRef.current.requestFullscreen();
+      } catch {
+        // Fallback to CSS fullscreen
+        setIsFullscreen((f) => !f);
+      }
+    } else {
+      await document.exitFullscreen();
+    }
+  }, []);
+
+  // Sync fullscreen state with browser API
+  useEffect(() => {
+    const onChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isFullscreen) setIsFullscreen(false);
+      if (e.key === "Escape" && isFullscreen && !document.fullscreenElement) {
+        setIsFullscreen(false);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [isFullscreen]);
+
+  // Save a single link to library
+  const handleSaveLink = async (link: Link) => {
+    const id = link.id;
+    if (savingIds.has(id) || savedIds.has(id)) return;
+    setSavingIds((s) => new Set(s).add(id));
+    try {
+      await addLink(link.original_url, "manual");
+      setSavedIds((s) => new Set(s).add(id));
+      toast({ title: "Saved", description: `"${link.title || 'Link'}" saved to your library` });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingIds((s) => { const n = new Set(s); n.delete(id); return n; });
+    }
+  };
+
+  // Auto-discover trending tools and save to Discovered collection
+  const handleAutoDiscover = async () => {
+    setAutoDiscovering(true);
+    setAutoDiscoverProgress("Discovering trending tools...");
+    try {
+      const { data, error } = await supabase.functions.invoke("discover-tools", {
+        body: { category: "all", searchQuery: "" },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      const tools = data?.tools || [];
+      if (tools.length === 0) {
+        toast({ title: "No tools found", description: "Try again later." });
+        return;
+      }
+
+      setAutoDiscoverProgress(`Found ${tools.length} tools. Saving...`);
+      const collectionId = await getOrCreateDiscoveredCollection();
+      let saved = 0;
+      let dupes = 0;
+
+      for (const tool of tools) {
+        try {
+          const newLink = await addLink(tool.url, "discovered");
+          await addLinkToCollection(collectionId, newLink.id);
+          saved++;
+          setAutoDiscoverProgress(`Saved ${saved}/${tools.length}...`);
+        } catch {
+          dupes++;
+        }
+      }
+
+      toast({
+        title: "Auto-Discovery Complete",
+        description: `${saved} new tools saved, ${dupes} duplicates skipped.`,
+      });
+    } catch (e: any) {
+      toast({ title: "Discovery failed", description: e.message, variant: "destructive" });
+    } finally {
+      setAutoDiscovering(false);
+      setAutoDiscoverProgress("");
+    }
+  };
 
   // Trending: most read/completed links
   const { data: trendingLinks = [], isLoading: trendingLoading } = useQuery({
@@ -104,7 +200,6 @@ export default function Knowledge() {
     },
   });
 
-  // AI Recommendations
   // All links for graph
   const { data: allLinks = [], isLoading: allLinksLoading } = useQuery({
     queryKey: ["knowledge-all-links"],
@@ -147,54 +242,72 @@ export default function Knowledge() {
     );
   }
 
-  const renderLinkCard = (link: Link & { reason?: string }, index: number) => (
-    <Card
-      key={link.id}
-      className="group hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 transition-all duration-300 ease-out animate-in fade-in slide-in-from-bottom-3"
-      style={{ animationDelay: `${index * 80}ms`, animationFillMode: "both", animationDuration: "500ms" }}
-    >
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <h3 className="font-medium text-sm truncate group-hover:text-primary transition-colors duration-200">{link.title || "Untitled"}</h3>
-            <p className="text-xs text-muted-foreground font-mono mt-0.5 truncate">{link.domain || "unknown"}</p>
-            {link.summary && (
-              <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">{link.summary}</p>
-            )}
-            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-              {link.content_type && link.content_type !== "other" && (
-                <Badge variant="secondary" className="text-[10px] h-5 animate-in fade-in zoom-in-95 duration-300">{link.content_type}</Badge>
+  const renderLinkCard = (link: Link & { reason?: string }, index: number, showSave = false) => {
+    const isSaving = savingIds.has(link.id);
+    const isSaved = savedIds.has(link.id);
+
+    return (
+      <Card
+        key={link.id}
+        className="group hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 transition-all duration-300 ease-out animate-in fade-in slide-in-from-bottom-3"
+        style={{ animationDelay: `${index * 80}ms`, animationFillMode: "both", animationDuration: "500ms" }}
+      >
+        <CardContent className="p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <h3 className="font-medium text-sm truncate group-hover:text-primary transition-colors duration-200">{link.title || "Untitled"}</h3>
+              <p className="text-xs text-muted-foreground font-mono mt-0.5 truncate">{link.domain || "unknown"}</p>
+              {link.summary && (
+                <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">{link.summary}</p>
               )}
-              {(link.tags || []).slice(0, 3).map((tag, ti) => (
-                <Badge key={tag} variant="outline" className="text-[10px] h-5 animate-in fade-in zoom-in-95 duration-300" style={{ animationDelay: `${(index * 80) + (ti * 50)}ms` }}>{tag}</Badge>
-              ))}
-              {link.is_pinned && (
-                <Badge variant="default" className="text-[10px] h-5 animate-pulse">⭐ Pinned</Badge>
-              )}
-              {link.is_read && (
-                <Badge variant="secondary" className="text-[10px] h-5">✓ Read</Badge>
+              <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                {link.content_type && link.content_type !== "other" && (
+                  <Badge variant="secondary" className="text-[10px] h-5 animate-in fade-in zoom-in-95 duration-300">{link.content_type}</Badge>
+                )}
+                {(link.tags || []).slice(0, 3).map((tag, ti) => (
+                  <Badge key={tag} variant="outline" className="text-[10px] h-5 animate-in fade-in zoom-in-95 duration-300" style={{ animationDelay: `${(index * 80) + (ti * 50)}ms` }}>{tag}</Badge>
+                ))}
+                {link.is_pinned && (
+                  <Badge variant="default" className="text-[10px] h-5 animate-pulse">⭐ Pinned</Badge>
+                )}
+                {link.is_read && (
+                  <Badge variant="secondary" className="text-[10px] h-5">✓ Read</Badge>
+                )}
+              </div>
+              {(link as any).reason && (
+                <div className="flex items-center gap-1 mt-2 animate-in fade-in slide-in-from-left-2 duration-500">
+                  <Sparkles className="h-3 w-3 text-primary animate-pulse" />
+                  <span className="text-[11px] text-primary font-medium">{(link as any).reason}</span>
+                </div>
               )}
             </div>
-            {(link as any).reason && (
-              <div className="flex items-center gap-1 mt-2 animate-in fade-in slide-in-from-left-2 duration-500">
-                <Sparkles className="h-3 w-3 text-primary animate-pulse" />
-                <span className="text-[11px] text-primary font-medium">{(link as any).reason}</span>
-              </div>
-            )}
+            <div className="flex items-center gap-1 shrink-0">
+              {showSave && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-all duration-200"
+                  onClick={(e) => { e.stopPropagation(); handleSaveLink(link); }}
+                  disabled={isSaving || isSaved}
+                >
+                  {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : isSaved ? <Save className="h-3.5 w-3.5 text-primary" /> : <Save className="h-3.5 w-3.5" />}
+                </Button>
+              )}
+              <a
+                href={link.original_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="opacity-0 group-hover:opacity-100 transition-all duration-200 group-hover:translate-x-0 translate-x-1"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <ExternalLink className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
+              </a>
+            </div>
           </div>
-          <a
-            href={link.original_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="shrink-0 opacity-0 group-hover:opacity-100 transition-all duration-200 group-hover:translate-x-0 translate-x-1"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <ExternalLink className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
-          </a>
-        </div>
-      </CardContent>
-    </Card>
-  );
+        </CardContent>
+      </Card>
+    );
+  };
 
   const renderSkeleton = () => (
     <div className="space-y-3">
@@ -210,7 +323,6 @@ export default function Knowledge() {
       ))}
     </div>
   );
-
 
   const tabConfig = [
     { value: "trending", icon: <Flame className="h-4 w-4" />, label: "Trending", emoji: "🔥" },
@@ -245,14 +357,34 @@ export default function Knowledge() {
               <p className="text-xs text-muted-foreground">Explore and discover your knowledge</p>
             </div>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-xs transition-all duration-300 hover:shadow-md hover:shadow-primary/10"
+              onClick={handleAutoDiscover}
+              disabled={autoDiscovering}
+            >
+              {autoDiscovering ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
+              {autoDiscovering ? "Discovering..." : "Auto-Discover"}
+            </Button>
+            <ThemeToggle />
+          </div>
         </div>
+        {autoDiscoverProgress && (
+          <div className="max-w-4xl mx-auto px-4 pb-2">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground animate-in fade-in duration-300">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span>{autoDiscoverProgress}</span>
+            </div>
+          </div>
+        )}
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-6 relative z-10">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-5 mb-6 animate-in fade-in slide-in-from-bottom-3 duration-500" style={{ animationDelay: "150ms", animationFillMode: "both" }}>
-            {tabConfig.map((tab, i) => (
+            {tabConfig.map((tab) => (
               <TabsTrigger
                 key={tab.value}
                 value={tab.value}
@@ -280,7 +412,7 @@ export default function Knowledge() {
               </Card>
             ) : (
               <div className="space-y-3">
-                {trendingLinks.map((link, i) => renderLinkCard(link, i))}
+                {trendingLinks.map((link, i) => renderLinkCard(link, i, true))}
               </div>
             )}
           </TabsContent>
@@ -301,7 +433,7 @@ export default function Knowledge() {
               </Card>
             ) : (
               <div className="space-y-3">
-                {recentLinks.map((link, i) => renderLinkCard(link, i))}
+                {recentLinks.map((link, i) => renderLinkCard(link, i, true))}
               </div>
             )}
           </TabsContent>
@@ -322,68 +454,73 @@ export default function Knowledge() {
               </Card>
             ) : (
               <div className="space-y-3">
-                {valuableLinks.map((link, i) => renderLinkCard(link, i))}
+                {valuableLinks.map((link, i) => renderLinkCard(link, i, true))}
               </div>
             )}
           </TabsContent>
 
           {/* Knowledge Graph */}
-          <TabsContent value="graph" className={`animate-in fade-in zoom-in-[0.98] duration-500 ${isFullscreen ? "fixed inset-0 z-50 bg-background p-4 flex flex-col" : ""}`}>
-            <div className={`flex items-center justify-between mb-4 animate-in fade-in slide-in-from-left-3 duration-500 ${isFullscreen ? "shrink-0" : ""}`}>
-              <div className="flex items-center gap-2">
-                <Share2 className="h-5 w-5 text-primary animate-pulse" style={{ animationDuration: "3s" }} />
-                <h2 className="text-base font-semibold">Knowledge Graph</h2>
-                <span className="text-xs text-muted-foreground">· Tag connections across your library</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant={graphMode === "3d" ? "default" : "outline"}
-                  size="sm"
-                  className={`gap-1.5 text-xs h-7 transition-all duration-300 ${isTransitioning ? "pointer-events-none" : ""}`}
-                  onClick={() => handleGraphModeSwitch("3d")}
-                >
-                  <Box className="h-3 w-3" />
-                  3D
-                </Button>
-                <Button
-                  variant={graphMode === "2d" ? "default" : "outline"}
-                  size="sm"
-                  className={`gap-1.5 text-xs h-7 transition-all duration-300 ${isTransitioning ? "pointer-events-none" : ""}`}
-                  onClick={() => handleGraphModeSwitch("2d")}
-                >
-                  <Layers className="h-3 w-3" />
-                  2D
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 text-xs h-7 ml-1 transition-all duration-300"
-                  onClick={() => setIsFullscreen((f) => !f)}
-                >
-                  {isFullscreen ? <Minimize2 className="h-3 w-3" /> : <Maximize2 className="h-3 w-3" />}
-                  {isFullscreen ? "Exit" : "Fullscreen"}
-                </Button>
-              </div>
-            </div>
+          <TabsContent value="graph" className={`animate-in fade-in zoom-in-[0.98] duration-500 ${isFullscreen && !document.fullscreenElement ? "fixed inset-0 z-50 bg-background p-4 flex flex-col" : ""}`}>
             <div
-              ref={graphContainerRef}
-              className={`transition-all duration-500 ease-out ${isFullscreen ? "flex-1 [&_.h-\\[500px\\]]:h-full" : ""}`}
-              style={{
-                opacity: isTransitioning ? 0 : 1,
-                transform: isTransitioning
-                  ? graphMode === "3d"
-                    ? "scale(0.92) rotateX(8deg) perspective(800px)"
-                    : "scale(0.92) rotateX(-8deg) perspective(800px)"
-                  : "scale(1) rotateX(0deg) perspective(800px)",
-                transformOrigin: "center center",
-                filter: isTransitioning ? "blur(4px)" : "blur(0px)",
-              }}
+              ref={graphWrapperRef}
+              className={`flex flex-col ${isFullscreen && document.fullscreenElement ? "h-full bg-background p-4" : ""}`}
             >
-              {displayMode === "3d" ? (
-                <KnowledgeGraph3D links={allLinks} isLoading={allLinksLoading} />
-              ) : (
-                <KnowledgeGraph links={allLinks} isLoading={allLinksLoading} />
-              )}
+              <div className={`flex items-center justify-between mb-4 animate-in fade-in slide-in-from-left-3 duration-500 ${isFullscreen ? "shrink-0" : ""}`}>
+                <div className="flex items-center gap-2">
+                  <Share2 className="h-5 w-5 text-primary animate-pulse" style={{ animationDuration: "3s" }} />
+                  <h2 className="text-base font-semibold">Knowledge Graph</h2>
+                  <span className="text-xs text-muted-foreground">· Tag connections across your library</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant={graphMode === "3d" ? "default" : "outline"}
+                    size="sm"
+                    className={`gap-1.5 text-xs h-7 transition-all duration-300 ${isTransitioning ? "pointer-events-none" : ""}`}
+                    onClick={() => handleGraphModeSwitch("3d")}
+                  >
+                    <Box className="h-3 w-3" />
+                    3D
+                  </Button>
+                  <Button
+                    variant={graphMode === "2d" ? "default" : "outline"}
+                    size="sm"
+                    className={`gap-1.5 text-xs h-7 transition-all duration-300 ${isTransitioning ? "pointer-events-none" : ""}`}
+                    onClick={() => handleGraphModeSwitch("2d")}
+                  >
+                    <Layers className="h-3 w-3" />
+                    2D
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs h-7 ml-1 transition-all duration-300"
+                    onClick={toggleNativeFullscreen}
+                  >
+                    {isFullscreen ? <Minimize2 className="h-3 w-3" /> : <Maximize2 className="h-3 w-3" />}
+                    {isFullscreen ? "Exit" : "Fullscreen"}
+                  </Button>
+                </div>
+              </div>
+              <div
+                ref={graphContainerRef}
+                className={`transition-all duration-500 ease-out ${isFullscreen ? "flex-1 [&_.h-\\[500px\\]]:h-full" : ""}`}
+                style={{
+                  opacity: isTransitioning ? 0 : 1,
+                  transform: isTransitioning
+                    ? graphMode === "3d"
+                      ? "scale(0.92) rotateX(8deg) perspective(800px)"
+                      : "scale(0.92) rotateX(-8deg) perspective(800px)"
+                    : "scale(1) rotateX(0deg) perspective(800px)",
+                  transformOrigin: "center center",
+                  filter: isTransitioning ? "blur(4px)" : "blur(0px)",
+                }}
+              >
+                {displayMode === "3d" ? (
+                  <KnowledgeGraph3D links={allLinks} isLoading={allLinksLoading} />
+                ) : (
+                  <KnowledgeGraph links={allLinks} isLoading={allLinksLoading} />
+                )}
+              </div>
             </div>
           </TabsContent>
 
@@ -439,7 +576,7 @@ export default function Knowledge() {
 
             {recsLoaded && !recsLoading && recommendations.length > 0 && (
               <div className="space-y-3">
-                {recommendations.map((link, i) => renderLinkCard(link, i))}
+                {recommendations.map((link, i) => renderLinkCard(link, i, true))}
               </div>
             )}
           </TabsContent>
