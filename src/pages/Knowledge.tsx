@@ -460,12 +460,13 @@ export default function Knowledge() {
           </TabsContent>
 
           {/* Knowledge Graph */}
-          <TabsContent value="graph" className={`animate-in fade-in zoom-in-[0.98] duration-500 ${isFullscreen && !document.fullscreenElement ? "fixed inset-0 z-50 bg-background p-4 flex flex-col" : ""}`}>
+          <TabsContent value="graph" className="animate-in fade-in zoom-in-[0.98] duration-500">
             <div
               ref={graphWrapperRef}
-              className={`flex flex-col ${isFullscreen && document.fullscreenElement ? "h-full bg-background p-4" : ""}`}
+              className={`flex flex-col transition-all duration-300 ${isFullscreen ? "fixed inset-0 z-[9999] bg-background" : ""}`}
+              style={isFullscreen ? { width: "100vw", height: "100vh" } : undefined}
             >
-              <div className={`flex items-center justify-between mb-4 animate-in fade-in slide-in-from-left-3 duration-500 ${isFullscreen ? "shrink-0" : ""}`}>
+              <div className={`flex items-center justify-between animate-in fade-in slide-in-from-left-3 duration-500 shrink-0 ${isFullscreen ? "px-4 pt-4 pb-2" : "mb-4"}`}>
                 <div className="flex items-center gap-2">
                   <Share2 className="h-5 w-5 text-primary animate-pulse" style={{ animationDuration: "3s" }} />
                   <h2 className="text-base font-semibold">Knowledge Graph</h2>
@@ -503,7 +504,7 @@ export default function Knowledge() {
               </div>
               <div
                 ref={graphContainerRef}
-                className={`transition-all duration-500 ease-out ${isFullscreen ? "flex-1 [&_.h-\\[500px\\]]:h-full" : ""}`}
+                className={`transition-all duration-500 ease-out ${isFullscreen ? "flex-1 [&_.h-\\[500px\\]]:!h-full" : ""}`}
                 style={{
                   opacity: isTransitioning ? 0 : 1,
                   transform: isTransitioning
@@ -513,6 +514,7 @@ export default function Knowledge() {
                     : "scale(1) rotateX(0deg) perspective(800px)",
                   transformOrigin: "center center",
                   filter: isTransitioning ? "blur(4px)" : "blur(0px)",
+                  ...(isFullscreen ? { height: "100%" } : {}),
                 }}
               >
                 {displayMode === "3d" ? (

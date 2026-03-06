@@ -1,6 +1,6 @@
 import { useRef, useMemo, useState, useCallback } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls, Text, Billboard, Float } from "@react-three/drei";
+import { OrbitControls, Text, Billboard, Float, Environment } from "@react-three/drei";
 import * as THREE from "three";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -51,12 +51,11 @@ function buildGraph3D(links: Link[]) {
   const topSet = new Set(topTags);
   const maxC = Math.max(...topTags.map((t) => tagCount[t]), 1);
 
-  // Distribute nodes on a sphere
   const nodes: Node3D[] = topTags.map((tag, i) => {
     const phi = Math.acos(1 - (2 * (i + 0.5)) / topTags.length);
     const theta = Math.PI * (1 + Math.sqrt(5)) * i;
     const spread = 5;
-    const r = 0.15 + (tagCount[tag] / maxC) * 0.35;
+    const r = 0.2 + (tagCount[tag] / maxC) * 0.45;
     return {
       id: tag,
       label: tag,
@@ -81,6 +80,22 @@ function buildGraph3D(links: Link[]) {
   return { nodes, edges, tagLinks };
 }
 
+// ─── Animated ring orbiting a node ───
+function OrbitRing({ radius, speed, color, opacity }: { radius: number; speed: number; color: string; opacity: number }) {
+  const ref = useRef<THREE.Mesh>(null!);
+  useFrame((state) => {
+    if (!ref.current) return;
+    ref.current.rotation.x = state.clock.elapsedTime * speed * 0.5;
+    ref.current.rotation.y = state.clock.elapsedTime * speed;
+  });
+  return (
+    <mesh ref={ref}>
+      <torusGeometry args={[radius, 0.008, 8, 64]} />
+      <meshBasicMaterial color={color} transparent opacity={opacity} />
+    </mesh>
+  );
+}
+
 // ─── 3D Node Sphere ───
 function NodeSphere({
   node,
@@ -100,42 +115,64 @@ function NodeSphere({
   onHover: (id: string | null) => void;
 }) {
   const meshRef = useRef<THREE.Mesh>(null!);
-  const glowRef = useRef<THREE.Mesh>(null!);
-  const targetScale = useRef(1);
+  const outerGlowRef = useRef<THREE.Mesh>(null!);
+  const innerGlowRef = useRef<THREE.Mesh>(null!);
+  const currentScale = useRef(1);
+  const pulsePhase = useRef(Math.random() * Math.PI * 2);
 
-  // Animate scale
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     if (!meshRef.current) return;
-    const target = isSelected ? 1.4 : isHovered ? 1.2 : isConnected ? 1.1 : 1;
-    targetScale.current += (target - targetScale.current) * Math.min(delta * 8, 1);
-    meshRef.current.scale.setScalar(targetScale.current);
+    const target = isSelected ? 1.5 : isHovered ? 1.3 : isConnected ? 1.15 : 1;
+    currentScale.current += (target - currentScale.current) * Math.min(delta * 6, 1);
 
-    if (glowRef.current) {
-      glowRef.current.scale.setScalar(targetScale.current * 1.6);
-      const mat = glowRef.current.material as THREE.MeshBasicMaterial;
-      mat.opacity = isSelected ? 0.15 : isHovered ? 0.1 : isConnected ? 0.06 : 0;
+    // Breathing pulse
+    const pulse = Math.sin(state.clock.elapsedTime * 1.5 + pulsePhase.current) * 0.04;
+    meshRef.current.scale.setScalar(currentScale.current + pulse);
+
+    // Slow self-rotation for 3D feel
+    meshRef.current.rotation.y += delta * 0.3;
+
+    if (outerGlowRef.current) {
+      outerGlowRef.current.scale.setScalar((currentScale.current + pulse) * 2.2);
+      const mat = outerGlowRef.current.material as THREE.MeshBasicMaterial;
+      mat.opacity = isSelected ? 0.12 : isHovered ? 0.08 : isConnected ? 0.04 : 0.02;
+    }
+    if (innerGlowRef.current) {
+      innerGlowRef.current.scale.setScalar((currentScale.current + pulse) * 1.4);
+      const mat = innerGlowRef.current.material as THREE.MeshBasicMaterial;
+      mat.opacity = isSelected ? 0.25 : isHovered ? 0.18 : isConnected ? 0.1 : 0.05;
     }
   });
 
+  const baseHue = (node.count / maxCount) * 60; // shift from purple to blue-purple
   const color = isSelected
-    ? "#a855f7"
-    : isConnected
-    ? "#8b5cf6"
-    : isHovered
     ? "#c084fc"
-    : "#7c3aed";
+    : isConnected
+    ? "#a78bfa"
+    : isHovered
+    ? "#d8b4fe"
+    : "#8b5cf6";
 
-  const emissiveIntensity = isSelected ? 0.8 : isHovered ? 0.5 : isConnected ? 0.3 : 0.1;
+  const emissiveColor = isSelected ? "#e9d5ff" : isHovered ? "#c084fc" : "#7c3aed";
+  const emissiveIntensity = isSelected ? 1.2 : isHovered ? 0.8 : isConnected ? 0.4 : 0.15;
+
+  const showRings = isSelected || isHovered;
 
   return (
     <group position={node.position}>
-      {/* Glow sphere */}
-      <mesh ref={glowRef}>
+      {/* Outer glow */}
+      <mesh ref={outerGlowRef}>
         <sphereGeometry args={[node.radius, 16, 16]} />
-        <meshBasicMaterial color={color} transparent opacity={0} />
+        <meshBasicMaterial color={color} transparent opacity={0.02} depthWrite={false} />
       </mesh>
 
-      {/* Main sphere */}
+      {/* Inner glow */}
+      <mesh ref={innerGlowRef}>
+        <sphereGeometry args={[node.radius, 16, 16]} />
+        <meshBasicMaterial color={emissiveColor} transparent opacity={0.05} depthWrite={false} />
+      </mesh>
+
+      {/* Main sphere - glass-like material */}
       <mesh
         ref={meshRef}
         onClick={(e) => {
@@ -152,37 +189,54 @@ function NodeSphere({
           document.body.style.cursor = "auto";
         }}
       >
-        <sphereGeometry args={[node.radius, 32, 32]} />
-        <meshStandardMaterial
+        <sphereGeometry args={[node.radius, 64, 64]} />
+        <meshPhysicalMaterial
           color={color}
-          emissive={color}
+          emissive={emissiveColor}
           emissiveIntensity={emissiveIntensity}
-          metalness={0.3}
-          roughness={0.4}
+          metalness={0.1}
+          roughness={0.15}
+          transmission={0.3}
+          thickness={1.5}
+          clearcoat={1}
+          clearcoatRoughness={0.1}
+          envMapIntensity={1.5}
           transparent
-          opacity={isSelected || isConnected || isHovered ? 0.95 : 0.7}
+          opacity={isSelected || isConnected || isHovered ? 0.95 : 0.8}
         />
       </mesh>
+
+      {/* Orbit rings on interaction */}
+      {showRings && (
+        <>
+          <OrbitRing radius={node.radius * 1.6} speed={1.2} color="#c084fc" opacity={0.4} />
+          <OrbitRing radius={node.radius * 2.0} speed={-0.8} color="#a78bfa" opacity={0.25} />
+        </>
+      )}
 
       {/* Label */}
       <Billboard follow lockX={false} lockY={false} lockZ={false}>
         <Text
-          position={[0, node.radius + 0.25, 0]}
-          fontSize={0.18}
-          color={isSelected || isHovered ? "#e9d5ff" : "#a1a1aa"}
+          position={[0, node.radius + 0.3, 0]}
+          fontSize={0.2}
+          color={isSelected || isHovered ? "#f3e8ff" : "#a1a1aa"}
           anchorX="center"
           anchorY="bottom"
           font={undefined}
+          outlineWidth={0.015}
+          outlineColor="#000000"
         >
           {node.label}
         </Text>
         <Text
           position={[0, 0, 0]}
-          fontSize={0.12}
-          color="#e9d5ff"
+          fontSize={0.14}
+          color="#f3e8ff"
           anchorX="center"
           anchorY="middle"
           font={undefined}
+          outlineWidth={0.01}
+          outlineColor="#000000"
         >
           {String(node.count)}
         </Text>
@@ -191,7 +245,7 @@ function NodeSphere({
   );
 }
 
-// ─── 3D Edge Line ───
+// ─── Animated 3D Edge ───
 function EdgeLine({
   from,
   to,
@@ -207,43 +261,52 @@ function EdgeLine({
   isHighlighted: boolean;
   isDimmed: boolean;
 }) {
-  const geometry = useMemo(() => {
-    const g = new THREE.BufferGeometry();
-    const verts = new Float32Array([...from, ...to]);
-    g.setAttribute("position", new THREE.BufferAttribute(verts, 3));
-    return g;
-  }, [from, to]);
+  const lineObj = useMemo(() => {
+    const start = new THREE.Vector3(...from);
+    const end = new THREE.Vector3(...to);
+    const mid = start.clone().add(end).multiplyScalar(0.5);
+    const offset = mid.clone().normalize().multiplyScalar(0.5);
+    mid.add(offset);
 
-  const color = isHighlighted ? "#a855f7" : "#4a4a5a";
-  const opacity = isDimmed ? 0.05 : isHighlighted ? 0.7 : 0.2;
+    const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
+    const points = curve.getPoints(32);
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const color = isHighlighted ? "#c084fc" : "#4a4a5a";
+    const opacity = isDimmed ? 0.03 : isHighlighted ? 0.6 : 0.15;
+    const material = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
+    return new THREE.Line(geometry, material);
+  }, [from, to, isHighlighted, isDimmed]);
 
-  const material = useMemo(
-    () => new THREE.LineBasicMaterial({ color, transparent: true, opacity }),
-    [color, opacity]
-  );
-
-  return <primitive object={new THREE.Line(geometry, material)} />;
+  return <primitive object={lineObj} />;
 }
 
 // ─── Floating particles background ───
 function Particles() {
-  const count = 200;
+  const count = 300;
   const ref = useRef<THREE.Points>(null!);
 
   const positions = useMemo(() => {
     const arr = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
-      arr[i * 3] = (Math.random() - 0.5) * 20;
-      arr[i * 3 + 1] = (Math.random() - 0.5) * 20;
-      arr[i * 3 + 2] = (Math.random() - 0.5) * 20;
+      arr[i * 3] = (Math.random() - 0.5) * 25;
+      arr[i * 3 + 1] = (Math.random() - 0.5) * 25;
+      arr[i * 3 + 2] = (Math.random() - 0.5) * 25;
+    }
+    return arr;
+  }, []);
+
+  const sizes = useMemo(() => {
+    const arr = new Float32Array(count);
+    for (let i = 0; i < count; i++) {
+      arr[i] = Math.random() * 0.04 + 0.01;
     }
     return arr;
   }, []);
 
   useFrame((state) => {
     if (ref.current) {
-      ref.current.rotation.y = state.clock.elapsedTime * 0.02;
-      ref.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.01) * 0.1;
+      ref.current.rotation.y = state.clock.elapsedTime * 0.015;
+      ref.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.008) * 0.1;
     }
   });
 
@@ -258,10 +321,10 @@ function Particles() {
         />
       </bufferGeometry>
       <pointsMaterial
-        size={0.03}
+        size={0.04}
         color="#7c3aed"
         transparent
-        opacity={0.4}
+        opacity={0.5}
         sizeAttenuation
       />
     </points>
@@ -297,10 +360,13 @@ function GraphScene({
 
   return (
     <>
-      <ambientLight intensity={0.4} />
-      <pointLight position={[10, 10, 10]} intensity={1} color="#a855f7" />
-      <pointLight position={[-10, -10, -5]} intensity={0.5} color="#6366f1" />
-      <pointLight position={[0, 5, -10]} intensity={0.3} color="#8b5cf6" />
+      {/* Lighting for 3D depth */}
+      <ambientLight intensity={0.3} />
+      <pointLight position={[10, 10, 10]} intensity={1.5} color="#a855f7" />
+      <pointLight position={[-10, -10, -5]} intensity={0.8} color="#6366f1" />
+      <pointLight position={[0, 8, -10]} intensity={0.5} color="#8b5cf6" />
+      <pointLight position={[5, -5, 8]} intensity={0.3} color="#c084fc" />
+      <directionalLight position={[0, 5, 5]} intensity={0.4} />
 
       <Particles />
 
@@ -314,8 +380,7 @@ function GraphScene({
           selectedTag === edge.target ||
           hoveredTag === edge.source ||
           hoveredTag === edge.target;
-        const isDimmed =
-          (selectedTag || hoveredTag) && !isHighlighted;
+        const isDimmed = (selectedTag || hoveredTag) && !isHighlighted;
         return (
           <EdgeLine
             key={`${edge.source}-${edge.target}`}
@@ -338,9 +403,9 @@ function GraphScene({
           <Float
             key={node.id}
             speed={isSelected ? 3 : 1.5}
-            rotationIntensity={0}
-            floatIntensity={isSelected ? 0.3 : 0.1}
-            floatingRange={[-0.05, 0.05]}
+            rotationIntensity={isSelected ? 0.2 : 0.05}
+            floatIntensity={isSelected ? 0.4 : 0.15}
+            floatingRange={[-0.08, 0.08]}
           >
             <NodeSphere
               node={node}
@@ -357,12 +422,14 @@ function GraphScene({
 
       <OrbitControls
         enableDamping
-        dampingFactor={0.08}
+        dampingFactor={0.06}
         rotateSpeed={0.5}
         zoomSpeed={0.8}
         minDistance={3}
         maxDistance={15}
         enablePan={false}
+        autoRotate
+        autoRotateSpeed={0.3}
       />
     </>
   );
@@ -430,9 +497,10 @@ export function KnowledgeGraph3D({ links, isLoading }: KnowledgeGraph3DProps) {
               camera={{ position: [0, 0, 10], fov: 50 }}
               dpr={[1, 2]}
               style={{ background: "transparent" }}
+              gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
               onPointerMissed={() => setSelectedTag(null)}
             >
-              <fog attach="fog" args={["#09090b", 12, 22]} />
+              <fog attach="fog" args={["#09090b", 14, 25]} />
               <GraphScene
                 nodes={nodes}
                 edges={edges}
