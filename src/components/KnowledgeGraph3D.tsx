@@ -261,38 +261,23 @@ function EdgeLine({
   isHighlighted: boolean;
   isDimmed: boolean;
 }) {
-  const ref = useRef<THREE.Line>(null!);
-  const targetOpacity = useRef(0.2);
-
-  const geometry = useMemo(() => {
-    // Curved edge using quadratic bezier
+  const lineObj = useMemo(() => {
     const start = new THREE.Vector3(...from);
     const end = new THREE.Vector3(...to);
     const mid = start.clone().add(end).multiplyScalar(0.5);
-    // Push midpoint outward for curve
     const offset = mid.clone().normalize().multiplyScalar(0.5);
     mid.add(offset);
 
     const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
     const points = curve.getPoints(32);
-    return new THREE.BufferGeometry().setFromPoints(points);
-  }, [from, to]);
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const color = isHighlighted ? "#c084fc" : "#4a4a5a";
+    const opacity = isDimmed ? 0.03 : isHighlighted ? 0.6 : 0.15;
+    const material = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
+    return new THREE.Line(geometry, material);
+  }, [from, to, isHighlighted, isDimmed]);
 
-  useFrame((_, delta) => {
-    if (!ref.current) return;
-    const target = isDimmed ? 0.03 : isHighlighted ? 0.6 : 0.15;
-    targetOpacity.current += (target - targetOpacity.current) * Math.min(delta * 5, 1);
-    const mat = ref.current.material as THREE.LineBasicMaterial;
-    mat.opacity = targetOpacity.current;
-  });
-
-  const color = isHighlighted ? "#c084fc" : "#4a4a5a";
-
-  return (
-    <line ref={ref} geometry={geometry}>
-      <lineBasicMaterial color={color} transparent opacity={0.15} />
-    </line>
-  );
+  return <primitive object={lineObj} />;
 }
 
 // ─── Floating particles background ───
