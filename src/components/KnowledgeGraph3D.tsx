@@ -198,16 +198,16 @@ function PlanetNode({
     meshRef.current.rotateOnAxis(wobbleAxis.current, delta * 0.4);
   });
 
-  const emissiveIntensity = isSelected ? 1.0 : isHovered ? 0.6 : isConnected ? 0.3 : 0.12;
+  const emissiveIntensity = isSelected ? 1.2 : isHovered ? 0.9 : isConnected ? 0.6 : 0.45;
   const sizeNorm = node.count / maxCount;
 
   return (
     <group position={node.position}>
-      {/* Outer atmosphere glow */}
-      <AtmosphereShell radius={node.radius * 2.5} color={planet.glow} opacity={isSelected ? 0.1 : 0.04} />
-      <AtmosphereShell radius={node.radius * 1.6} color={planet.core} opacity={isSelected ? 0.2 : isHovered ? 0.12 : 0.06} />
+      {/* Outer atmosphere glow — always visible and vibrant */}
+      <AtmosphereShell radius={node.radius * 2.8} color={planet.glow} opacity={isSelected ? 0.15 : 0.08} />
+      <AtmosphereShell radius={node.radius * 1.8} color={planet.core} opacity={isSelected ? 0.25 : isHovered ? 0.18 : 0.12} />
 
-      {/* Main planet sphere */}
+      {/* Main planet sphere — always bright and colorful */}
       <mesh
         ref={meshRef}
         onClick={(e) => { e.stopPropagation(); onSelect(isSelected ? null : node.id); }}
@@ -219,45 +219,43 @@ function PlanetNode({
           color={planet.core}
           emissive={planet.glow}
           emissiveIntensity={emissiveIntensity}
-          metalness={0.15}
-          roughness={0.3}
-          clearcoat={0.8}
-          clearcoatRoughness={0.15}
+          metalness={0.1}
+          roughness={0.25}
+          clearcoat={1.0}
+          clearcoatRoughness={0.1}
           transparent
-          opacity={isSelected || isHovered ? 0.95 : 0.85}
+          opacity={0.95}
         />
       </mesh>
 
-      {/* Saturn-style rings — always visible, more prominent on interaction */}
+      {/* Saturn-style rings — ALWAYS visible on every node */}
       <SaturnRing
         radius={node.radius * 1.7}
-        thickness={0.02 + sizeNorm * 0.015}
+        thickness={0.025 + sizeNorm * 0.018}
         color={planet.ring}
-        opacity={isSelected ? 0.7 : isHovered ? 0.5 : 0.25}
+        opacity={isSelected ? 0.8 : isHovered ? 0.65 : 0.45}
         tiltX={1.2}
         tiltZ={0.2}
         speed={1.5}
       />
       <SaturnRing
         radius={node.radius * 2.0}
-        thickness={0.012 + sizeNorm * 0.01}
+        thickness={0.015 + sizeNorm * 0.012}
         color={planet.glow}
-        opacity={isSelected ? 0.5 : isHovered ? 0.35 : 0.15}
+        opacity={isSelected ? 0.6 : isHovered ? 0.45 : 0.3}
         tiltX={1.1}
         tiltZ={0.3}
         speed={-1.0}
       />
-      {(isSelected || isHovered) && (
-        <SaturnRing
-          radius={node.radius * 2.4}
-          thickness={0.008}
-          color={planet.core}
-          opacity={0.3}
-          tiltX={1.3}
-          tiltZ={-0.1}
-          speed={0.6}
-        />
-      )}
+      <SaturnRing
+        radius={node.radius * 2.35}
+        thickness={0.01}
+        color={planet.core}
+        opacity={isSelected ? 0.45 : isHovered ? 0.3 : 0.18}
+        tiltX={1.3}
+        tiltZ={-0.1}
+        speed={0.6}
+      />
 
       {/* Label */}
       <Billboard follow lockX={false} lockY={false} lockZ={false}>
