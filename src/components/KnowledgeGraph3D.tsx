@@ -161,6 +161,7 @@ function PlanetNode({
   isSelected,
   isConnected,
   isHovered,
+  isDimmed,
   maxCount,
   onSelect,
   onHover,
@@ -169,6 +170,7 @@ function PlanetNode({
   isSelected: boolean;
   isConnected: boolean;
   isHovered: boolean;
+  isDimmed: boolean;
   maxCount: number;
   onSelect: (id: string | null) => void;
   onHover: (id: string | null) => void;
@@ -198,16 +200,25 @@ function PlanetNode({
     meshRef.current.rotateOnAxis(wobbleAxis.current, delta * 0.4);
   });
 
-  const emissiveIntensity = isSelected ? 1.2 : isHovered ? 0.9 : isConnected ? 0.6 : 0.45;
+  // When dimmed (another node is selected), go dark grey
+  const dimColor = "#2a2a35";
+  const dimGlow = "#1a1a22";
+  const activeColor = isDimmed ? dimColor : planet.core;
+  const activeGlow = isDimmed ? dimGlow : planet.glow;
+  const activeRing = isDimmed ? "#3a3a45" : planet.ring;
+
+  const emissiveIntensity = isSelected ? 1.4 : isHovered ? 0.8 : isDimmed ? 0.02 : 0.2;
   const sizeNorm = node.count / maxCount;
+  const sphereOpacity = isSelected ? 0.98 : isDimmed ? 0.5 : 0.75;
+  const ringBaseOpacity = isDimmed ? 0.08 : 0.25;
 
   return (
     <group position={node.position}>
-      {/* Outer atmosphere glow — always visible and vibrant */}
-      <AtmosphereShell radius={node.radius * 2.8} color={planet.glow} opacity={isSelected ? 0.15 : 0.08} />
-      <AtmosphereShell radius={node.radius * 1.8} color={planet.core} opacity={isSelected ? 0.25 : isHovered ? 0.18 : 0.12} />
+      {/* Outer atmosphere glow — hidden when dimmed, bright when selected */}
+      <AtmosphereShell radius={node.radius * 2.8} color={activeGlow} opacity={isSelected ? 0.2 : isDimmed ? 0.01 : 0.05} />
+      <AtmosphereShell radius={node.radius * 1.8} color={activeColor} opacity={isSelected ? 0.3 : isDimmed ? 0.02 : 0.08} />
 
-      {/* Main planet sphere — always bright and colorful */}
+      {/* Main planet sphere */}
       <mesh
         ref={meshRef}
         onClick={(e) => { e.stopPropagation(); onSelect(isSelected ? null : node.id); }}
@@ -216,45 +227,45 @@ function PlanetNode({
       >
         <sphereGeometry args={[node.radius, 64, 64]} />
         <meshPhysicalMaterial
-          color={planet.core}
-          emissive={planet.glow}
+          color={activeColor}
+          emissive={activeGlow}
           emissiveIntensity={emissiveIntensity}
-          metalness={0.1}
-          roughness={0.25}
-          clearcoat={1.0}
-          clearcoatRoughness={0.1}
+          metalness={isDimmed ? 0.05 : 0.1}
+          roughness={isDimmed ? 0.7 : 0.25}
+          clearcoat={isDimmed ? 0.2 : 1.0}
+          clearcoatRoughness={isDimmed ? 0.5 : 0.1}
           transparent
-          opacity={0.95}
+          opacity={sphereOpacity}
         />
       </mesh>
 
-      {/* Saturn-style rings — ALWAYS visible on every node */}
+      {/* Saturn-style rings */}
       <SaturnRing
         radius={node.radius * 1.7}
         thickness={0.025 + sizeNorm * 0.018}
-        color={planet.ring}
-        opacity={isSelected ? 0.8 : isHovered ? 0.65 : 0.45}
+        color={activeRing}
+        opacity={isSelected ? 0.85 : ringBaseOpacity}
         tiltX={1.2}
         tiltZ={0.2}
-        speed={1.5}
+        speed={isDimmed ? 0.3 : 1.5}
       />
       <SaturnRing
         radius={node.radius * 2.0}
         thickness={0.015 + sizeNorm * 0.012}
-        color={planet.glow}
-        opacity={isSelected ? 0.6 : isHovered ? 0.45 : 0.3}
+        color={activeGlow}
+        opacity={isSelected ? 0.65 : ringBaseOpacity * 0.7}
         tiltX={1.1}
         tiltZ={0.3}
-        speed={-1.0}
+        speed={isDimmed ? -0.2 : -1.0}
       />
       <SaturnRing
         radius={node.radius * 2.35}
         thickness={0.01}
-        color={planet.core}
-        opacity={isSelected ? 0.45 : isHovered ? 0.3 : 0.18}
+        color={activeColor}
+        opacity={isSelected ? 0.5 : ringBaseOpacity * 0.5}
         tiltX={1.3}
         tiltZ={-0.1}
-        speed={0.6}
+        speed={isDimmed ? 0.1 : 0.6}
       />
 
       {/* Label */}
@@ -452,6 +463,7 @@ function GraphScene({
             isSelected={selectedTag === node.id}
             isConnected={connectedTags.has(node.id)}
             isHovered={hoveredTag === node.id}
+            isDimmed={!!selectedTag && selectedTag !== node.id}
             maxCount={maxCount}
             onSelect={onSelect}
             onHover={onHover}
