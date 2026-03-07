@@ -1,13 +1,29 @@
 import { useRef, useMemo, useState, useCallback } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls, Text, Billboard, Float, Environment } from "@react-three/drei";
+import { OrbitControls, Text, Billboard, Float } from "@react-three/drei";
 import * as THREE from "three";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ExternalLink, Filter, RotateCcw } from "lucide-react";
+import { ExternalLink, Filter, RotateCcw, Circle } from "lucide-react";
 import type { Link } from "@/types/links";
+
+// ─── Planet color palette ───
+const PLANET_COLORS = [
+  { core: "#e8a838", glow: "#f5d070", ring: "#d4a030", name: "Saturn Gold" },
+  { core: "#6b8cff", glow: "#a0b4ff", ring: "#4a6bef", name: "Neptune Blue" },
+  { core: "#ff6b6b", glow: "#ff9e9e", ring: "#e04545", name: "Mars Red" },
+  { core: "#50d890", glow: "#80f0b0", ring: "#30b870", name: "Earth Green" },
+  { core: "#c478ff", glow: "#daa0ff", ring: "#a050e0", name: "Pluto Purple" },
+  { core: "#ff8c42", glow: "#ffb880", ring: "#e07020", name: "Jupiter Orange" },
+  { core: "#42d4f4", glow: "#80e8ff", ring: "#20b0d4", name: "Uranus Cyan" },
+  { core: "#ff6eb4", glow: "#ffa0d0", ring: "#e04898", name: "Venus Pink" },
+];
+
+function getPlanetColor(index: number) {
+  return PLANET_COLORS[index % PLANET_COLORS.length];
+}
 
 interface Node3D {
   id: string;
@@ -15,6 +31,7 @@ interface Node3D {
   count: number;
   position: [number, number, number];
   radius: number;
+  colorIndex: number;
 }
 
 interface Edge3D {
@@ -55,7 +72,7 @@ function buildGraph3D(links: Link[]) {
     const phi = Math.acos(1 - (2 * (i + 0.5)) / topTags.length);
     const theta = Math.PI * (1 + Math.sqrt(5)) * i;
     const spread = 5;
-    const r = 0.2 + (tagCount[tag] / maxC) * 0.45;
+    const r = 0.25 + (tagCount[tag] / maxC) * 0.55;
     return {
       id: tag,
       label: tag,
@@ -66,6 +83,7 @@ function buildGraph3D(links: Link[]) {
         spread * Math.cos(phi),
       ] as [number, number, number],
       radius: r,
+      colorIndex: i,
     };
   });
 
@@ -80,24 +98,65 @@ function buildGraph3D(links: Link[]) {
   return { nodes, edges, tagLinks };
 }
 
-// ─── Animated ring orbiting a node ───
-function OrbitRing({ radius, speed, color, opacity }: { radius: number; speed: number; color: string; opacity: number }) {
+// ─── Saturn-style ring with tilt and texture ───
+function SaturnRing({
+  radius,
+  thickness,
+  color,
+  opacity,
+  tiltX,
+  tiltZ,
+  speed,
+}: {
+  radius: number;
+  thickness: number;
+  color: string;
+  opacity: number;
+  tiltX: number;
+  tiltZ: number;
+  speed: number;
+}) {
   const ref = useRef<THREE.Mesh>(null!);
   useFrame((state) => {
     if (!ref.current) return;
-    ref.current.rotation.x = state.clock.elapsedTime * speed * 0.5;
-    ref.current.rotation.y = state.clock.elapsedTime * speed;
+    ref.current.rotation.x = tiltX + Math.sin(state.clock.elapsedTime * speed * 0.3) * 0.05;
+    ref.current.rotation.z = tiltZ;
+    ref.current.rotation.y += speed * 0.003;
   });
   return (
     <mesh ref={ref}>
-      <torusGeometry args={[radius, 0.008, 8, 64]} />
-      <meshBasicMaterial color={color} transparent opacity={opacity} />
+      <torusGeometry args={[radius, thickness, 4, 128]} />
+      <meshStandardMaterial
+        color={color}
+        transparent
+        opacity={opacity}
+        emissive={color}
+        emissiveIntensity={0.3}
+        side={THREE.DoubleSide}
+      />
     </mesh>
   );
 }
 
-// ─── 3D Node Sphere ───
-function NodeSphere({
+// ─── Atmospheric glow shell ───
+function AtmosphereShell({ radius, color, opacity }: { radius: number; color: string; opacity: number }) {
+  const ref = useRef<THREE.Mesh>(null!);
+  useFrame((state) => {
+    if (!ref.current) return;
+    const pulse = Math.sin(state.clock.elapsedTime * 2) * 0.02;
+    ref.current.scale.setScalar(1 + pulse);
+    (ref.current.material as THREE.MeshBasicMaterial).opacity = opacity + Math.sin(state.clock.elapsedTime * 1.5) * 0.02;
+  });
+  return (
+    <mesh ref={ref}>
+      <sphereGeometry args={[radius, 32, 32]} />
+      <meshBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} />
+    </mesh>
+  );
+}
+
+// ─── 3D Planet Node ───
+function PlanetNode({
   node,
   isSelected,
   isConnected,
@@ -115,127 +174,113 @@ function NodeSphere({
   onHover: (id: string | null) => void;
 }) {
   const meshRef = useRef<THREE.Mesh>(null!);
-  const outerGlowRef = useRef<THREE.Mesh>(null!);
-  const innerGlowRef = useRef<THREE.Mesh>(null!);
   const currentScale = useRef(1);
   const pulsePhase = useRef(Math.random() * Math.PI * 2);
+  const planet = getPlanetColor(node.colorIndex);
+
+  // Wobble axis for realistic rotation
+  const wobbleAxis = useRef(new THREE.Vector3(
+    Math.random() * 0.3 - 0.15,
+    1,
+    Math.random() * 0.3 - 0.15
+  ).normalize());
 
   useFrame((state, delta) => {
     if (!meshRef.current) return;
-    const target = isSelected ? 1.5 : isHovered ? 1.3 : isConnected ? 1.15 : 1;
-    currentScale.current += (target - currentScale.current) * Math.min(delta * 6, 1);
+    const target = isSelected ? 1.5 : isHovered ? 1.3 : isConnected ? 1.12 : 1;
+    currentScale.current += (target - currentScale.current) * Math.min(delta * 5, 1);
 
     // Breathing pulse
-    const pulse = Math.sin(state.clock.elapsedTime * 1.5 + pulsePhase.current) * 0.04;
+    const pulse = Math.sin(state.clock.elapsedTime * 1.2 + pulsePhase.current) * 0.03;
     meshRef.current.scale.setScalar(currentScale.current + pulse);
 
-    // Slow self-rotation for 3D feel
-    meshRef.current.rotation.y += delta * 0.3;
-
-    if (outerGlowRef.current) {
-      outerGlowRef.current.scale.setScalar((currentScale.current + pulse) * 2.2);
-      const mat = outerGlowRef.current.material as THREE.MeshBasicMaterial;
-      mat.opacity = isSelected ? 0.12 : isHovered ? 0.08 : isConnected ? 0.04 : 0.02;
-    }
-    if (innerGlowRef.current) {
-      innerGlowRef.current.scale.setScalar((currentScale.current + pulse) * 1.4);
-      const mat = innerGlowRef.current.material as THREE.MeshBasicMaterial;
-      mat.opacity = isSelected ? 0.25 : isHovered ? 0.18 : isConnected ? 0.1 : 0.05;
-    }
+    // Realistic axial rotation
+    meshRef.current.rotateOnAxis(wobbleAxis.current, delta * 0.4);
   });
 
-  const baseHue = (node.count / maxCount) * 60; // shift from purple to blue-purple
-  const color = isSelected
-    ? "#c084fc"
-    : isConnected
-    ? "#a78bfa"
-    : isHovered
-    ? "#d8b4fe"
-    : "#8b5cf6";
-
-  const emissiveColor = isSelected ? "#e9d5ff" : isHovered ? "#c084fc" : "#7c3aed";
-  const emissiveIntensity = isSelected ? 1.2 : isHovered ? 0.8 : isConnected ? 0.4 : 0.15;
-
-  const showRings = isSelected || isHovered;
+  const emissiveIntensity = isSelected ? 1.0 : isHovered ? 0.6 : isConnected ? 0.3 : 0.12;
+  const sizeNorm = node.count / maxCount;
 
   return (
     <group position={node.position}>
-      {/* Outer glow */}
-      <mesh ref={outerGlowRef}>
-        <sphereGeometry args={[node.radius, 16, 16]} />
-        <meshBasicMaterial color={color} transparent opacity={0.02} depthWrite={false} />
-      </mesh>
+      {/* Outer atmosphere glow */}
+      <AtmosphereShell radius={node.radius * 2.5} color={planet.glow} opacity={isSelected ? 0.1 : 0.04} />
+      <AtmosphereShell radius={node.radius * 1.6} color={planet.core} opacity={isSelected ? 0.2 : isHovered ? 0.12 : 0.06} />
 
-      {/* Inner glow */}
-      <mesh ref={innerGlowRef}>
-        <sphereGeometry args={[node.radius, 16, 16]} />
-        <meshBasicMaterial color={emissiveColor} transparent opacity={0.05} depthWrite={false} />
-      </mesh>
-
-      {/* Main sphere - glass-like material */}
+      {/* Main planet sphere */}
       <mesh
         ref={meshRef}
-        onClick={(e) => {
-          e.stopPropagation();
-          onSelect(isSelected ? null : node.id);
-        }}
-        onPointerOver={(e) => {
-          e.stopPropagation();
-          onHover(node.id);
-          document.body.style.cursor = "pointer";
-        }}
-        onPointerOut={() => {
-          onHover(null);
-          document.body.style.cursor = "auto";
-        }}
+        onClick={(e) => { e.stopPropagation(); onSelect(isSelected ? null : node.id); }}
+        onPointerOver={(e) => { e.stopPropagation(); onHover(node.id); document.body.style.cursor = "pointer"; }}
+        onPointerOut={() => { onHover(null); document.body.style.cursor = "auto"; }}
       >
         <sphereGeometry args={[node.radius, 64, 64]} />
         <meshPhysicalMaterial
-          color={color}
-          emissive={emissiveColor}
+          color={planet.core}
+          emissive={planet.glow}
           emissiveIntensity={emissiveIntensity}
-          metalness={0.1}
-          roughness={0.15}
-          transmission={0.3}
-          thickness={1.5}
-          clearcoat={1}
-          clearcoatRoughness={0.1}
-          envMapIntensity={1.5}
+          metalness={0.15}
+          roughness={0.3}
+          clearcoat={0.8}
+          clearcoatRoughness={0.15}
           transparent
-          opacity={isSelected || isConnected || isHovered ? 0.95 : 0.8}
+          opacity={isSelected || isHovered ? 0.95 : 0.85}
         />
       </mesh>
 
-      {/* Orbit rings on interaction */}
-      {showRings && (
-        <>
-          <OrbitRing radius={node.radius * 1.6} speed={1.2} color="#c084fc" opacity={0.4} />
-          <OrbitRing radius={node.radius * 2.0} speed={-0.8} color="#a78bfa" opacity={0.25} />
-        </>
+      {/* Saturn-style rings — always visible, more prominent on interaction */}
+      <SaturnRing
+        radius={node.radius * 1.7}
+        thickness={0.02 + sizeNorm * 0.015}
+        color={planet.ring}
+        opacity={isSelected ? 0.7 : isHovered ? 0.5 : 0.25}
+        tiltX={1.2}
+        tiltZ={0.2}
+        speed={1.5}
+      />
+      <SaturnRing
+        radius={node.radius * 2.0}
+        thickness={0.012 + sizeNorm * 0.01}
+        color={planet.glow}
+        opacity={isSelected ? 0.5 : isHovered ? 0.35 : 0.15}
+        tiltX={1.1}
+        tiltZ={0.3}
+        speed={-1.0}
+      />
+      {(isSelected || isHovered) && (
+        <SaturnRing
+          radius={node.radius * 2.4}
+          thickness={0.008}
+          color={planet.core}
+          opacity={0.3}
+          tiltX={1.3}
+          tiltZ={-0.1}
+          speed={0.6}
+        />
       )}
 
       {/* Label */}
       <Billboard follow lockX={false} lockY={false} lockZ={false}>
         <Text
-          position={[0, node.radius + 0.3, 0]}
-          fontSize={0.2}
-          color={isSelected || isHovered ? "#f3e8ff" : "#a1a1aa"}
+          position={[0, node.radius + 0.4, 0]}
+          fontSize={0.22}
+          color={isSelected || isHovered ? "#ffffff" : "#d4d4d8"}
           anchorX="center"
           anchorY="bottom"
           font={undefined}
-          outlineWidth={0.015}
+          outlineWidth={0.02}
           outlineColor="#000000"
         >
           {node.label}
         </Text>
         <Text
           position={[0, 0, 0]}
-          fontSize={0.14}
-          color="#f3e8ff"
+          fontSize={0.16}
+          color="#ffffff"
           anchorX="center"
           anchorY="middle"
           font={undefined}
-          outlineWidth={0.01}
+          outlineWidth={0.012}
           outlineColor="#000000"
         >
           {String(node.count)}
@@ -245,7 +290,7 @@ function NodeSphere({
   );
 }
 
-// ─── Animated 3D Edge ───
+// ─── Animated edge with energy pulse ───
 function EdgeLine({
   from,
   to,
@@ -253,6 +298,8 @@ function EdgeLine({
   maxWeight,
   isHighlighted,
   isDimmed,
+  sourceColor,
+  targetColor,
 }: {
   from: [number, number, number];
   to: [number, number, number];
@@ -260,73 +307,78 @@ function EdgeLine({
   maxWeight: number;
   isHighlighted: boolean;
   isDimmed: boolean;
+  sourceColor: string;
+  targetColor: string;
 }) {
-  const lineObj = useMemo(() => {
+  const groupRef = useRef<THREE.Group>(null!);
+  const pulseRef = useRef<THREE.Mesh>(null!);
+
+  const { curve, lineObj } = useMemo(() => {
     const start = new THREE.Vector3(...from);
     const end = new THREE.Vector3(...to);
     const mid = start.clone().add(end).multiplyScalar(0.5);
-    const offset = mid.clone().normalize().multiplyScalar(0.5);
+    const offset = mid.clone().normalize().multiplyScalar(0.6);
     mid.add(offset);
 
     const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
-    const points = curve.getPoints(32);
+    const points = curve.getPoints(48);
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    const color = isHighlighted ? "#c084fc" : "#4a4a5a";
-    const opacity = isDimmed ? 0.03 : isHighlighted ? 0.6 : 0.15;
+    const color = isHighlighted ? sourceColor : "#3a3a4a";
+    const opacity = isDimmed ? 0.02 : isHighlighted ? 0.6 : 0.12;
     const material = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
-    return new THREE.Line(geometry, material);
-  }, [from, to, isHighlighted, isDimmed]);
+    const lineObj = new THREE.Line(geometry, material);
+    return { curve, lineObj };
+  }, [from, to, isHighlighted, isDimmed, sourceColor]);
 
-  return <primitive object={lineObj} />;
+  // Pulse traveling along the edge
+  useFrame((state) => {
+    if (!pulseRef.current || !isHighlighted) return;
+    const t = (state.clock.elapsedTime * 0.3) % 1;
+    const pos = curve.getPoint(t);
+    pulseRef.current.position.copy(pos);
+  });
+
+  return (
+    <group ref={groupRef}>
+      <primitive object={lineObj} />
+      {isHighlighted && (
+        <mesh ref={pulseRef}>
+          <sphereGeometry args={[0.04, 8, 8]} />
+          <meshBasicMaterial color={sourceColor} transparent opacity={0.8} />
+        </mesh>
+      )}
+    </group>
+  );
 }
 
 // ─── Floating particles background ───
 function Particles() {
-  const count = 300;
+  const count = 400;
   const ref = useRef<THREE.Points>(null!);
 
   const positions = useMemo(() => {
     const arr = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
-      arr[i * 3] = (Math.random() - 0.5) * 25;
-      arr[i * 3 + 1] = (Math.random() - 0.5) * 25;
-      arr[i * 3 + 2] = (Math.random() - 0.5) * 25;
-    }
-    return arr;
-  }, []);
-
-  const sizes = useMemo(() => {
-    const arr = new Float32Array(count);
-    for (let i = 0; i < count; i++) {
-      arr[i] = Math.random() * 0.04 + 0.01;
+      arr[i * 3] = (Math.random() - 0.5) * 30;
+      arr[i * 3 + 1] = (Math.random() - 0.5) * 30;
+      arr[i * 3 + 2] = (Math.random() - 0.5) * 30;
     }
     return arr;
   }, []);
 
   useFrame((state) => {
     if (ref.current) {
-      ref.current.rotation.y = state.clock.elapsedTime * 0.015;
-      ref.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.008) * 0.1;
+      ref.current.rotation.y = state.clock.elapsedTime * 0.01;
+      ref.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.006) * 0.08;
     }
   });
 
   return (
     <points ref={ref}>
       <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          count={count}
-          array={positions}
-          itemSize={3}
-        />
+        <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
       </bufferGeometry>
-      <pointsMaterial
-        size={0.04}
-        color="#7c3aed"
-        transparent
-        opacity={0.5}
-        sizeAttenuation
-      />
+      <pointsMaterial size={0.035} color="#8b8baf" transparent opacity={0.5} sizeAttenuation />
     </points>
   );
 }
@@ -353,34 +405,27 @@ function GraphScene({
   onSelect: (id: string | null) => void;
   onHover: (id: string | null) => void;
 }) {
-  const nodeMap = useMemo(
-    () => new Map(nodes.map((n) => [n.id, n])),
-    [nodes]
-  );
+  const nodeMap = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
 
   return (
     <>
-      {/* Lighting for 3D depth */}
-      <ambientLight intensity={0.3} />
-      <pointLight position={[10, 10, 10]} intensity={1.5} color="#a855f7" />
-      <pointLight position={[-10, -10, -5]} intensity={0.8} color="#6366f1" />
-      <pointLight position={[0, 8, -10]} intensity={0.5} color="#8b5cf6" />
-      <pointLight position={[5, -5, 8]} intensity={0.3} color="#c084fc" />
-      <directionalLight position={[0, 5, 5]} intensity={0.4} />
+      <ambientLight intensity={0.25} />
+      <pointLight position={[10, 10, 10]} intensity={1.8} color="#ffd080" />
+      <pointLight position={[-10, -10, -5]} intensity={1.0} color="#6080ff" />
+      <pointLight position={[0, 8, -10]} intensity={0.6} color="#ff80c0" />
+      <pointLight position={[5, -5, 8]} intensity={0.4} color="#80ffc0" />
+      <directionalLight position={[0, 5, 5]} intensity={0.3} />
 
       <Particles />
 
-      {/* Edges */}
       {edges.map((edge) => {
         const s = nodeMap.get(edge.source);
         const t = nodeMap.get(edge.target);
         if (!s || !t) return null;
         const isHighlighted =
-          selectedTag === edge.source ||
-          selectedTag === edge.target ||
-          hoveredTag === edge.source ||
-          hoveredTag === edge.target;
-        const isDimmed = (selectedTag || hoveredTag) && !isHighlighted;
+          selectedTag === edge.source || selectedTag === edge.target ||
+          hoveredTag === edge.source || hoveredTag === edge.target;
+        const isDimmed = !!(selectedTag || hoveredTag) && !isHighlighted;
         return (
           <EdgeLine
             key={`${edge.source}-${edge.target}`}
@@ -389,36 +434,32 @@ function GraphScene({
             weight={edge.weight}
             maxWeight={maxWeight}
             isHighlighted={isHighlighted}
-            isDimmed={!!isDimmed}
+            isDimmed={isDimmed}
+            sourceColor={getPlanetColor(s.colorIndex).core}
+            targetColor={getPlanetColor(t.colorIndex).core}
           />
         );
       })}
 
-      {/* Nodes */}
-      {nodes.map((node) => {
-        const isSelected = selectedTag === node.id;
-        const isConnected = connectedTags.has(node.id);
-        const isHovered = hoveredTag === node.id;
-        return (
-          <Float
-            key={node.id}
-            speed={isSelected ? 3 : 1.5}
-            rotationIntensity={isSelected ? 0.2 : 0.05}
-            floatIntensity={isSelected ? 0.4 : 0.15}
-            floatingRange={[-0.08, 0.08]}
-          >
-            <NodeSphere
-              node={node}
-              isSelected={isSelected}
-              isConnected={isConnected}
-              isHovered={isHovered}
-              maxCount={maxCount}
-              onSelect={onSelect}
-              onHover={onHover}
-            />
-          </Float>
-        );
-      })}
+      {nodes.map((node) => (
+        <Float
+          key={node.id}
+          speed={selectedTag === node.id ? 2.5 : 1.2}
+          rotationIntensity={selectedTag === node.id ? 0.15 : 0.04}
+          floatIntensity={selectedTag === node.id ? 0.35 : 0.12}
+          floatingRange={[-0.06, 0.06]}
+        >
+          <PlanetNode
+            node={node}
+            isSelected={selectedTag === node.id}
+            isConnected={connectedTags.has(node.id)}
+            isHovered={hoveredTag === node.id}
+            maxCount={maxCount}
+            onSelect={onSelect}
+            onHover={onHover}
+          />
+        </Float>
+      ))}
 
       <OrbitControls
         enableDamping
@@ -429,9 +470,54 @@ function GraphScene({
         maxDistance={15}
         enablePan={false}
         autoRotate
-        autoRotateSpeed={0.3}
+        autoRotateSpeed={0.25}
       />
     </>
+  );
+}
+
+// ─── Color Legend ───
+function ColorLegend({ nodes, maxCount }: { nodes: Node3D[]; maxCount: number }) {
+  return (
+    <div className="absolute top-3 right-3 bg-background/85 backdrop-blur-md rounded-lg border border-border/50 p-3 space-y-2.5 max-w-[180px] animate-in fade-in slide-in-from-right-3 duration-500 pointer-events-auto">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Legend</p>
+
+      {/* Size meaning */}
+      <div className="space-y-1">
+        <p className="text-[9px] text-muted-foreground font-medium">Node Size = Link Count</p>
+        <div className="flex items-end gap-1.5 h-5">
+          <div className="w-2 h-2 rounded-full bg-muted-foreground/40" />
+          <div className="w-3 h-3 rounded-full bg-muted-foreground/50" />
+          <div className="w-4 h-4 rounded-full bg-muted-foreground/60" />
+          <span className="text-[8px] text-muted-foreground ml-1">few → many</span>
+        </div>
+      </div>
+
+      {/* Color groups */}
+      <div className="space-y-1">
+        <p className="text-[9px] text-muted-foreground font-medium">Color = Tag Group</p>
+        <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
+          {PLANET_COLORS.map((c, i) => (
+            <div key={i} className="flex items-center gap-1">
+              <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: c.core, boxShadow: `0 0 4px ${c.glow}` }} />
+              <span className="text-[8px] text-muted-foreground truncate">{c.name}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Rings meaning */}
+      <div className="space-y-0.5">
+        <p className="text-[9px] text-muted-foreground font-medium">Rings = Connections</p>
+        <p className="text-[8px] text-muted-foreground/70">Brighter rings = more active</p>
+      </div>
+
+      {/* Edge meaning */}
+      <div className="space-y-0.5">
+        <p className="text-[9px] text-muted-foreground font-medium">Edges = Co-occurrence</p>
+        <p className="text-[8px] text-muted-foreground/70">Tags appearing together on links</p>
+      </div>
+    </div>
   );
 }
 
@@ -446,7 +532,6 @@ export function KnowledgeGraph3D({ links, isLoading }: KnowledgeGraph3DProps) {
   const [hoveredTag, setHoveredTag] = useState<string | null>(null);
 
   const { nodes, edges, tagLinks } = useMemo(() => buildGraph3D(links), [links]);
-
   const maxWeight = useMemo(() => Math.max(...edges.map((e) => e.weight), 1), [edges]);
   const maxCount = useMemo(() => Math.max(...nodes.map((n) => n.count), 1), [nodes]);
 
@@ -500,7 +585,7 @@ export function KnowledgeGraph3D({ links, isLoading }: KnowledgeGraph3DProps) {
               gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
               onPointerMissed={() => setSelectedTag(null)}
             >
-              <fog attach="fog" args={["#09090b", 14, 25]} />
+              <fog attach="fog" args={["#09090b", 16, 28]} />
               <GraphScene
                 nodes={nodes}
                 edges={edges}
@@ -515,6 +600,9 @@ export function KnowledgeGraph3D({ links, isLoading }: KnowledgeGraph3DProps) {
             </Canvas>
           </div>
 
+          {/* Color Legend */}
+          <ColorLegend nodes={nodes} maxCount={maxCount} />
+
           {/* Controls hint */}
           <div className="absolute bottom-3 left-3 flex items-center gap-1.5 text-[10px] text-muted-foreground bg-background/80 backdrop-blur-sm rounded-md px-2 py-1 border border-border/40 animate-in fade-in duration-500">
             <RotateCcw className="h-3 w-3" />
@@ -524,7 +612,10 @@ export function KnowledgeGraph3D({ links, isLoading }: KnowledgeGraph3DProps) {
           {/* Hovered tag tooltip */}
           {hoveredTag && !selectedTag && (
             <div className="absolute top-3 left-3 bg-background/90 backdrop-blur-sm rounded-lg px-3 py-2 border border-border/60 animate-in fade-in zoom-in-95 duration-200">
-              <p className="text-xs font-semibold">{hoveredTag}</p>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full" style={{ background: getPlanetColor(nodes.find(n => n.id === hoveredTag)?.colorIndex || 0).core }} />
+                <p className="text-xs font-semibold">{hoveredTag}</p>
+              </div>
               <p className="text-[10px] text-muted-foreground">
                 {tagLinks[hoveredTag]?.length || 0} links · {connectedTags.size} connections
               </p>
@@ -554,17 +645,22 @@ export function KnowledgeGraph3D({ links, isLoading }: KnowledgeGraph3DProps) {
               <div className="animate-in fade-in slide-in-from-bottom-2 duration-300" style={{ animationDelay: "100ms", animationFillMode: "both" }}>
                 <p className="text-xs text-muted-foreground mb-1.5">Connected tags</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {Array.from(connectedTags).map((tag, i) => (
-                    <Badge
-                      key={tag}
-                      variant="secondary"
-                      className="text-xs cursor-pointer hover:scale-105 transition-all duration-200 animate-in fade-in zoom-in-90"
-                      style={{ animationDelay: `${i * 40}ms`, animationFillMode: "both" }}
-                      onClick={() => setSelectedTag(tag)}
-                    >
-                      {tag}
-                    </Badge>
-                  ))}
+                  {Array.from(connectedTags).map((tag, i) => {
+                    const tagNode = nodes.find(n => n.id === tag);
+                    const color = tagNode ? getPlanetColor(tagNode.colorIndex).core : undefined;
+                    return (
+                      <Badge
+                        key={tag}
+                        variant="secondary"
+                        className="text-xs cursor-pointer hover:scale-105 transition-all duration-200 animate-in fade-in zoom-in-90"
+                        style={{ animationDelay: `${i * 40}ms`, animationFillMode: "both", borderColor: color }}
+                        onClick={() => setSelectedTag(tag)}
+                      >
+                        {color && <div className="w-2 h-2 rounded-full mr-1 shrink-0" style={{ background: color }} />}
+                        {tag}
+                      </Badge>
+                    );
+                  })}
                 </div>
               </div>
             )}
