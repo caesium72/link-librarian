@@ -51,9 +51,39 @@ export default function Knowledge() {
   const [trendingRealLoading, setTrendingRealLoading] = useState(false);
   const [trendingRealLoaded, setTrendingRealLoaded] = useState(false);
   const [trendingView, setTrendingView] = useState<"library" | "global">("global");
+  const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null);
+  const [isAutoRefresh, setIsAutoRefresh] = useState(false);
+  const autoRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const fetchTrendingData = async () => {
-    setTrendingRealLoading(true);
+  const CACHE_KEY = "trending-cache";
+  const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+  const getCacheKey = (timeRange: string, category: string) => `${timeRange}-${category}`;
+
+  const readCache = (timeRange: string, category: string) => {
+    try {
+      const raw = localStorage.getItem(CACHE_KEY);
+      if (!raw) return null;
+      const cache = JSON.parse(raw);
+      const key = getCacheKey(timeRange, category);
+      const entry = cache[key];
+      if (!entry) return null;
+      return { data: entry.data, timestamp: entry.timestamp, isFresh: Date.now() - entry.timestamp < CACHE_TTL };
+    } catch { return null; }
+  };
+
+  const writeCache = (timeRange: string, category: string, data: any) => {
+    try {
+      const raw = localStorage.getItem(CACHE_KEY);
+      const cache = raw ? JSON.parse(raw) : {};
+      cache[getCacheKey(timeRange, category)] = { data, timestamp: Date.now() };
+      localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+    } catch { /* ignore quota errors */ }
+  };
+
+  const fetchTrendingData = useCallback(async (auto = false) => {
+    if (auto) setIsAutoRefresh(true);
+    else setTrendingRealLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("trending-knowledge", {
         body: { timeRange: trendingTimeRange, category: trendingCategory },
@@ -61,13 +91,48 @@ export default function Knowledge() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       setTrendingData(data);
+      writeCache(trendingTimeRange, trendingCategory, data);
+      setLastFetchedAt(Date.now());
     } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+      if (!auto) toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
       setTrendingRealLoading(false);
+      setIsAutoRefresh(false);
       setTrendingRealLoaded(true);
     }
-  };
+  }, [trendingTimeRange, trendingCategory, toast]);
+
+  // Load from cache on mount and when filters change
+  useEffect(() => {
+    const cached = readCache(trendingTimeRange, trendingCategory);
+    if (cached) {
+      setTrendingData(cached.data);
+      setLastFetchedAt(cached.timestamp);
+      setTrendingRealLoaded(true);
+      if (!cached.isFresh) {
+        // Stale cache — show data but auto-refresh
+        fetchTrendingData(true);
+      }
+    } else {
+      setTrendingData(null);
+      setTrendingRealLoaded(false);
+      setLastFetchedAt(null);
+    }
+  }, [trendingTimeRange, trendingCategory]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-refresh interval (5 min) when on global trending view
+  useEffect(() => {
+    if (autoRefreshRef.current) {
+      clearInterval(autoRefreshRef.current);
+      autoRefreshRef.current = null;
+    }
+    if (trendingView === "global" && trendingRealLoaded && activeTab === "trending") {
+      autoRefreshRef.current = setInterval(() => fetchTrendingData(true), CACHE_TTL);
+    }
+    return () => {
+      if (autoRefreshRef.current) clearInterval(autoRefreshRef.current);
+    };
+  }, [trendingView, trendingRealLoaded, activeTab, fetchTrendingData]);
 
   // Save state for link cards
   const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
@@ -448,14 +513,14 @@ export default function Knowledge() {
                   {/* Time range */}
                   {["24h", "7d", "30d", "90d"].map((t) => (
                     <Button key={t} variant={trendingTimeRange === t ? "default" : "outline"} size="sm" className="text-xs h-6 px-2.5"
-                      onClick={() => { setTrendingTimeRange(t); setTrendingRealLoaded(false); }}>
+                      onClick={() => setTrendingTimeRange(t)}>
                       {t === "24h" ? "Today" : t === "7d" ? "This Week" : t === "30d" ? "This Month" : "3 Months"}
                     </Button>
                   ))}
                   <div className="w-px h-4 bg-border" />
                   {["all", "ai", "dev", "opensource", "startup"].map((c) => (
                     <Button key={c} variant={trendingCategory === c ? "secondary" : "ghost"} size="sm" className="text-xs h-6 px-2.5 capitalize"
-                      onClick={() => { setTrendingCategory(c); setTrendingRealLoaded(false); }}>
+                      onClick={() => setTrendingCategory(c)}>
                       {c === "all" ? "All" : c === "ai" ? "🤖 AI" : c === "dev" ? "🛠 Dev" : c === "opensource" ? "📦 OSS" : "🚀 Startups"}
                     </Button>
                   ))}
@@ -473,7 +538,7 @@ export default function Knowledge() {
                       <Flame className="h-8 w-8 text-destructive mx-auto mb-3 animate-bounce" style={{ animationDuration: "2s" }} />
                       <p className="text-sm font-medium mb-1">Real-Time Trending Analysis</p>
                       <p className="text-xs text-muted-foreground mb-4">AI-powered analysis of what's trending in tech right now</p>
-                      <Button onClick={fetchTrendingData} className="gap-2 transition-all duration-300 hover:shadow-lg hover:shadow-primary/20 hover:scale-105">
+                      <Button onClick={() => fetchTrendingData()} className="gap-2 transition-all duration-300 hover:shadow-lg hover:shadow-primary/20 hover:scale-105">
                         <TrendingUp className="h-4 w-4" /> Fetch Trending
                       </Button>
                     </CardContent>
@@ -502,8 +567,9 @@ export default function Knowledge() {
                             <p className="text-sm font-medium mb-0.5">Trending Insights</p>
                             <p className="text-xs text-muted-foreground">{trendingData.insights_summary}</p>
                           </div>
-                          <Button variant="ghost" size="sm" className="shrink-0 text-xs h-7 gap-1" onClick={fetchTrendingData}>
-                            <RefreshCw className="h-3 w-3" /> Refresh
+                          <Button variant="ghost" size="sm" className="shrink-0 text-xs h-7 gap-1" onClick={() => fetchTrendingData()}>
+                            {isAutoRefresh ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                            {lastFetchedAt ? `${Math.round((Date.now() - lastFetchedAt) / 60000)}m ago` : "Refresh"}
                           </Button>
                         </CardContent>
                       </Card>
