@@ -3452,6 +3452,14 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
                     onSelect={handleNodeSelect} onHover={setHoveredTag}
                     forceBrightNodes={forceBrightNodes} pathEdgeKeys={pathEdgeKeys}
                   />
+                ) : theme === "galaxy" ? (
+                  <GalaxyScene
+                    nodes={nodes} edges={edges}
+                    selectedTag={selectedTag} hoveredTag={hoveredTag} connectedTags={connectedTags}
+                    maxWeight={maxWeight} maxCount={maxCount}
+                    onSelect={handleNodeSelect} onHover={setHoveredTag}
+                    forceBrightNodes={forceBrightNodes} pathEdgeKeys={pathEdgeKeys}
+                  />
                 ) : (
                   <SphereScene
                     nodes={nodes} edges={edges}
