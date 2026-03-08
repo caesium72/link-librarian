@@ -1604,7 +1604,7 @@ function CosmosScene({
             isSelected={selectedTag === node.id}
             isConnected={connectedTags.has(node.id)}
             isHovered={hoveredTag === node.id}
-            isDimmed={!!selectedTag && selectedTag !== node.id}
+            isDimmed={forceBrightNodes ? !forceBrightNodes.has(node.id) : (!!selectedTag && selectedTag !== node.id)}
             maxCount={maxCount}
             onSelect={onSelect}
             onHover={onHover}
