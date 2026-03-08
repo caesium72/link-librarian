@@ -2776,7 +2776,7 @@ function computeClusters(nodes: Node3D[], edges: Edge3D[]) {
 interface KnowledgeGraph3DProps {
   links: Link[];
   isLoading: boolean;
-  theme?: "cosmos" | "atomic" | "sphere" | "ocean";
+  theme?: "cosmos" | "atomic" | "sphere" | "ocean" | "galaxy";
 }
 
 export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: KnowledgeGraph3DProps) {
