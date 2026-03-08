@@ -1320,7 +1320,7 @@ function SphereNode({
         <>
           <mesh ref={ring1Ref} rotation={[Math.PI / 3, 0, 0]}>
             <torusGeometry args={[node.radius * 2.2, 0.02, 8, 64]} />
-            <meshBasicMaterial color={sphereColor.edge} transparent opacity={0.6} />
+            <meshBasicMaterial color={sphereColor.edge transparent opacity={0.6} />
           </mesh>
           <mesh ref={ring2Ref} rotation={[0, Math.PI / 4, Math.PI / 6]}>
             <torusGeometry args={[node.radius * 2.6, 0.015, 8, 64]} />
@@ -1345,7 +1345,7 @@ function SphereNode({
             />
           </bufferGeometry>
           <pointsMaterial
-            color={sphereColor.trail}
+            color={sphereColor.tedge
             size={0.08}
             transparent
             opacity={0.8}
