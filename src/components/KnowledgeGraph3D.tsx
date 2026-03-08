@@ -161,6 +161,32 @@ function buildGraph3D(links: Link[], theme: "cosmos" | "atomic" | "sphere" | "oc
         colorIndex: i,
       });
     }
+  } else if (theme === "galaxy") {
+    // Galaxy theme: spiral arm layout like a galaxy disk
+    const armCount = 3;
+    const maxRadius = 14;
+
+    for (let i = 0; i < topTags.length; i++) {
+      const tag = topTags[i];
+      const arm = i % armCount;
+      const armOffset = (arm / armCount) * Math.PI * 2;
+      const frac = i / Math.max(topTags.length - 1, 1);
+      const radius = 2 + frac * maxRadius;
+      const spiralAngle = armOffset + frac * Math.PI * 3;
+      const x = radius * Math.cos(spiralAngle) + (Math.random() - 0.5) * 1.5;
+      const z = radius * Math.sin(spiralAngle) + (Math.random() - 0.5) * 1.5;
+      const y = (Math.random() - 0.5) * 1.5; // Thin disk
+      const r = 0.25 + (tagCount[tag] / maxC) * 0.5;
+
+      nodes.push({
+        id: tag,
+        label: tag,
+        count: tagCount[tag],
+        position: [x, y, z] as [number, number, number],
+        radius: r,
+        colorIndex: i,
+      });
+    }
   } else if (theme === "ocean") {
     // Ocean theme: vertical helix arrangement like a coral reef
     const helixRadius = 8;
