@@ -779,7 +779,54 @@ function Particles() {
   );
 }
 
-// ─── Central black hole with accretion disk (Cosmos theme) ───
+// ─── Gravitational Lensing Effect ───
+function GravitationalLensing() {
+  const ringsRef = useRef<THREE.Group>(null!);
+  
+  useFrame((state) => {
+    if (!ringsRef.current) return;
+    const t = state.clock.elapsedTime;
+    ringsRef.current.children.forEach((child, i) => {
+      const mesh = child as THREE.Mesh;
+      const scale = 1 + Math.sin(t * (1.5 + i * 0.3) + i * 0.8) * 0.06;
+      mesh.scale.setScalar(scale);
+      (mesh.material as THREE.MeshBasicMaterial).opacity = 0.04 + Math.sin(t * (1 + i * 0.2)) * 0.02;
+      mesh.rotation.z = t * 0.02 * (i % 2 === 0 ? 1 : -1);
+    });
+  });
+
+  return (
+    <group ref={ringsRef}>
+      {/* Concentric lensing rings — simulates light bending around the event horizon */}
+      {[1.6, 2.0, 2.5, 3.0, 3.6].map((radius, i) => (
+        <mesh key={i} rotation={[Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[radius - 0.04, radius + 0.04, 128]} />
+          <meshBasicMaterial
+            color={i < 2 ? "#ff8040" : "#8060ff"}
+            transparent
+            opacity={0.06 - i * 0.008}
+            side={THREE.DoubleSide}
+            depthWrite={false}
+          />
+        </mesh>
+      ))}
+      {/* Warped light streaks */}
+      {[0, 1, 2].map((i) => (
+        <mesh key={`streak-${i}`} rotation={[Math.PI / 2 + i * 0.15, i * 0.4, i * 0.7]}>
+          <torusGeometry args={[2.2 + i * 0.5, 0.02, 4, 128, Math.PI * (0.6 + i * 0.2)]} />
+          <meshBasicMaterial
+            color="#ffcc80"
+            transparent
+            opacity={0.12 - i * 0.03}
+            depthWrite={false}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+// ─── Central black hole with accretion disk + lensing (Cosmos theme) ───
 function BlackHole() {
   const diskRef = useRef<THREE.Mesh>(null!);
   const disk2Ref = useRef<THREE.Mesh>(null!);
@@ -817,6 +864,7 @@ function BlackHole() {
         <torusGeometry args={[2.8, 0.08, 4, 128]} />
         <meshStandardMaterial color="#a060ff" emissive="#8040e0" emissiveIntensity={0.5} transparent opacity={0.3} side={THREE.DoubleSide} />
       </mesh>
+      <GravitationalLensing />
     </group>
   );
 }
@@ -1271,7 +1319,12 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
   const [hoveredTag, setHoveredTag] = useState<string | null>(null);
   const [moonPreview, setMoonPreview] = useState<{ nodeId: string; moonIdx: number } | null>(null);
 
-  const { nodes, edges, tagLinks } = useMemo(() => buildGraph3D(links, theme), [links, theme]);
+  // Theme transition state — must be before early returns
+  const [isThemeTransitioning, setIsThemeTransitioning] = useState(false);
+  const [displayedTheme, setDisplayedTheme] = useState(theme);
+  const prevThemeRef = useRef(theme);
+
+  const { nodes, edges, tagLinks } = useMemo(() => buildGraph3D(links, displayedTheme), [links, displayedTheme]);
   const maxWeight = useMemo(() => Math.max(...edges.map((e) => e.weight), 1), [edges]);
   const maxCount = useMemo(() => Math.max(...nodes.map((n) => n.count), 1), [nodes]);
 
@@ -1294,6 +1347,16 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
   const handleMoonClick = useCallback((nodeId: string, moonIdx: number, position: THREE.Vector3) => {
     setMoonPreview({ nodeId, moonIdx });
   }, []);
+
+  // Smooth transition when theme prop changes
+  if (theme !== prevThemeRef.current) {
+    prevThemeRef.current = theme;
+    setIsThemeTransitioning(true);
+    setTimeout(() => {
+      setDisplayedTheme(theme);
+      setTimeout(() => setIsThemeTransitioning(false), 50);
+    }, 400);
+  }
 
   if (isLoading) {
     return (
@@ -1321,16 +1384,23 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
     <div className="space-y-4">
       <Card className="overflow-hidden border-primary/10 hover:border-primary/20 transition-colors duration-300">
         <CardContent className="p-0 relative">
-          <div className="h-[500px] w-full bg-background">
+          <div 
+            className="h-[500px] w-full bg-background transition-all duration-500 ease-out"
+            style={{
+              opacity: isThemeTransitioning ? 0 : 1,
+              transform: isThemeTransitioning ? "scale(0.95)" : "scale(1)",
+              filter: isThemeTransitioning ? "blur(6px) brightness(1.2)" : "blur(0px) brightness(1)",
+            }}
+          >
             <Canvas
-              camera={{ position: theme === "atomic" ? [0, 6, 20] : [0, 8, 25], fov: 50 }}
+              camera={{ position: displayedTheme === "atomic" ? [0, 6, 20] : [0, 8, 25], fov: 50 }}
               dpr={[1, 2]}
               style={{ background: "transparent" }}
               gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
               onPointerMissed={() => { setSelectedTag(null); setMoonPreview(null); }}
             >
-              <fog attach="fog" args={[theme === "atomic" ? "#050510" : "#09090b", theme === "atomic" ? 25 : 30, theme === "atomic" ? 45 : 55]} />
-              {theme === "cosmos" ? (
+              <fog attach="fog" args={[displayedTheme === "atomic" ? "#050510" : "#09090b", displayedTheme === "atomic" ? 25 : 30, displayedTheme === "atomic" ? 45 : 55]} />
+              {displayedTheme === "cosmos" ? (
                 <CosmosScene
                   nodes={nodes}
                   edges={edges}
