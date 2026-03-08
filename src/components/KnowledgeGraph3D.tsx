@@ -1629,7 +1629,118 @@ function SwimmingFish({ edges, nodeMap }: { edges: Edge3D[]; nodeMap: Map<string
   );
 }
 
-// ─── Depth Zone Layers (surface / twilight / midnight) ───
+// ─── Giant Whale circling the graph ───
+function GiantWhale() {
+  const groupRef = useRef<THREE.Group>(null!);
+  const tailRef = useRef<THREE.Mesh>(null!);
+  const orbitRadius = 22;
+  const orbitSpeed = 0.03;
+  const whaleScale = 1.8;
+
+  useFrame((state) => {
+    if (!groupRef.current) return;
+    const t = state.clock.elapsedTime;
+    // Orbit around the graph
+    const angle = t * orbitSpeed;
+    const x = Math.cos(angle) * orbitRadius;
+    const z = Math.sin(angle) * orbitRadius;
+    const y = Math.sin(t * 0.08) * 3 - 2; // Gentle vertical undulation
+    groupRef.current.position.set(x, y, z);
+    // Face travel direction (tangent)
+    const nextAngle = angle + 0.01;
+    groupRef.current.lookAt(
+      Math.cos(nextAngle) * orbitRadius,
+      y + Math.cos(t * 0.08) * 0.1,
+      Math.sin(nextAngle) * orbitRadius,
+    );
+    // Subtle roll
+    groupRef.current.rotation.z = Math.sin(t * 0.15) * 0.08;
+    // Tail wag
+    if (tailRef.current) {
+      tailRef.current.rotation.y = Math.sin(t * 0.8) * 0.35;
+    }
+  });
+
+  return (
+    <group ref={groupRef} scale={[whaleScale, whaleScale, whaleScale]}>
+      {/* Main body - elongated ellipsoid */}
+      <mesh>
+        <sphereGeometry args={[1, 24, 16]} />
+        <meshPhysicalMaterial
+          color="#1a5276"
+          emissive="#0d3446"
+          emissiveIntensity={0.3}
+          metalness={0.1}
+          roughness={0.6}
+          transparent
+          opacity={0.85}
+        />
+        {/* Stretch into whale shape */}
+      </mesh>
+      {/* Elongated front body */}
+      <mesh position={[0, 0, 1.8]} scale={[0.7, 0.6, 1.2]}>
+        <sphereGeometry args={[1, 16, 12]} />
+        <meshPhysicalMaterial color="#1a5276" emissive="#0d3446" emissiveIntensity={0.3} metalness={0.1} roughness={0.6} transparent opacity={0.85} />
+      </mesh>
+      {/* Head */}
+      <mesh position={[0, 0.05, 3.2]} scale={[0.55, 0.5, 0.7]}>
+        <sphereGeometry args={[1, 16, 12]} />
+        <meshPhysicalMaterial color="#1e6090" emissive="#104060" emissiveIntensity={0.4} metalness={0.1} roughness={0.5} transparent opacity={0.85} />
+      </mesh>
+      {/* Belly (lighter underside) */}
+      <mesh position={[0, -0.5, 1]} scale={[0.8, 0.35, 2]}>
+        <sphereGeometry args={[1, 12, 8]} />
+        <meshPhysicalMaterial color="#2a7ab5" emissive="#1a5a85" emissiveIntensity={0.2} metalness={0} roughness={0.7} transparent opacity={0.7} />
+      </mesh>
+      {/* Tail section */}
+      <group ref={tailRef} position={[0, 0, -1.8]}>
+        <mesh scale={[0.5, 0.45, 0.8]}>
+          <sphereGeometry args={[1, 12, 8]} />
+          <meshPhysicalMaterial color="#1a5276" emissive="#0d3446" emissiveIntensity={0.3} metalness={0.1} roughness={0.6} transparent opacity={0.8} />
+        </mesh>
+        {/* Tail flukes */}
+        <mesh position={[0, 0, -1]} rotation={[0.1, 0, 0]} scale={[1.6, 0.08, 0.6]}>
+          <sphereGeometry args={[1, 12, 6]} />
+          <meshPhysicalMaterial color="#1a5276" emissive="#0a2840" emissiveIntensity={0.4} metalness={0.1} roughness={0.5} transparent opacity={0.8} />
+        </mesh>
+      </group>
+      {/* Dorsal fin */}
+      <mesh position={[0, 1, 0]} rotation={[0.3, 0, 0]} scale={[0.08, 0.5, 0.4]}>
+        <sphereGeometry args={[1, 8, 6]} />
+        <meshPhysicalMaterial color="#154060" emissive="#0a2840" emissiveIntensity={0.5} metalness={0.1} roughness={0.5} transparent opacity={0.8} />
+      </mesh>
+      {/* Pectoral fins */}
+      <mesh position={[0.8, -0.3, 1]} rotation={[0, 0, -0.5]} scale={[0.6, 0.06, 0.3]}>
+        <sphereGeometry args={[1, 8, 6]} />
+        <meshPhysicalMaterial color="#1a5276" emissive="#0d3446" emissiveIntensity={0.3} transparent opacity={0.75} />
+      </mesh>
+      <mesh position={[-0.8, -0.3, 1]} rotation={[0, 0, 0.5]} scale={[0.6, 0.06, 0.3]}>
+        <sphereGeometry args={[1, 8, 6]} />
+        <meshPhysicalMaterial color="#1a5276" emissive="#0d3446" emissiveIntensity={0.3} transparent opacity={0.75} />
+      </mesh>
+      {/* Eyes */}
+      <mesh position={[0.45, 0.15, 3.1]}>
+        <sphereGeometry args={[0.07, 8, 8]} />
+        <meshBasicMaterial color="#80d8ff" />
+      </mesh>
+      <mesh position={[-0.45, 0.15, 3.1]}>
+        <sphereGeometry args={[0.07, 8, 8]} />
+        <meshBasicMaterial color="#80d8ff" />
+      </mesh>
+      {/* Bioluminescent stripe along body */}
+      <mesh position={[0, -0.15, 0.8]} scale={[0.3, 0.05, 2.5]}>
+        <sphereGeometry args={[1, 8, 4]} />
+        <meshBasicMaterial color="#40c4ff" transparent opacity={0.25} />
+      </mesh>
+      {/* Outer glow aura */}
+      <mesh scale={[2.2, 1.5, 3.5]}>
+        <sphereGeometry args={[1, 16, 8]} />
+        <meshBasicMaterial color="#1a5276" transparent opacity={0.04} depthWrite={false} />
+      </mesh>
+    </group>
+  );
+}
+
 function DepthLayers() {
   const groupRef = useRef<THREE.Group>(null!);
 
