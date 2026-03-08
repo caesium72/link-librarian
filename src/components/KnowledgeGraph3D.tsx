@@ -45,6 +45,18 @@ const SPHERE_COLORS = [
   { core: "#7986cb", glow: "#9fa8da", edge: "#5c6bc0", name: "Indigo" },
 ];
 
+// ─── Ocean color palette (Deep Ocean theme) ───
+const OCEAN_COLORS = [
+  { core: "#00e5ff", glow: "#80f0ff", tentacle: "#00b8d4", name: "Jellyfish Cyan" },
+  { core: "#ea80fc", glow: "#f0b0ff", tentacle: "#d500f9", name: "Anemone Purple" },
+  { core: "#69f0ae", glow: "#b0ffd0", tentacle: "#00e676", name: "Algae Green" },
+  { core: "#ffab40", glow: "#ffd080", tentacle: "#ff9100", name: "Coral Orange" },
+  { core: "#ff80ab", glow: "#ffb0cc", tentacle: "#ff4081", name: "Sea Rose" },
+  { core: "#40c4ff", glow: "#80d8ff", tentacle: "#0091ea", name: "Deep Blue" },
+  { core: "#b388ff", glow: "#d0b0ff", tentacle: "#7c4dff", name: "Urchin Violet" },
+  { core: "#64ffda", glow: "#a0ffe8", tentacle: "#1de9b6", name: "Plankton Teal" },
+];
+
 function getPlanetColor(index: number) {
   return PLANET_COLORS[index % PLANET_COLORS.length];
 }
@@ -55,6 +67,10 @@ function getAtomColor(index: number) {
 
 function getSphereColor(index: number) {
   return SPHERE_COLORS[index % SPHERE_COLORS.length];
+}
+
+function getOceanColor(index: number) {
+  return OCEAN_COLORS[index % OCEAN_COLORS.length];
 }
 
 interface Node3D {
