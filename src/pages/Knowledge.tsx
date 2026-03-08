@@ -15,7 +15,9 @@ import {
   ArrowLeft, Flame, Clock, Star, Sparkles, ExternalLink,
   BookOpen, TrendingUp, Eye, RefreshCw, Share2, Box, Layers,
   Maximize2, Minimize2, Save, Loader2, Wand2, Atom, Globe,
+  Zap, MessageSquare, Rocket, ArrowUpRight, BarChart3, Users,
 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { KnowledgeGraph } from "@/components/KnowledgeGraph";
 import { KnowledgeGraph3D } from "@/components/KnowledgeGraph3D";
 import { addLink } from "@/lib/api/links";
