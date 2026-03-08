@@ -1365,20 +1365,42 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
     );
   }
 
+  // Theme transition state
+  const [isThemeTransitioning, setIsThemeTransitioning] = useState(false);
+  const [displayedTheme, setDisplayedTheme] = useState(theme);
+  const prevThemeRef = useRef(theme);
+
+  // Smooth transition when theme changes
+  if (theme !== prevThemeRef.current) {
+    prevThemeRef.current = theme;
+    setIsThemeTransitioning(true);
+    setTimeout(() => {
+      setDisplayedTheme(theme);
+      setTimeout(() => setIsThemeTransitioning(false), 50);
+    }, 400);
+  }
+
   return (
     <div className="space-y-4">
       <Card className="overflow-hidden border-primary/10 hover:border-primary/20 transition-colors duration-300">
         <CardContent className="p-0 relative">
-          <div className="h-[500px] w-full bg-background">
+          <div 
+            className="h-[500px] w-full bg-background transition-all duration-500 ease-out"
+            style={{
+              opacity: isThemeTransitioning ? 0 : 1,
+              transform: isThemeTransitioning ? "scale(0.95)" : "scale(1)",
+              filter: isThemeTransitioning ? "blur(6px) brightness(1.2)" : "blur(0px) brightness(1)",
+            }}
+          >
             <Canvas
-              camera={{ position: theme === "atomic" ? [0, 6, 20] : [0, 8, 25], fov: 50 }}
+              camera={{ position: displayedTheme === "atomic" ? [0, 6, 20] : [0, 8, 25], fov: 50 }}
               dpr={[1, 2]}
               style={{ background: "transparent" }}
               gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
               onPointerMissed={() => { setSelectedTag(null); setMoonPreview(null); }}
             >
-              <fog attach="fog" args={[theme === "atomic" ? "#050510" : "#09090b", theme === "atomic" ? 25 : 30, theme === "atomic" ? 45 : 55]} />
-              {theme === "cosmos" ? (
+              <fog attach="fog" args={[displayedTheme === "atomic" ? "#050510" : "#09090b", displayedTheme === "atomic" ? 25 : 30, displayedTheme === "atomic" ? 45 : 55]} />
+              {displayedTheme === "cosmos" ? (
                 <CosmosScene
                   nodes={nodes}
                   edges={edges}
