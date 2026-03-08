@@ -347,6 +347,15 @@ function PlanetNode({
         speed={isDimmed ? 0.1 : 0.6}
       />
 
+      {/* Orbiting moon spheres */}
+      <OrbitingMoons
+        parentRadius={node.radius}
+        color={activeRing}
+        glowColor={activeGlow}
+        count={node.count}
+        isDimmed={isDimmed}
+      />
+
       {/* Label */}
       <Billboard follow lockX={false} lockY={false} lockZ={false}>
         <Text
