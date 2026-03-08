@@ -137,7 +137,7 @@ function useSimulation(
 
     const tick = () => {
       const nodes = nodesRef.current;
-      // Smoother alpha decay over longer period
+      const p = physicsRef.current!;
       const progress = iterRef.current / 800;
       const alpha = Math.max(0.001, Math.exp(-2.5 * progress));
 
@@ -160,10 +160,8 @@ function useSimulation(
           const dist = Math.sqrt(dx * dx + dy * dy) || 0.1;
           const minDist = nodes[i].radius + nodes[j].radius + 24;
 
-          // Softer repulsion curve
-          let force = (900 * alpha) / (dist * dist);
+          let force = (p.repulsion * alpha) / (dist * dist);
 
-          // Gentle collision push
           if (dist < minDist) {
             force += ((minDist - dist) / minDist) * 5 * alpha;
           }
@@ -190,7 +188,7 @@ function useSimulation(
         const dy = t.y - s.y;
         const dist = Math.sqrt(dx * dx + dy * dy) || 0.1;
         const idealDist = s.radius + t.radius + 70;
-        const force = (dist - idealDist) * 0.004 * alpha * Math.min(edge.weight, 5);
+        const force = (dist - idealDist) * p.attraction * alpha * Math.min(edge.weight, 5);
         const fx = (dx / dist) * force;
         const fy = (dy / dist) * force;
         if (s.id !== dragRef.current) { s.vx += fx; s.vy += fy; }
@@ -200,18 +198,16 @@ function useSimulation(
       // Gentle center gravity
       for (const node of nodes) {
         if (node.id === dragRef.current) continue;
-        node.vx += (cx - node.x) * 0.003 * alpha;
-        node.vy += (cy - node.y) * 0.003 * alpha;
+        node.vx += (cx - node.x) * p.gravity * alpha;
+        node.vy += (cy - node.y) * p.gravity * alpha;
       }
 
-      // Higher damping for smoother, less jittery motion
-      const damping = 0.82;
+      // Damping and velocity clamping
       for (const node of nodes) {
         if (node.id === dragRef.current) continue;
-        node.vx *= damping;
-        node.vy *= damping;
-        // Lower max velocity for gentler movement
-        const maxV = 5;
+        node.vx *= p.damping;
+        node.vy *= p.damping;
+        const maxV = p.maxVelocity;
         node.vx = Math.max(-maxV, Math.min(maxV, node.vx));
         node.vy = Math.max(-maxV, Math.min(maxV, node.vy));
         node.x += node.vx;
@@ -220,13 +216,12 @@ function useSimulation(
         node.y = Math.max(padding, Math.min(height - padding, node.y));
       }
 
-      // Smoother interpolation (higher lerp = closer tracking but still soft)
-      const lerpFactor = 0.18;
+      // Smooth interpolation
       const newDisplay = nodes.map((n, i) => {
         const prev = displayRef.current[i] || { x: n.x, y: n.y };
         return {
-          x: prev.x + (n.x - prev.x) * lerpFactor,
-          y: prev.y + (n.y - prev.y) * lerpFactor,
+          x: prev.x + (n.x - prev.x) * p.lerpFactor,
+          y: prev.y + (n.y - prev.y) * p.lerpFactor,
         };
       });
       displayRef.current = newDisplay;
