@@ -492,6 +492,31 @@ export default function Knowledge() {
                     <Layers className="h-3 w-3" />
                     2D
                   </Button>
+                  
+                  {/* Theme selector (only for 3D mode) */}
+                  {graphMode === "3d" && (
+                    <>
+                      <div className="w-px h-5 bg-border mx-1" />
+                      <Button
+                        variant={graph3DTheme === "cosmos" ? "default" : "outline"}
+                        size="sm"
+                        className="gap-1.5 text-xs h-7 transition-all duration-300"
+                        onClick={() => setGraph3DTheme("cosmos")}
+                      >
+                        🪐 Cosmos
+                      </Button>
+                      <Button
+                        variant={graph3DTheme === "atomic" ? "default" : "outline"}
+                        size="sm"
+                        className="gap-1.5 text-xs h-7 transition-all duration-300"
+                        onClick={() => setGraph3DTheme("atomic")}
+                      >
+                        <Atom className="h-3 w-3" />
+                        Atomic
+                      </Button>
+                    </>
+                  )}
+                  
                   <Button
                     variant="outline"
                     size="sm"
