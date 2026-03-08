@@ -1345,7 +1345,7 @@ function SphereNode({
             />
           </bufferGeometry>
           <pointsMaterial
-            color={sphereColoredge}e
+            color={sphereColor.edge}
             size={0.08}
             transparent
             opacity={0.8}
