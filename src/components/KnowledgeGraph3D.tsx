@@ -1541,25 +1541,14 @@ function OceanScene({
 
 
 function CosmosScene({
-  nodes,
-  edges,
-  selectedTag,
-  hoveredTag,
-  connectedTags,
-  maxWeight,
-  maxCount,
-  onSelect,
-  onHover,
+  nodes, edges, selectedTag, hoveredTag, connectedTags, maxWeight, maxCount, onSelect, onHover,
+  forceBrightNodes = null, pathEdgeKeys = null,
 }: {
-  nodes: Node3D[];
-  edges: Edge3D[];
-  selectedTag: string | null;
-  hoveredTag: string | null;
-  connectedTags: Set<string>;
-  maxWeight: number;
-  maxCount: number;
-  onSelect: (id: string | null) => void;
-  onHover: (id: string | null) => void;
+  nodes: Node3D[]; edges: Edge3D[];
+  selectedTag: string | null; hoveredTag: string | null; connectedTags: Set<string>;
+  maxWeight: number; maxCount: number;
+  onSelect: (id: string | null) => void; onHover: (id: string | null) => void;
+  forceBrightNodes?: Set<string> | null; pathEdgeKeys?: Set<string> | null;
 }) {
   const nodeMap = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
 
