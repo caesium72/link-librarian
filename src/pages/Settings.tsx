@@ -88,7 +88,7 @@ const Settings = () => {
     setLoadingSettings(false);
   };
 
-  const handleSaveToken = async () => {
+  const handleSaveAndSetupBot = async () => {
     if (!botToken.trim()) {
       toast({ title: "Please enter a bot token", variant: "destructive" });
       return;
@@ -96,47 +96,63 @@ const Settings = () => {
 
     setSaving(true);
     try {
-      // Upsert settings
-      const { error } = await supabase
+      // First, test the token by trying to set up the webhook
+      const { data: webhookData, error: webhookError } = await supabase.functions.invoke("setup-telegram", {
+        body: { userId: user!.id }
+      });
+
+      if (webhookError) throw webhookError;
+      if (!webhookData?.success) throw new Error(webhookData?.error || "Invalid bot token or failed to setup webhook");
+
+      // Save the token and set webhook status
+      const { error: saveError } = await supabase
         .from("user_settings")
         .upsert(
-          { user_id: user!.id, telegram_bot_token: botToken.trim(), telegram_webhook_set: false },
+          { 
+            user_id: user!.id, 
+            telegram_bot_token: botToken.trim(), 
+            telegram_webhook_set: true 
+          },
           { onConflict: "user_id" }
         );
 
-      if (error) throw error;
+      if (saveError) throw saveError;
+      
       setHasToken(true);
-      setWebhookSet(false);
-      toast({ title: "Bot token saved!" });
+      setWebhookSet(true);
+      toast({ 
+        title: "🎉 Bot Ready!", 
+        description: "Your bot is now connected! Add it to your Telegram group/channel and start sharing links." 
+      });
     } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+      toast({ 
+        title: "Setup Failed", 
+        description: e.message.includes("token") ? "Invalid bot token. Please check your token from @BotFather." : e.message, 
+        variant: "destructive" 
+      });
     } finally {
       setSaving(false);
     }
   };
 
-  const handleSetupWebhook = async () => {
-    setSettingUpWebhook(true);
+  const handleResetBot = async () => {
+    setSaving(true);
     try {
-      const { data, error } = await supabase.functions.invoke("setup-telegram", {
-        body: { userId: user!.id },
-      });
-
-      if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || "Failed to set webhook");
-
-      // Update settings
-      await supabase
+      const { error } = await supabase
         .from("user_settings")
-        .update({ telegram_webhook_set: true })
+        .update({ telegram_bot_token: null, telegram_webhook_set: false })
         .eq("user_id", user!.id);
 
-      setWebhookSet(true);
-      toast({ title: "Webhook set!", description: "Your bot is now connected. Add it to your group/channel and start pasting links!" });
+      if (error) throw error;
+      
+      setBotToken("");
+      setHasToken(false);
+      setWebhookSet(false);
+      toast({ title: "Bot disconnected" });
     } catch (e: any) {
-      toast({ title: "Webhook setup failed", description: e.message, variant: "destructive" });
+      toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
-      setSettingUpWebhook(false);
+      setSaving(false);
     }
   };
 
