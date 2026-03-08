@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ExternalLink, Filter, RotateCcw, Circle, X, Search, Route, Clock3, GitBranch, BarChart3 } from "lucide-react";
+import { ExternalLink, Filter, RotateCcw, Circle, X, Search, Route, Clock3, GitBranch, BarChart3, BarChart3 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import type { Link } from "@/types/links";
@@ -2379,7 +2379,7 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
   const [moonPreview, setMoonPreview] = useState<{ nodeId: string; moonIdx: number } | null>(null);
 
   // Feature states
-  const [activeFeature, setActiveFeature] = useState<"none" | "search" | "time" | "path" | "cluster">("none");
+  const [activeFeature, setActiveFeature] = useState<"none" | "search" | "time" | "path"  | "stats"| "cluster">("none");
   const [searchQuery, setSearchQuery] = useState("");
   const [timeSlider, setTimeSlider] = useState(100);
   const [pathStart, setPathStart] = useState<string | null>(null);
