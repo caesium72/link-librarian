@@ -2601,9 +2601,9 @@ function SphereScene({
 }
 
 // ─── Color Legend ───
-function ColorLegend({ nodes, maxCount, theme }: { nodes: Node3D[]; maxCount: number; theme: "cosmos" | "atomic" | "sphere" | "ocean" }) {
-  const colors = theme === "cosmos" ? PLANET_COLORS : theme === "atomic" ? ATOM_COLORS : theme === "ocean" ? OCEAN_COLORS : SPHERE_COLORS;
-  const themeName = theme === "cosmos" ? "🪐 Cosmos" : theme === "atomic" ? "⚛️ Atomic" : theme === "ocean" ? "🌊 Ocean" : "🌐 Sphere";
+function ColorLegend({ nodes, maxCount, theme }: { nodes: Node3D[]; maxCount: number; theme: "cosmos" | "atomic" | "sphere" | "ocean" | "galaxy" }) {
+  const colors = theme === "cosmos" ? PLANET_COLORS : theme === "atomic" ? ATOM_COLORS : theme === "ocean" ? OCEAN_COLORS : theme === "galaxy" ? GALAXY_COLORS : SPHERE_COLORS;
+  const themeName = theme === "cosmos" ? "🪐 Cosmos" : theme === "atomic" ? "⚛️ Atomic" : theme === "ocean" ? "🌊 Ocean" : theme === "galaxy" ? "🌌 Galaxy" : "🌐 Sphere";
   
   return (
     <div className="absolute top-3 right-3 bg-background/85 backdrop-blur-md rounded-lg border border-border/50 p-3 space-y-2.5 max-w-[180px] animate-in fade-in slide-in-from-right-3 duration-500 pointer-events-auto">
