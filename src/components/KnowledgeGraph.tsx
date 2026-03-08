@@ -362,7 +362,6 @@ interface KnowledgeGraphProps {
 
 export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
-  const [expandedTag, setExpandedTag] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -370,8 +369,6 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [draggingNode, setDraggingNode] = useState<string | null>(null);
   const [showMinimap, setShowMinimap] = useState(true);
-  const [expandAnim, setExpandAnim] = useState(0); // 0-1 animation progress
-  const expandAnimRef = useRef<number>(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [dims, setDims] = useState({ w: 800, h: 600 });
@@ -429,48 +426,6 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
     return tagLinks[selectedTag].slice(0, 10);
   }, [selectedTag, tagLinks]);
 
-  // Satellite atoms for expanded node
-  const expandedSatellites = useMemo(() => {
-    if (!expandedTag || !tagLinks[expandedTag]) return [];
-    const satLinks = tagLinks[expandedTag].slice(0, 8);
-    const nodeIdx = nodes.findIndex((n) => n.id === expandedTag);
-    const centerPos = positions[nodeIdx] || { x: 400, y: 350 };
-    const parentR = nodes[nodeIdx]?.radius || 20;
-    const orbitRadius = parentR + 55;
-    return satLinks.map((link, i) => {
-      const angle = (2 * Math.PI * i) / satLinks.length - Math.PI / 2;
-      return {
-        link,
-        x: centerPos.x + orbitRadius * Math.cos(angle),
-        y: centerPos.y + orbitRadius * Math.sin(angle),
-        cx: centerPos.x,
-        cy: centerPos.y,
-      };
-    });
-  }, [expandedTag, tagLinks, nodes, positions]);
-
-  // Expand animation driver
-  useEffect(() => {
-    if (expandedTag) {
-      let start: number | null = null;
-      const duration = 400;
-      const animate = (ts: number) => {
-        if (!start) start = ts;
-        const progress = Math.min((ts - start) / duration, 1);
-        const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
-        setExpandAnim(eased);
-        if (progress < 1) {
-          expandAnimRef.current = requestAnimationFrame(animate);
-        }
-      };
-      setExpandAnim(0);
-      expandAnimRef.current = requestAnimationFrame(animate);
-      return () => cancelAnimationFrame(expandAnimRef.current);
-    } else {
-      setExpandAnim(0);
-    }
-  }, [expandedTag]);
-
   const getNodePos = useCallback(
     (id: string) => {
       const idx = nodes.findIndex((n) => n.id === id);
@@ -480,23 +435,9 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
     [nodes, positions]
   );
 
-  const handleNodeClick = useCallback((nodeId: string) => {
-    if (draggingNode) return;
-    if (expandedTag === nodeId) {
-      setExpandedTag(null);
-      setSelectedTag(null);
-    } else if (selectedTag === nodeId) {
-      // Second click on selected → expand
-      setExpandedTag(nodeId);
-    } else {
-      setExpandedTag(null);
-      setSelectedTag(nodeId);
-    }
-  }, [selectedTag, expandedTag, draggingNode]);
-
   const handleZoomIn = () => setZoom((z) => Math.min(z * 1.3, 3));
   const handleZoomOut = () => setZoom((z) => Math.max(z / 1.3, 0.3));
-  const handleReset = () => { setZoom(1); setPan({ x: 0, y: 0 }); setSelectedTag(null); setExpandedTag(null); setSearchQuery(""); };
+  const handleReset = () => { setZoom(1); setPan({ x: 0, y: 0 }); setSelectedTag(null); setSearchQuery(""); };
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
@@ -606,7 +547,7 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
         </div>
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <GripHorizontal className="h-3.5 w-3.5" />
-          <span>Drag nodes · Scroll to zoom · Click to select · Double-click to expand</span>
+          <span>Drag nodes · Scroll to zoom · Click to select</span>
         </div>
       </div>
 
@@ -624,7 +565,7 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseUp}
-              onClick={() => { if (!draggingNode) { setSelectedTag(null); setExpandedTag(null); } }}
+              onClick={() => { if (!draggingNode) setSelectedTag(null); }}
             >
               <g transform={`translate(${pan.x},${pan.y}) scale(${zoom})`}>
                 {/* Edges with smooth curves */}
@@ -667,7 +608,7 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
                   );
                 })}
 
-                {/* Atom Nodes */}
+                {/* Nodes */}
                 {nodes.map((node, idx) => {
                   const pos = positions[idx] || { x: node.x, y: node.y };
                   const r = node.radius;
@@ -678,27 +619,14 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
                     (selectedTag && !isSelected && !isConnected) ||
                     (searchQuery && !isSearched && !selectedTag);
 
-                  const accentColor = isSelected
-                    ? "hsl(var(--primary))"
-                    : isSearched
-                    ? "hsl(var(--chart-2))"
-                    : isConnected
-                    ? "hsl(var(--primary) / 0.6)"
-                    : "hsl(var(--primary) / 0.35)";
+                  let fillColor = "hsl(var(--primary) / 0.22)";
+                  if (isSelected) fillColor = "hsl(var(--primary))";
+                  else if (isConnected) fillColor = "hsl(var(--primary) / 0.5)";
+                  else if (isSearched) fillColor = "hsl(var(--chart-2))";
 
-                  const nucleusColor = isSelected
-                    ? "hsl(var(--primary))"
-                    : isSearched
-                    ? "hsl(var(--chart-2))"
-                    : isConnected
-                    ? "hsl(var(--primary) / 0.7)"
-                    : "hsl(var(--primary) / 0.5)";
-
-                  // Electron orbit count based on node size
-                  const orbitCount = r > 25 ? 3 : r > 18 ? 2 : 1;
-                  const nucleusR = Math.max(4, r * 0.32);
-                  // Electron count scales with link count
-                  const electronCount = Math.min(node.count, orbitCount * 2 + 1);
+                  let strokeColor = "hsl(var(--border))";
+                  if (isSelected) strokeColor = "hsl(var(--primary))";
+                  else if (isSearched) strokeColor = "hsl(var(--chart-2))";
 
                   return (
                     <g
@@ -711,171 +639,36 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
                       onMouseDown={(e) => handleNodeDragStart(e, node.id)}
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleNodeClick(node.id);
+                        if (!draggingNode) setSelectedTag(selectedTag === node.id ? null : node.id);
                       }}
                     >
-                      {/* Outer energy glow */}
+                      {/* Outer glow for selected/searched */}
                       {(isSelected || isSearched) && (
-                        <>
-                          <circle
-                            cx={pos.x}
-                            cy={pos.y}
-                            r={r + 10}
-                            fill="none"
-                            stroke={accentColor}
-                            strokeWidth={1}
-                            strokeOpacity={0.15}
-                          >
-                            <animate attributeName="r" values={`${r + 8};${r + 14};${r + 8}`} dur="2.5s" repeatCount="indefinite" />
-                            <animate attributeName="stroke-opacity" values="0.15;0.05;0.15" dur="2.5s" repeatCount="indefinite" />
-                          </circle>
-                          <circle
-                            cx={pos.x}
-                            cy={pos.y}
-                            r={r + 4}
-                            fill="none"
-                            stroke={accentColor}
-                            strokeWidth={1.5}
-                            strokeOpacity={0.25}
-                          />
-                        </>
+                        <circle
+                          cx={pos.x}
+                          cy={pos.y}
+                          r={r + 6}
+                          fill="none"
+                          stroke={isSelected ? "hsl(var(--primary))" : "hsl(var(--chart-2))"}
+                          strokeWidth={2}
+                          strokeOpacity={0.25}
+                          style={{ transition: "r 0.3s ease" }}
+                        />
                       )}
-
-                      {/* Electron orbits (elliptical rings) */}
-                      {Array.from({ length: orbitCount }).map((_, oi) => {
-                        const orbitR = nucleusR + (r - nucleusR) * ((oi + 1) / orbitCount) * 0.95 + 4;
-                        const tiltAngle = oi * (180 / orbitCount) - 30;
-                        const eccentricity = 0.55 + oi * 0.1;
-                        return (
-                          <ellipse
-                            key={`orbit-${node.id}-${oi}`}
-                            cx={pos.x}
-                            cy={pos.y}
-                            rx={orbitR}
-                            ry={orbitR * eccentricity}
-                            fill="none"
-                            stroke={accentColor}
-                            strokeWidth={isSelected ? 0.8 : 0.5}
-                            strokeOpacity={isSelected ? 0.5 : 0.25}
-                            strokeDasharray={oi % 2 === 0 ? "none" : "2 3"}
-                            transform={`rotate(${tiltAngle}, ${pos.x}, ${pos.y})`}
-                            style={{ transition: "stroke-opacity 0.3s ease" }}
-                          />
-                        );
-                      })}
-
-                      {/* Electrons (orbiting dots via rotating group) */}
-                      {Array.from({ length: electronCount }).map((_, ei) => {
-                        const orbitIdx = ei % orbitCount;
-                        const orbitR = nucleusR + (r - nucleusR) * ((orbitIdx + 1) / orbitCount) * 0.95 + 4;
-                        const tiltAngle = orbitIdx * (180 / orbitCount) - 30;
-                        const speed = 3 + orbitIdx * 1.5 + ei * 0.7;
-                        const electronR = Math.max(1.5, nucleusR * 0.3);
-                        const electronColor = isSearched ? "hsl(var(--chart-2))" : "hsl(var(--primary))";
-                        const startAngle = (ei * 360) / electronCount;
-
-                        return (
-                          <g
-                            key={`electron-${node.id}-${ei}`}
-                            transform={`rotate(${tiltAngle}, ${pos.x}, ${pos.y})`}
-                          >
-                            {/* Trail particles (staggered behind the electron) */}
-                            {[1, 2, 3, 4, 5].map((ti) => {
-                              const trailDelay = ti * 0.08;
-                              const trailR = electronR * (1 - ti * 0.14);
-                              const trailOpacity = (isSelected ? 0.5 : 0.35) - ti * 0.07;
-                              return (
-                                <g key={`trail-${node.id}-${ei}-${ti}`}>
-                                  <animateTransform
-                                    attributeName="transform"
-                                    type="rotate"
-                                    from={`${startAngle - ti * 8} ${pos.x} ${pos.y}`}
-                                    to={`${startAngle + 360 - ti * 8} ${pos.x} ${pos.y}`}
-                                    dur={`${speed}s`}
-                                    repeatCount="indefinite"
-                                  />
-                                  <circle
-                                    cx={pos.x + orbitR}
-                                    cy={pos.y}
-                                    r={Math.max(0.5, trailR)}
-                                    fill={electronColor}
-                                    fillOpacity={Math.max(0.03, trailOpacity)}
-                                  />
-                                </g>
-                              );
-                            })}
-                            {/* Main electron */}
-                            <g>
-                              <animateTransform
-                                attributeName="transform"
-                                type="rotate"
-                                from={`${startAngle} ${pos.x} ${pos.y}`}
-                                to={`${startAngle + 360} ${pos.x} ${pos.y}`}
-                                dur={`${speed}s`}
-                                repeatCount="indefinite"
-                              />
-                              <circle
-                                cx={pos.x + orbitR}
-                                cy={pos.y}
-                                r={electronR}
-                                fill={electronColor}
-                                fillOpacity={isSelected ? 1 : 0.8}
-                              />
-                              <circle
-                                cx={pos.x + orbitR}
-                                cy={pos.y}
-                                r={electronR * 2.5}
-                                fill={electronColor}
-                                fillOpacity={0.12}
-                              />
-                            </g>
-                          </g>
-                        );
-                      })}
-
-                      {/* Nucleus (core sphere with gradient feel) */}
+                      {/* Node circle */}
                       <circle
                         cx={pos.x}
                         cy={pos.y}
-                        r={nucleusR + 2}
-                        fill={nucleusColor}
-                        fillOpacity={0.15}
-                      />
-                      <circle
-                        cx={pos.x}
-                        cy={pos.y}
-                        r={nucleusR}
-                        fill={nucleusColor}
-                        stroke={accentColor}
-                        strokeWidth={isSelected ? 2 : 1}
+                        r={r}
+                        fill={fillColor}
+                        stroke={strokeColor}
+                        strokeWidth={isSelected ? 2.5 : 1}
                         style={{ transition: "fill 0.3s ease, stroke 0.3s ease" }}
                       />
-                      {/* Nucleus highlight */}
-                      <circle
-                        cx={pos.x - nucleusR * 0.25}
-                        cy={pos.y - nucleusR * 0.25}
-                        r={nucleusR * 0.35}
-                        fill="hsl(var(--background))"
-                        fillOpacity={0.3}
-                      />
-
-                      {/* Count inside nucleus */}
+                      {/* Label */}
                       <text
                         x={pos.x}
-                        y={pos.y + (nucleusR > 6 ? 3 : 2.5)}
-                        textAnchor="middle"
-                        fontSize={nucleusR > 6 ? 8 : 6}
-                        fill="hsl(var(--primary-foreground))"
-                        fontWeight={700}
-                        className="select-none pointer-events-none"
-                      >
-                        {node.count}
-                      </text>
-
-                      {/* Label below */}
-                      <text
-                        x={pos.x}
-                        y={pos.y + r + 16}
+                        y={pos.y + r + 14}
                         textAnchor="middle"
                         fontSize={10}
                         fill="hsl(var(--foreground))"
@@ -885,118 +678,18 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
                       >
                         {node.label}
                       </text>
-                    </g>
-                  );
-                })}
-
-                {/* Expanded satellite link-atoms */}
-                {expandedTag && expandAnim > 0 && expandedSatellites.map((sat, si) => {
-                  const satR = 6;
-                  const progress = expandAnim;
-                  // Animate from center outward
-                  const sx = sat.cx + (sat.x - sat.cx) * progress;
-                  const sy = sat.cy + (sat.y - sat.cy) * progress;
-                  const chartColors = [
-                    "hsl(var(--chart-1))",
-                    "hsl(var(--chart-2))",
-                    "hsl(var(--chart-3))",
-                    "hsl(var(--chart-4))",
-                    "hsl(var(--chart-5))",
-                  ];
-                  const satColor = chartColors[si % chartColors.length];
-
-                  return (
-                    <g key={`sat-${sat.link.id}`} opacity={progress}>
-                      {/* Connection line from parent to satellite */}
-                      <line
-                        x1={sat.cx}
-                        y1={sat.cy}
-                        x2={sx}
-                        y2={sy}
-                        stroke={satColor}
-                        strokeWidth={0.8}
-                        strokeOpacity={0.4 * progress}
-                        strokeDasharray="3 2"
-                      />
-                      {/* Satellite orbit ring */}
-                      <circle
-                        cx={sx}
-                        cy={sy}
-                        r={satR + 4}
-                        fill="none"
-                        stroke={satColor}
-                        strokeWidth={0.4}
-                        strokeOpacity={0.3 * progress}
-                      />
-                      {/* Satellite nucleus */}
-                      <circle
-                        cx={sx}
-                        cy={sy}
-                        r={satR + 1}
-                        fill={satColor}
-                        fillOpacity={0.1 * progress}
-                      />
-                      <circle
-                        cx={sx}
-                        cy={sy}
-                        r={satR}
-                        fill={satColor}
-                        fillOpacity={0.7 * progress}
-                        stroke={satColor}
-                        strokeWidth={0.8}
-                      />
-                      {/* Tiny orbiting electron */}
-                      <g>
-                        <animateTransform
-                          attributeName="transform"
-                          type="rotate"
-                          from={`0 ${sx} ${sy}`}
-                          to={`360 ${sx} ${sy}`}
-                          dur={`${2 + si * 0.3}s`}
-                          repeatCount="indefinite"
-                        />
-                        <circle
-                          cx={sx + satR + 3}
-                          cy={sy}
-                          r={1.2}
-                          fill={satColor}
-                        />
-                      </g>
-                      {/* Satellite highlight */}
-                      <circle
-                        cx={sx - satR * 0.2}
-                        cy={sy - satR * 0.2}
-                        r={satR * 0.3}
-                        fill="hsl(var(--background))"
-                        fillOpacity={0.25 * progress}
-                      />
-                      {/* Link title label */}
+                      {/* Count */}
                       <text
-                        x={sx}
-                        y={sy + satR + 10}
+                        x={pos.x}
+                        y={pos.y + 4}
                         textAnchor="middle"
-                        fontSize={7}
-                        fill="hsl(var(--foreground))"
-                        fillOpacity={progress}
+                        fontSize={r > 18 ? 10 : 8}
+                        fill="hsl(var(--primary-foreground))"
+                        fontWeight={600}
                         className="select-none pointer-events-none"
                       >
-                        {(sat.link.title || sat.link.domain || "Link").slice(0, 18)}
-                        {(sat.link.title || "").length > 18 ? "…" : ""}
+                        {node.count}
                       </text>
-                      {/* Clickable overlay */}
-                      <a
-                        href={sat.link.original_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <circle
-                          cx={sx}
-                          cy={sy}
-                          r={satR + 4}
-                          fill="transparent"
-                          cursor="pointer"
-                        />
-                      </a>
                     </g>
                   );
                 })}
