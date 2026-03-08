@@ -705,39 +705,46 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
                         );
                       })}
 
-                      {/* Electrons (orbiting dots) */}
+                      {/* Electrons (orbiting dots via rotating group) */}
                       {Array.from({ length: electronCount }).map((_, ei) => {
                         const orbitIdx = ei % orbitCount;
                         const orbitR = nucleusR + (r - nucleusR) * ((orbitIdx + 1) / orbitCount) * 0.95 + 4;
                         const tiltAngle = orbitIdx * (180 / orbitCount) - 30;
-                        const eccentricity = 0.55 + orbitIdx * 0.1;
                         const speed = 3 + orbitIdx * 1.5 + ei * 0.7;
                         const electronR = Math.max(1.5, nucleusR * 0.3);
                         const electronColor = isSearched ? "hsl(var(--chart-2))" : "hsl(var(--primary))";
+                        const startAngle = (ei * 360) / electronCount;
 
                         return (
-                          <circle
+                          <g
                             key={`electron-${node.id}-${ei}`}
-                            r={electronR}
-                            fill={electronColor}
-                            fillOpacity={isSelected ? 1 : 0.8}
+                            transform={`rotate(${tiltAngle}, ${pos.x}, ${pos.y})`}
                           >
-                            <animateMotion
-                              dur={`${speed}s`}
-                              repeatCount="indefinite"
-                              begin={`${ei * 0.4}s`}
-                            >
-                              <mpath>
-                                <ellipse
-                                  cx={pos.x}
-                                  cy={pos.y}
-                                  rx={orbitR}
-                                  ry={orbitR * eccentricity}
-                                  transform={`rotate(${tiltAngle}, ${pos.x}, ${pos.y})`}
-                                />
-                              </mpath>
-                            </animateMotion>
-                          </circle>
+                            <g>
+                              <animateTransform
+                                attributeName="transform"
+                                type="rotate"
+                                from={`${startAngle} ${pos.x} ${pos.y}`}
+                                to={`${startAngle + 360} ${pos.x} ${pos.y}`}
+                                dur={`${speed}s`}
+                                repeatCount="indefinite"
+                              />
+                              <circle
+                                cx={pos.x + orbitR}
+                                cy={pos.y}
+                                r={electronR}
+                                fill={electronColor}
+                                fillOpacity={isSelected ? 1 : 0.8}
+                              />
+                              <circle
+                                cx={pos.x + orbitR}
+                                cy={pos.y}
+                                r={electronR * 2.5}
+                                fill={electronColor}
+                                fillOpacity={0.12}
+                              />
+                            </g>
+                          </g>
                         );
                       })}
 
