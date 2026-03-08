@@ -60,7 +60,6 @@ const Settings = () => {
   const [botToken, setBotToken] = useState("");
   const [showToken, setShowToken] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [settingUpWebhook, setSettingUpWebhook] = useState(false);
   const [webhookSet, setWebhookSet] = useState(false);
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [hasToken, setHasToken] = useState(false);
