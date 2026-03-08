@@ -377,6 +377,114 @@ const Analytics = () => {
           </div>
         </div>
 
+        {/* Reading Heatmap - GitHub style */}
+        <Card className="overflow-hidden group hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-mono flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-primary" />
+              Reading Activity (52 Weeks)
+              <Badge variant="secondary" className="text-[9px] font-mono ml-auto">
+                {readingYearStats.totalRead} articles read
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {/* Stats row */}
+            <div className="flex gap-4 mb-4">
+              <div className="flex items-center gap-1.5">
+                <div className="p-1 rounded bg-primary/10"><Flame className="h-3 w-3 text-primary" /></div>
+                <div>
+                  <p className="text-sm font-bold font-mono">{readingYearStats.currentStreak}</p>
+                  <p className="text-[8px] text-muted-foreground font-mono uppercase">Current Streak</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="p-1 rounded bg-chart-4/10"><Zap className="h-3 w-3 text-chart-4" /></div>
+                <div>
+                  <p className="text-sm font-bold font-mono">{readingYearStats.longestStreak}</p>
+                  <p className="text-[8px] text-muted-foreground font-mono uppercase">Longest Streak</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="p-1 rounded bg-chart-2/10"><CalendarIcon className="h-3 w-3 text-chart-2" /></div>
+                <div>
+                  <p className="text-sm font-bold font-mono">{readingYearStats.activeDays}</p>
+                  <p className="text-[8px] text-muted-foreground font-mono uppercase">Active Days</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Month labels */}
+            <div className="flex gap-0 mb-1 ml-8">
+              {monthLabels.map((m, i) => (
+                <div
+                  key={`${m.label}-${i}`}
+                  className="text-[8px] font-mono text-muted-foreground"
+                  style={{ position: "relative", left: `${m.week * 13}px` }}
+                >
+                  {m.label}
+                </div>
+              ))}
+            </div>
+
+            {/* Heatmap grid */}
+            <div className="flex gap-1">
+              <div className="flex flex-col gap-[2px] mr-1 pt-0.5">
+                {DAY_NAMES.map((d, i) => (
+                  i % 2 === 1
+                    ? <div key={d} className="text-[7px] font-mono text-muted-foreground h-[11px] leading-[11px]">{d}</div>
+                    : <div key={d} className="h-[11px]" />
+                ))}
+              </div>
+              <div className="flex gap-[2px] flex-1 overflow-x-auto">
+                {Array.from({ length: totalWeeks }, (_, w) => (
+                  <div key={w} className="flex flex-col gap-[2px]">
+                    {Array.from({ length: 7 }, (_, d) => {
+                      const cell = readingHeatmapData.find((c) => c.week === w && c.day === d);
+                      const intensity = cell ? cell.count / maxReadingHeatmap : 0;
+                      return (
+                        <div
+                          key={d}
+                          className="w-[11px] h-[11px] rounded-[2px] transition-all duration-200 hover:scale-[1.8] hover:z-10 cursor-default"
+                          title={cell ? `${format(new Date(cell.date), "MMM d, yyyy")}: ${cell.count} read` : ""}
+                          style={{
+                            backgroundColor: intensity === 0
+                              ? "hsl(var(--muted) / 0.5)"
+                              : intensity <= 0.25
+                              ? "hsl(var(--primary) / 0.25)"
+                              : intensity <= 0.5
+                              ? "hsl(var(--primary) / 0.5)"
+                              : intensity <= 0.75
+                              ? "hsl(var(--primary) / 0.75)"
+                              : "hsl(var(--primary))",
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Legend */}
+            <div className="flex items-center gap-1 mt-3 justify-end">
+              <span className="text-[8px] font-mono text-muted-foreground">Less</span>
+              {[0, 0.25, 0.5, 0.75, 1].map((v) => (
+                <div
+                  key={v}
+                  className="w-[11px] h-[11px] rounded-[2px]"
+                  style={{
+                    backgroundColor: v === 0
+                      ? "hsl(var(--muted) / 0.5)"
+                      : `hsl(var(--primary) / ${v})`,
+                  }}
+                />
+              ))}
+              <span className="text-[8px] font-mono text-muted-foreground">More</span>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Activity Heatmap */}
         <Card className="overflow-hidden group hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
           <CardHeader className="pb-2">
