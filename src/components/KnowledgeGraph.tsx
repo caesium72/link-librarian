@@ -362,6 +362,7 @@ interface KnowledgeGraphProps {
 
 export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [expandedTag, setExpandedTag] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -369,6 +370,8 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [draggingNode, setDraggingNode] = useState<string | null>(null);
   const [showMinimap, setShowMinimap] = useState(true);
+  const [expandAnim, setExpandAnim] = useState(0); // 0-1 animation progress
+  const expandAnimRef = useRef<number>(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [dims, setDims] = useState({ w: 800, h: 600 });
