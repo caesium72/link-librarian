@@ -356,34 +356,7 @@ function PlanetNode({
         />
       </mesh>
 
-      {/* Saturn-style rings */}
-      <SaturnRing
-        radius={node.radius * 1.7}
-        thickness={0.025 + sizeNorm * 0.018}
-        color={activeRing}
-        opacity={isSelected ? 0.85 : ringBaseOpacity}
-        tiltX={1.2}
-        tiltZ={0.2}
-        speed={isDimmed ? 0.3 : 1.5}
-      />
-      <SaturnRing
-        radius={node.radius * 2.0}
-        thickness={0.015 + sizeNorm * 0.012}
-        color={activeGlow}
-        opacity={isSelected ? 0.65 : ringBaseOpacity * 0.7}
-        tiltX={1.1}
-        tiltZ={0.3}
-        speed={isDimmed ? -0.2 : -1.0}
-      />
-      <SaturnRing
-        radius={node.radius * 2.35}
-        thickness={0.01}
-        color={activeColor}
-        opacity={isSelected ? 0.5 : ringBaseOpacity * 0.5}
-        tiltX={1.3}
-        tiltZ={-0.1}
-        speed={isDimmed ? 0.1 : 0.6}
-      />
+      {/* Pure spherical node — no Saturn rings, just atmospheric glow */}
 
       {/* Orbiting moon spheres */}
       <OrbitingMoons
