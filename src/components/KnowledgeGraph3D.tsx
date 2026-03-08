@@ -685,13 +685,13 @@ export function KnowledgeGraph3D({ links, isLoading }: KnowledgeGraph3DProps) {
         <CardContent className="p-0 relative">
           <div className="h-[500px] w-full bg-background">
             <Canvas
-              camera={{ position: [0, 0, 10], fov: 50 }}
+              camera={{ position: [0, 8, 25], fov: 50 }}
               dpr={[1, 2]}
               style={{ background: "transparent" }}
               gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
               onPointerMissed={() => setSelectedTag(null)}
             >
-              <fog attach="fog" args={["#09090b", 16, 28]} />
+              <fog attach="fog" args={["#09090b", 30, 55]} />
               <GraphScene
                 nodes={nodes}
                 edges={edges}
