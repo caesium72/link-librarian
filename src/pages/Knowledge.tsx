@@ -513,7 +513,7 @@ export default function Knowledge() {
                   {/* Time range */}
                   {["24h", "7d", "30d", "90d"].map((t) => (
                     <Button key={t} variant={trendingTimeRange === t ? "default" : "outline"} size="sm" className="text-xs h-6 px-2.5"
-                      onClick={() => { setTrendingTimeRange(t); setTrendingRealLoaded(false); }}>
+                      onClick={() => setTrendingTimeRange(t)}>
                       {t === "24h" ? "Today" : t === "7d" ? "This Week" : t === "30d" ? "This Month" : "3 Months"}
                     </Button>
                   ))}
