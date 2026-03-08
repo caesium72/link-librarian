@@ -2500,6 +2500,8 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
                     ? getPlanetColor(nodes.find(n => n.id === hoveredTag)?.colorIndex || 0).core
                     : theme === "atomic"
                     ? getAtomColor(nodes.find(n => n.id === hoveredTag)?.colorIndex || 0).core
+                    : theme === "ocean"
+                    ? getOceanColor(nodes.find(n => n.id === hoveredTag)?.colorIndex || 0).core
                     : getSphereColor(nodes.find(n => n.id === hoveredTag)?.colorIndex || 0).core
                 }} />
                 <p className="text-xs font-semibold">{hoveredTag}</p>
