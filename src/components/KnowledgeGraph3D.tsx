@@ -1565,13 +1565,14 @@ function SphereScene({
 }
 
 // ─── Color Legend ───
-function ColorLegend({ nodes, maxCount, theme }: { nodes: Node3D[]; maxCount: number; theme: "cosmos" | "atomic" }) {
-  const colors = theme === "cosmos" ? PLANET_COLORS : ATOM_COLORS;
+function ColorLegend({ nodes, maxCount, theme }: { nodes: Node3D[]; maxCount: number; theme: "cosmos" | "atomic" | "sphere" }) {
+  const colors = theme === "cosmos" ? PLANET_COLORS : theme === "atomic" ? ATOM_COLORS : SPHERE_COLORS;
+  const themeName = theme === "cosmos" ? "🪐 Cosmos" : theme === "atomic" ? "⚛️ Atomic" : "🌐 Sphere";
   
   return (
     <div className="absolute top-3 right-3 bg-background/85 backdrop-blur-md rounded-lg border border-border/50 p-3 space-y-2.5 max-w-[180px] animate-in fade-in slide-in-from-right-3 duration-500 pointer-events-auto">
       <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-        {theme === "cosmos" ? "🪐 Cosmos" : "⚛️ Atomic"} Legend
+        {themeName} Legend
       </p>
 
       <div className="space-y-1">
@@ -1601,10 +1602,15 @@ function ColorLegend({ nodes, maxCount, theme }: { nodes: Node3D[]; maxCount: nu
           <p className="text-[9px] text-muted-foreground font-medium">Rings = Connections</p>
           <p className="text-[8px] text-muted-foreground/70">Brighter rings = more active</p>
         </div>
-      ) : (
+      ) : theme === "atomic" ? (
         <div className="space-y-0.5">
           <p className="text-[9px] text-muted-foreground font-medium">Electrons = Sub-links</p>
           <p className="text-[8px] text-muted-foreground/70">Click electrons for previews</p>
+        </div>
+      ) : (
+        <div className="space-y-0.5">
+          <p className="text-[9px] text-muted-foreground font-medium">Surface Layout</p>
+          <p className="text-[8px] text-muted-foreground/70">Nodes on sphere surface</p>
         </div>
       )}
 
