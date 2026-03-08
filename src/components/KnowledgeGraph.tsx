@@ -565,12 +565,63 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
           >
             <MapIcon className="h-3.5 w-3.5" />
           </Button>
+          <Button
+            variant={showPhysics ? "default" : "outline"}
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setShowPhysics((v) => !v)}
+            title="Physics settings"
+          >
+            <Settings2 className="h-3.5 w-3.5" />
+          </Button>
         </div>
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <GripHorizontal className="h-3.5 w-3.5" />
           <span>Drag nodes · Scroll to zoom · Click to select</span>
         </div>
       </div>
+
+      {/* Physics Settings Panel */}
+      {showPhysics && (
+        <Card className="animate-in fade-in slide-in-from-top-2 duration-300">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                <Settings2 className="h-3.5 w-3.5" /> Physics Settings
+              </h4>
+              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setPhysics({ ...DEFAULT_PHYSICS })}>
+                Reset defaults
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Damping: {physics.damping.toFixed(2)}</Label>
+                <Slider min={50} max={98} step={1} value={[physics.damping * 100]} onValueChange={([v]) => setPhysics(p => ({ ...p, damping: v / 100 }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Repulsion: {Math.round(physics.repulsion)}</Label>
+                <Slider min={200} max={3000} step={50} value={[physics.repulsion]} onValueChange={([v]) => setPhysics(p => ({ ...p, repulsion: v }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Attraction: {physics.attraction.toFixed(3)}</Label>
+                <Slider min={1} max={20} step={1} value={[physics.attraction * 1000]} onValueChange={([v]) => setPhysics(p => ({ ...p, attraction: v / 1000 }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Gravity: {physics.gravity.toFixed(3)}</Label>
+                <Slider min={1} max={10} step={1} value={[physics.gravity * 1000]} onValueChange={([v]) => setPhysics(p => ({ ...p, gravity: v / 1000 }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Max Velocity: {physics.maxVelocity.toFixed(1)}</Label>
+                <Slider min={1} max={15} step={1} value={[physics.maxVelocity]} onValueChange={([v]) => setPhysics(p => ({ ...p, maxVelocity: v }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Smoothing: {physics.lerpFactor.toFixed(2)}</Label>
+                <Slider min={5} max={50} step={1} value={[physics.lerpFactor * 100]} onValueChange={([v]) => setPhysics(p => ({ ...p, lerpFactor: v / 100 }))} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div ref={containerRef} className="w-full">
         <Card className="overflow-hidden relative">
