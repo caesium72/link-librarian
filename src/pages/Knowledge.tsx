@@ -51,9 +51,39 @@ export default function Knowledge() {
   const [trendingRealLoading, setTrendingRealLoading] = useState(false);
   const [trendingRealLoaded, setTrendingRealLoaded] = useState(false);
   const [trendingView, setTrendingView] = useState<"library" | "global">("global");
+  const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null);
+  const [isAutoRefresh, setIsAutoRefresh] = useState(false);
+  const autoRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const fetchTrendingData = async () => {
-    setTrendingRealLoading(true);
+  const CACHE_KEY = "trending-cache";
+  const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+  const getCacheKey = (timeRange: string, category: string) => `${timeRange}-${category}`;
+
+  const readCache = (timeRange: string, category: string) => {
+    try {
+      const raw = localStorage.getItem(CACHE_KEY);
+      if (!raw) return null;
+      const cache = JSON.parse(raw);
+      const key = getCacheKey(timeRange, category);
+      const entry = cache[key];
+      if (!entry) return null;
+      return { data: entry.data, timestamp: entry.timestamp, isFresh: Date.now() - entry.timestamp < CACHE_TTL };
+    } catch { return null; }
+  };
+
+  const writeCache = (timeRange: string, category: string, data: any) => {
+    try {
+      const raw = localStorage.getItem(CACHE_KEY);
+      const cache = raw ? JSON.parse(raw) : {};
+      cache[getCacheKey(timeRange, category)] = { data, timestamp: Date.now() };
+      localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+    } catch { /* ignore quota errors */ }
+  };
+
+  const fetchTrendingData = useCallback(async (auto = false) => {
+    if (auto) setIsAutoRefresh(true);
+    else setTrendingRealLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("trending-knowledge", {
         body: { timeRange: trendingTimeRange, category: trendingCategory },
@@ -61,13 +91,48 @@ export default function Knowledge() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       setTrendingData(data);
+      writeCache(trendingTimeRange, trendingCategory, data);
+      setLastFetchedAt(Date.now());
     } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+      if (!auto) toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
       setTrendingRealLoading(false);
+      setIsAutoRefresh(false);
       setTrendingRealLoaded(true);
     }
-  };
+  }, [trendingTimeRange, trendingCategory, toast]);
+
+  // Load from cache on mount and when filters change
+  useEffect(() => {
+    const cached = readCache(trendingTimeRange, trendingCategory);
+    if (cached) {
+      setTrendingData(cached.data);
+      setLastFetchedAt(cached.timestamp);
+      setTrendingRealLoaded(true);
+      if (!cached.isFresh) {
+        // Stale cache — show data but auto-refresh
+        fetchTrendingData(true);
+      }
+    } else {
+      setTrendingData(null);
+      setTrendingRealLoaded(false);
+      setLastFetchedAt(null);
+    }
+  }, [trendingTimeRange, trendingCategory]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-refresh interval (5 min) when on global trending view
+  useEffect(() => {
+    if (autoRefreshRef.current) {
+      clearInterval(autoRefreshRef.current);
+      autoRefreshRef.current = null;
+    }
+    if (trendingView === "global" && trendingRealLoaded && activeTab === "trending") {
+      autoRefreshRef.current = setInterval(() => fetchTrendingData(true), CACHE_TTL);
+    }
+    return () => {
+      if (autoRefreshRef.current) clearInterval(autoRefreshRef.current);
+    };
+  }, [trendingView, trendingRealLoaded, activeTab, fetchTrendingData]);
 
   // Save state for link cards
   const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
