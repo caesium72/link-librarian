@@ -1866,45 +1866,47 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
                 theme === "atomic" ? 25 : theme === "sphere" ? 20 : 30, 
                 theme === "atomic" ? 45 : theme === "sphere" ? 50 : 55
               ]} />
-              {theme === "cosmos" ? (
-                <CosmosScene
-                  nodes={nodes}
-                  edges={edges}
-                  selectedTag={selectedTag}
-                  hoveredTag={hoveredTag}
-                  connectedTags={connectedTags}
-                  maxWeight={maxWeight}
-                  maxCount={maxCount}
-                  onSelect={setSelectedTag}
-                  onHover={setHoveredTag}
-                />
-              ) : theme === "atomic" ? (
-                <AtomicScene
-                  nodes={nodes}
-                  edges={edges}
-                  selectedTag={selectedTag}
-                  hoveredTag={hoveredTag}
-                  connectedTags={connectedTags}
-                  maxWeight={maxWeight}
-                  maxCount={maxCount}
-                  tagLinks={tagLinks}
-                  onSelect={setSelectedTag}
-                  onHover={setHoveredTag}
-                  onMoonClick={handleMoonClick}
-                />
-              ) : (
-                <SphereScene
-                  nodes={nodes}
-                  edges={edges}
-                  selectedTag={selectedTag}
-                  hoveredTag={hoveredTag}
-                  connectedTags={connectedTags}
-                  maxWeight={maxWeight}
-                  maxCount={maxCount}
-                  onSelect={setSelectedTag}
-                  onHover={setHoveredTag}
-                />
-              )}
+              <SceneTransition themeKey={theme}>
+                {theme === "cosmos" ? (
+                  <CosmosScene
+                    nodes={nodes}
+                    edges={edges}
+                    selectedTag={selectedTag}
+                    hoveredTag={hoveredTag}
+                    connectedTags={connectedTags}
+                    maxWeight={maxWeight}
+                    maxCount={maxCount}
+                    onSelect={setSelectedTag}
+                    onHover={setHoveredTag}
+                  />
+                ) : theme === "atomic" ? (
+                  <AtomicScene
+                    nodes={nodes}
+                    edges={edges}
+                    selectedTag={selectedTag}
+                    hoveredTag={hoveredTag}
+                    connectedTags={connectedTags}
+                    maxWeight={maxWeight}
+                    maxCount={maxCount}
+                    tagLinks={tagLinks}
+                    onSelect={setSelectedTag}
+                    onHover={setHoveredTag}
+                    onMoonClick={handleMoonClick}
+                  />
+                ) : (
+                  <SphereScene
+                    nodes={nodes}
+                    edges={edges}
+                    selectedTag={selectedTag}
+                    hoveredTag={hoveredTag}
+                    connectedTags={connectedTags}
+                    maxWeight={maxWeight}
+                    maxCount={maxCount}
+                    onSelect={setSelectedTag}
+                    onHover={setHoveredTag}
+                  />
+                )}
+              </SceneTransition>
             </Canvas>
           </div>
 
