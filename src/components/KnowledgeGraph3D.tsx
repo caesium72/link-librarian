@@ -143,6 +143,29 @@ function buildGraph3D(links: Link[], theme: "cosmos" | "atomic" | "sphere" | "oc
         colorIndex: i,
       });
     }
+  } else if (theme === "ocean") {
+    // Ocean theme: vertical helix arrangement like a coral reef
+    const helixRadius = 8;
+    const helixHeight = 20;
+
+    for (let i = 0; i < topTags.length; i++) {
+      const tag = topTags[i];
+      const frac = i / Math.max(topTags.length - 1, 1);
+      const angle = frac * Math.PI * 4;
+      const y = (frac - 0.5) * helixHeight;
+      const x = helixRadius * Math.cos(angle) * (0.7 + Math.random() * 0.3);
+      const z = helixRadius * Math.sin(angle) * (0.7 + Math.random() * 0.3);
+      const r = 0.25 + (tagCount[tag] / maxC) * 0.5;
+
+      nodes.push({
+        id: tag,
+        label: tag,
+        count: tagCount[tag],
+        position: [x, y, z] as [number, number, number],
+        radius: r,
+        colorIndex: i,
+      });
+    }
   } else {
     // Atomic/Cosmos shell-based layout
     const shellConfig = theme === "atomic" 
