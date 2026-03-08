@@ -385,6 +385,10 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [draggingNode, setDraggingNode] = useState<string | null>(null);
   const [showMinimap, setShowMinimap] = useState(true);
+  const [showPhysics, setShowPhysics] = useState(false);
+  const [physics, setPhysics] = useState<PhysicsSettings>({ ...DEFAULT_PHYSICS });
+  const physicsRef = useRef<PhysicsSettings>(physics);
+  physicsRef.current = physics;
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [dims, setDims] = useState({ w: 800, h: 600 });
@@ -409,7 +413,8 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
     initialNodes,
     edges,
     dims.w,
-    dims.h
+    dims.h,
+    physicsRef
   );
 
   const maxCount = useMemo(
