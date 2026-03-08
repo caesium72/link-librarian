@@ -1866,7 +1866,7 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
                   {Array.from(connectedTags).map((tag, i) => {
                     const tagNode = nodes.find(n => n.id === tag);
                     const color = tagNode 
-                      ? (theme === "cosmos" ? getPlanetColor(tagNode.colorIndex).core : getAtomColor(tagNode.colorIndex).core)
+                      ? (theme === "cosmos" ? getPlanetColor(tagNode.colorIndex).core : theme === "atomic" ? getAtomColor(tagNode.colorIndex).core : getSphereColor(tagNode.colorIndex).core)
                       : undefined;
                     return (
                       <Badge
