@@ -1228,14 +1228,6 @@ function SphereNode({
     }
   });
 
-  const dimColor = "#2a2a35";
-  const dimGlow = "#1a1a22";
-  const activeColor = isDimmed ? dimColor : sphereColor.core;
-  const activeGlow = isDimmed ? dimGlow : sphereColor.glow;
-
-  const emissiveIntensity = isSelected ? 1.8 : isHovered ? 1.2 : isDimmed ? 0.02 : 0.4;
-  const sphereOpacity = isSelected ? 1.0 : isDimmed ? 0.4 : 0.9;
-
   // Particle system for selected node
   const particleCount = 24;
   const particlesRef = useRef<THREE.Points>(null!);
