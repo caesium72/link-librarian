@@ -2523,6 +2523,12 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
                 theme === "atomic" ? 25 : theme === "sphere" ? 20 : theme === "ocean" ? 15 : 30, 
                 theme === "atomic" ? 45 : theme === "sphere" ? 50 : theme === "ocean" ? 50 : 55
               ]} />
+              <HyperspaceEntry
+                targetPosition={
+                  theme === "atomic" ? [0, 6, 20] : theme === "sphere" ? [0, 10, 28] : theme === "ocean" ? [0, 5, 25] : [0, 8, 25]
+                }
+                theme={theme}
+              />
               <SceneTransition themeKey={theme}>
                 {theme === "cosmos" ? (
                   <CosmosScene
