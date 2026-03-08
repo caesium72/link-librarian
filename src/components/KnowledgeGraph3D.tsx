@@ -68,24 +68,45 @@ function buildGraph3D(links: Link[]) {
   const topSet = new Set(topTags);
   const maxC = Math.max(...topTags.map((t) => tagCount[t]), 1);
 
-  const nodes: Node3D[] = topTags.map((tag, i) => {
-    const phi = Math.acos(1 - (2 * (i + 0.5)) / topTags.length);
-    const theta = Math.PI * (1 + Math.sqrt(5)) * i;
-    const spread = 5;
-    const r = 0.25 + (tagCount[tag] / maxC) * 0.55;
-    return {
-      id: tag,
-      label: tag,
-      count: tagCount[tag],
-      position: [
-        spread * Math.sin(phi) * Math.cos(theta),
-        spread * Math.sin(phi) * Math.sin(theta),
-        spread * Math.cos(phi),
-      ] as [number, number, number],
-      radius: r,
-      colorIndex: i,
-    };
-  });
+  // Orbital shell layout — like electron shells around a nucleus
+  // Most important tags go in inner orbits, less important in outer orbits
+  const shellConfig = [
+    { maxNodes: 3, radius: 4, tiltY: 0 },      // Inner shell — top 3 tags
+    { maxNodes: 6, radius: 7, tiltY: 0.4 },     // Second shell
+    { maxNodes: 10, radius: 11, tiltY: -0.3 },   // Third shell
+    { maxNodes: 21, radius: 16, tiltY: 0.6 },    // Outer shell
+  ];
+
+  const nodes: Node3D[] = [];
+  let tagIndex = 0;
+
+  for (const shell of shellConfig) {
+    const nodesInShell = topTags.slice(tagIndex, tagIndex + shell.maxNodes);
+    const count = nodesInShell.length;
+    if (count === 0) break;
+
+    for (let i = 0; i < count; i++) {
+      const tag = nodesInShell[i];
+      const angle = (2 * Math.PI * i) / count;
+      // Distribute on tilted orbital plane with slight vertical scatter
+      const verticalScatter = (Math.random() - 0.5) * 1.5;
+      const r = 0.25 + (tagCount[tag] / maxC) * 0.55;
+
+      nodes.push({
+        id: tag,
+        label: tag,
+        count: tagCount[tag],
+        position: [
+          shell.radius * Math.cos(angle),
+          shell.radius * Math.sin(angle) * Math.sin(shell.tiltY) + verticalScatter,
+          shell.radius * Math.sin(angle) * Math.cos(shell.tiltY),
+        ] as [number, number, number],
+        radius: r,
+        colorIndex: tagIndex + i,
+      });
+    }
+    tagIndex += count;
+  }
 
   const edges: Edge3D[] = [];
   for (const [key, weight] of Object.entries(cooccurrence)) {
@@ -362,23 +383,23 @@ function EdgeLine({
 
 // ─── Floating particles background ───
 function Particles() {
-  const count = 400;
+  const count = 600;
   const ref = useRef<THREE.Points>(null!);
 
   const positions = useMemo(() => {
     const arr = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
-      arr[i * 3] = (Math.random() - 0.5) * 30;
-      arr[i * 3 + 1] = (Math.random() - 0.5) * 30;
-      arr[i * 3 + 2] = (Math.random() - 0.5) * 30;
+      arr[i * 3] = (Math.random() - 0.5) * 60;
+      arr[i * 3 + 1] = (Math.random() - 0.5) * 60;
+      arr[i * 3 + 2] = (Math.random() - 0.5) * 60;
     }
     return arr;
   }, []);
 
   useFrame((state) => {
     if (ref.current) {
-      ref.current.rotation.y = state.clock.elapsedTime * 0.01;
-      ref.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.006) * 0.08;
+      ref.current.rotation.y = state.clock.elapsedTime * 0.008;
+      ref.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.004) * 0.06;
     }
   });
 
@@ -387,8 +408,81 @@ function Particles() {
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
       </bufferGeometry>
-      <pointsMaterial size={0.035} color="#8b8baf" transparent opacity={0.5} sizeAttenuation />
+      <pointsMaterial size={0.04} color="#8b8baf" transparent opacity={0.45} sizeAttenuation />
     </points>
+  );
+}
+
+// ─── Central black hole with accretion disk ───
+function BlackHole() {
+  const diskRef = useRef<THREE.Mesh>(null!);
+  const disk2Ref = useRef<THREE.Mesh>(null!);
+  const coreRef = useRef<THREE.Mesh>(null!);
+  const glowRef = useRef<THREE.Mesh>(null!);
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    if (diskRef.current) diskRef.current.rotation.z = t * 0.15;
+    if (disk2Ref.current) disk2Ref.current.rotation.z = -t * 0.1;
+    if (coreRef.current) {
+      const pulse = 1 + Math.sin(t * 2) * 0.05;
+      coreRef.current.scale.setScalar(pulse);
+    }
+    if (glowRef.current) {
+      (glowRef.current.material as THREE.MeshBasicMaterial).opacity = 0.12 + Math.sin(t * 1.5) * 0.04;
+    }
+  });
+
+  return (
+    <group>
+      <mesh ref={coreRef}>
+        <sphereGeometry args={[0.6, 32, 32]} />
+        <meshBasicMaterial color="#000000" />
+      </mesh>
+      <mesh ref={glowRef}>
+        <sphereGeometry args={[1.2, 32, 32]} />
+        <meshBasicMaterial color="#6040ff" transparent opacity={0.12} depthWrite={false} />
+      </mesh>
+      <mesh ref={diskRef} rotation={[Math.PI / 2.2, 0, 0]}>
+        <torusGeometry args={[2.0, 0.15, 4, 128]} />
+        <meshStandardMaterial color="#ff8040" emissive="#ff6020" emissiveIntensity={0.8} transparent opacity={0.5} side={THREE.DoubleSide} />
+      </mesh>
+      <mesh ref={disk2Ref} rotation={[Math.PI / 2.5, 0.3, 0]}>
+        <torusGeometry args={[2.8, 0.08, 4, 128]} />
+        <meshStandardMaterial color="#a060ff" emissive="#8040e0" emissiveIntensity={0.5} transparent opacity={0.3} side={THREE.DoubleSide} />
+      </mesh>
+    </group>
+  );
+}
+
+// ─── Orbital ring guides (electron shell style) ───
+function OrbitalRings() {
+  const refs = [useRef<THREE.Mesh>(null!), useRef<THREE.Mesh>(null!), useRef<THREE.Mesh>(null!), useRef<THREE.Mesh>(null!)];
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    const speeds = [0.02, -0.015, 0.01, -0.008];
+    refs.forEach((ref, i) => {
+      if (ref.current) ref.current.rotation.y = t * speeds[i];
+    });
+  });
+
+  const ringData = [
+    { radius: 4, tiltX: Math.PI / 2, opacity: 0.08 },
+    { radius: 7, tiltX: Math.PI / 2 + 0.4, opacity: 0.06 },
+    { radius: 11, tiltX: Math.PI / 2 - 0.3, opacity: 0.04 },
+    { radius: 16, tiltX: Math.PI / 2 + 0.6, opacity: 0.03 },
+  ];
+
+  return (
+    <>
+      {ringData.map((r, i) => (
+        <mesh key={i} ref={refs[i]} rotation={[r.tiltX, 0, 0]}>
+          <torusGeometry args={[r.radius, 0.015, 4, 256]} />
+          <meshBasicMaterial color="#6b8cff" transparent opacity={r.opacity} depthWrite={false} />
+        </mesh>
+      ))}
+    </>
   );
 }
 
@@ -419,12 +513,14 @@ function GraphScene({
   return (
     <>
       <ambientLight intensity={0.25} />
-      <pointLight position={[10, 10, 10]} intensity={1.8} color="#ffd080" />
-      <pointLight position={[-10, -10, -5]} intensity={1.0} color="#6080ff" />
-      <pointLight position={[0, 8, -10]} intensity={0.6} color="#ff80c0" />
-      <pointLight position={[5, -5, 8]} intensity={0.4} color="#80ffc0" />
-      <directionalLight position={[0, 5, 5]} intensity={0.3} />
+      <pointLight position={[15, 15, 15]} intensity={2.0} color="#ffd080" />
+      <pointLight position={[-15, -10, -8]} intensity={1.2} color="#6080ff" />
+      <pointLight position={[0, 12, -15]} intensity={0.7} color="#ff80c0" />
+      <pointLight position={[8, -8, 12]} intensity={0.5} color="#80ffc0" />
+      <directionalLight position={[0, 8, 8]} intensity={0.3} />
 
+      <BlackHole />
+      <OrbitalRings />
       <Particles />
 
       {edges.map((edge) => {
@@ -476,11 +572,11 @@ function GraphScene({
         dampingFactor={0.06}
         rotateSpeed={0.5}
         zoomSpeed={0.8}
-        minDistance={3}
-        maxDistance={15}
+        minDistance={6}
+        maxDistance={35}
         enablePan={false}
         autoRotate
-        autoRotateSpeed={0.25}
+        autoRotateSpeed={0.2}
       />
     </>
   );
@@ -589,13 +685,13 @@ export function KnowledgeGraph3D({ links, isLoading }: KnowledgeGraph3DProps) {
         <CardContent className="p-0 relative">
           <div className="h-[500px] w-full bg-background">
             <Canvas
-              camera={{ position: [0, 0, 10], fov: 50 }}
+              camera={{ position: [0, 8, 25], fov: 50 }}
               dpr={[1, 2]}
               style={{ background: "transparent" }}
               gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
               onPointerMissed={() => setSelectedTag(null)}
             >
-              <fog attach="fog" args={["#09090b", 16, 28]} />
+              <fog attach="fog" args={["#09090b", 30, 55]} />
               <GraphScene
                 nodes={nodes}
                 edges={edges}
