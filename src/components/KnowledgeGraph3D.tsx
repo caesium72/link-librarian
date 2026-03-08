@@ -1333,13 +1333,15 @@ function JellyfishNode({
   );
 }
 
-// ─── Ocean Edge (flowing current) ───
+// ─── Ocean Edge with flowing current particles ───
 function OceanEdgeLine({ from, to, weight, maxWeight, isHighlighted, isDimmed, sourceColor, targetColor }: {
   from: [number, number, number]; to: [number, number, number];
   weight: number; maxWeight: number; isHighlighted: boolean; isDimmed: boolean;
   sourceColor: string; targetColor: string;
 }) {
   const pulseRef = useRef<THREE.Mesh>(null!);
+  const particlesRef = useRef<THREE.Group>(null!);
+  const particleCount = isHighlighted ? 6 : 3;
 
   const { curve, lineObj, glowLine } = useMemo(() => {
     const start = new THREE.Vector3(...from);
@@ -1369,11 +1371,30 @@ function OceanEdgeLine({ from, to, weight, maxWeight, isHighlighted, isDimmed, s
     return { curve, lineObj, glowLine };
   }, [from, to, isHighlighted, isDimmed, sourceColor, weight, maxWeight]);
 
+  // Particle offsets for staggered flow
+  const offsets = useMemo(() => Array.from({ length: particleCount }, (_, i) => i / particleCount), [particleCount]);
+
   useFrame((state) => {
-    if (!pulseRef.current || !isHighlighted) return;
-    const t = (state.clock.elapsedTime * 0.25) % 1;
-    const pos = curve.getPoint(t);
-    pulseRef.current.position.copy(pos);
+    const t = state.clock.elapsedTime;
+    if (pulseRef.current && isHighlighted) {
+      const pt = (t * 0.25) % 1;
+      const pos = curve.getPoint(pt);
+      pulseRef.current.position.copy(pos);
+    }
+    // Animate flowing current particles
+    if (particlesRef.current && !isDimmed) {
+      particlesRef.current.children.forEach((child, idx) => {
+        const speed = 0.15 + (idx % 3) * 0.05;
+        const progress = ((t * speed) + offsets[idx]) % 1;
+        const pos = curve.getPoint(progress);
+        // Add wave offset perpendicular to path
+        const tangent = curve.getTangent(progress);
+        const perp = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize();
+        const waveAmp = 0.15 + Math.sin(t * 2 + idx) * 0.1;
+        pos.add(perp.multiplyScalar(Math.sin(t * 3 + idx * 2) * waveAmp));
+        child.position.copy(pos);
+      });
+    }
   });
 
   return (
@@ -1382,27 +1403,41 @@ function OceanEdgeLine({ from, to, weight, maxWeight, isHighlighted, isDimmed, s
       <primitive object={lineObj} />
       {isHighlighted && (
         <mesh ref={pulseRef}>
-          <sphereGeometry args={[0.06, 10, 10]} />
-          <meshBasicMaterial color={sourceColor} transparent opacity={0.8} />
+          <sphereGeometry args={[0.08, 10, 10]} />
+          <meshBasicMaterial color={sourceColor} transparent opacity={0.9} />
         </mesh>
+      )}
+      {!isDimmed && (
+        <group ref={particlesRef}>
+          {offsets.map((_, i) => (
+            <mesh key={i}>
+              <sphereGeometry args={[0.03, 6, 6]} />
+              <meshBasicMaterial color={isHighlighted ? sourceColor : "#60c0e0"} transparent opacity={isHighlighted ? 0.7 : 0.3} />
+            </mesh>
+          ))}
+        </group>
       )}
     </group>
   );
 }
 
-// ─── Ocean Bubbles (rising particles) ───
+// ─── Enhanced Ocean Bubbles with shimmer ───
 function OceanBubbles() {
-  const count = 400;
+  const count = 500;
   const ref = useRef<THREE.Points>(null!);
+  const sizesRef = useRef<Float32Array>(new Float32Array(count));
 
-  const positions = useMemo(() => {
+  const { positions, sizes } = useMemo(() => {
     const arr = new Float32Array(count * 3);
+    const sizes = new Float32Array(count);
     for (let i = 0; i < count; i++) {
-      arr[i * 3] = (Math.random() - 0.5) * 50;
-      arr[i * 3 + 1] = (Math.random() - 0.5) * 50;
-      arr[i * 3 + 2] = (Math.random() - 0.5) * 50;
+      arr[i * 3] = (Math.random() - 0.5) * 60;
+      arr[i * 3 + 1] = (Math.random() - 0.5) * 60;
+      arr[i * 3 + 2] = (Math.random() - 0.5) * 60;
+      sizes[i] = 0.03 + Math.random() * 0.08;
     }
-    return arr;
+    sizesRef.current = sizes;
+    return { positions: arr, sizes };
   }, []);
 
   useFrame((state) => {
@@ -1411,11 +1446,14 @@ function OceanBubbles() {
     const t = state.clock.elapsedTime;
     for (let i = 0; i < count; i++) {
       let y = posAttr.getY(i);
-      y += 0.008 + Math.sin(t + i) * 0.003;
-      if (y > 25) y = -25;
+      const speed = sizesRef.current[i] * 0.15;
+      y += speed + Math.sin(t + i * 0.5) * 0.004;
+      if (y > 30) y = -30;
       posAttr.setY(i, y);
-      const x = posAttr.getX(i) + Math.sin(t * 0.3 + i * 0.1) * 0.002;
+      const x = posAttr.getX(i) + Math.sin(t * 0.4 + i * 0.15) * 0.003;
+      const z = posAttr.getZ(i) + Math.cos(t * 0.3 + i * 0.12) * 0.002;
       posAttr.setX(i, x);
+      posAttr.setZ(i, z);
     }
     posAttr.needsUpdate = true;
   });
@@ -1425,8 +1463,203 @@ function OceanBubbles() {
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
       </bufferGeometry>
-      <pointsMaterial size={0.05} color="#60c0e0" transparent opacity={0.3} sizeAttenuation />
+      <pointsMaterial size={0.06} color="#80d8ff" transparent opacity={0.35} sizeAttenuation />
     </points>
+  );
+}
+
+// ─── Plankton Particles (tiny bioluminescent drifters) ───
+function OceanPlankton() {
+  const count = 200;
+  const ref = useRef<THREE.Points>(null!);
+
+  const positions = useMemo(() => {
+    const arr = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      arr[i * 3] = (Math.random() - 0.5) * 40;
+      arr[i * 3 + 1] = (Math.random() - 0.5) * 40;
+      arr[i * 3 + 2] = (Math.random() - 0.5) * 40;
+    }
+    return arr;
+  }, []);
+
+  useFrame((state) => {
+    if (!ref.current) return;
+    const posAttr = ref.current.geometry.getAttribute("position");
+    const t = state.clock.elapsedTime;
+    for (let i = 0; i < count; i++) {
+      const x = posAttr.getX(i) + Math.sin(t * 0.2 + i * 0.3) * 0.005;
+      const y = posAttr.getY(i) + Math.cos(t * 0.15 + i * 0.2) * 0.003;
+      const z = posAttr.getZ(i) + Math.sin(t * 0.18 + i * 0.25) * 0.004;
+      posAttr.setXYZ(i, x, y, z);
+    }
+    posAttr.needsUpdate = true;
+    // Pulse opacity via material
+    const mat = ref.current.material as THREE.PointsMaterial;
+    mat.opacity = 0.25 + Math.sin(t * 0.8) * 0.15;
+  });
+
+  return (
+    <points ref={ref}>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
+      </bufferGeometry>
+      <pointsMaterial size={0.04} color="#69f0ae" transparent opacity={0.3} sizeAttenuation />
+    </points>
+  );
+}
+
+// ─── Caustic Light Rays ───
+function CausticLights() {
+  const groupRef = useRef<THREE.Group>(null!);
+  const rayCount = 8;
+  const rays = useMemo(() => {
+    return Array.from({ length: rayCount }, (_, i) => ({
+      angle: (i / rayCount) * Math.PI * 2,
+      speed: 0.3 + Math.random() * 0.4,
+      offset: Math.random() * Math.PI * 2,
+      length: 15 + Math.random() * 15,
+      width: 0.3 + Math.random() * 0.5,
+    }));
+  }, []);
+
+  useFrame((state) => {
+    if (!groupRef.current) return;
+    const t = state.clock.elapsedTime;
+    groupRef.current.children.forEach((child, i) => {
+      const ray = rays[i];
+      const mesh = child as THREE.Mesh;
+      const mat = mesh.material as THREE.MeshBasicMaterial;
+      mat.opacity = 0.015 + Math.sin(t * ray.speed + ray.offset) * 0.01;
+      mesh.rotation.z = ray.angle + Math.sin(t * 0.1 + ray.offset) * 0.15;
+    });
+  });
+
+  return (
+    <group ref={groupRef} position={[0, 20, 0]}>
+      {rays.map((ray, i) => (
+        <mesh key={i} rotation={[0, 0, ray.angle]}>
+          <planeGeometry args={[ray.width, ray.length]} />
+          <meshBasicMaterial color="#80d8ff" transparent opacity={0.02} side={THREE.DoubleSide} depthWrite={false} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+// ─── Swimming Fish that follow edge paths ───
+function SwimmingFish({ edges, nodeMap }: { edges: Edge3D[]; nodeMap: Map<string, Node3D> }) {
+  const fishCount = Math.min(edges.length, 5);
+  const groupRef = useRef<THREE.Group>(null!);
+
+  const fishPaths = useMemo(() => {
+    const selectedEdges = edges.slice(0, fishCount);
+    return selectedEdges.map((edge) => {
+      const s = nodeMap.get(edge.source);
+      const t = nodeMap.get(edge.target);
+      if (!s || !t) return null;
+      const start = new THREE.Vector3(...s.position);
+      const end = new THREE.Vector3(...t.position);
+      const mid = start.clone().add(end).multiplyScalar(0.5);
+      mid.y += 2 + Math.random() * 2;
+      mid.x += (Math.random() - 0.5) * 3;
+      return {
+        curve: new THREE.QuadraticBezierCurve3(start, mid, end),
+        speed: 0.04 + Math.random() * 0.06,
+        offset: Math.random(),
+        size: 0.1 + Math.random() * 0.15,
+        color: OCEAN_COLORS[Math.floor(Math.random() * OCEAN_COLORS.length)].core,
+      };
+    }).filter(Boolean) as { curve: THREE.QuadraticBezierCurve3; speed: number; offset: number; size: number; color: string }[];
+  }, [edges, nodeMap, fishCount]);
+
+  useFrame((state) => {
+    if (!groupRef.current) return;
+    const t = state.clock.elapsedTime;
+    groupRef.current.children.forEach((fishGroup, idx) => {
+      const fish = fishPaths[idx];
+      if (!fish) return;
+      // Ping-pong along path
+      const rawProgress = ((t * fish.speed) + fish.offset) % 2;
+      const progress = rawProgress > 1 ? 2 - rawProgress : rawProgress;
+      const pos = fish.curve.getPoint(progress);
+      const tangent = fish.curve.getTangent(progress);
+      // Undulation
+      const perp = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize();
+      pos.add(perp.multiplyScalar(Math.sin(t * 3 + idx * 2) * 0.3));
+      fishGroup.position.copy(pos);
+      // Face direction of travel
+      const lookTarget = pos.clone().add(tangent);
+      fishGroup.lookAt(lookTarget);
+      // Tail wagging via Y rotation offset
+      fishGroup.rotation.y += Math.sin(t * 5 + idx) * 0.1;
+    });
+  });
+
+  return (
+    <group ref={groupRef}>
+      {fishPaths.map((fish, i) => (
+        <group key={i}>
+          {/* Body */}
+          <mesh>
+            <sphereGeometry args={[fish.size, 8, 6]} />
+            <meshPhysicalMaterial
+              color={fish.color}
+              emissive={fish.color}
+              emissiveIntensity={0.5}
+              metalness={0.1}
+              roughness={0.3}
+              transparent
+              opacity={0.7}
+            />
+          </mesh>
+          {/* Tail */}
+          <mesh position={[-fish.size * 1.5, 0, 0]}>
+            <coneGeometry args={[fish.size * 0.6, fish.size * 1.2, 4]} />
+            <meshBasicMaterial color={fish.color} transparent opacity={0.5} />
+          </mesh>
+          {/* Glow */}
+          <mesh>
+            <sphereGeometry args={[fish.size * 2, 8, 8]} />
+            <meshBasicMaterial color={fish.color} transparent opacity={0.08} depthWrite={false} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+}
+
+// ─── Depth Zone Layers (surface / twilight / midnight) ───
+function DepthLayers() {
+  const groupRef = useRef<THREE.Group>(null!);
+
+  useFrame((state) => {
+    if (!groupRef.current) return;
+    const t = state.clock.elapsedTime;
+    groupRef.current.children.forEach((child, i) => {
+      const mat = (child as THREE.Mesh).material as THREE.MeshBasicMaterial;
+      mat.opacity = 0.018 + Math.sin(t * 0.3 + i * 1.2) * 0.008;
+    });
+  });
+
+  return (
+    <group ref={groupRef}>
+      {/* Sunlight zone (top) */}
+      <mesh position={[0, 15, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[80, 80]} />
+        <meshBasicMaterial color="#40c4ff" transparent opacity={0.025} side={THREE.DoubleSide} depthWrite={false} />
+      </mesh>
+      {/* Twilight zone (mid) */}
+      <mesh position={[0, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[80, 80]} />
+        <meshBasicMaterial color="#1a237e" transparent opacity={0.02} side={THREE.DoubleSide} depthWrite={false} />
+      </mesh>
+      {/* Midnight zone (bottom) */}
+      <mesh position={[0, -15, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[80, 80]} />
+        <meshBasicMaterial color="#0d0d2b" transparent opacity={0.03} side={THREE.DoubleSide} depthWrite={false} />
+      </mesh>
+    </group>
   );
 }
 
@@ -1434,6 +1667,18 @@ function OceanBubbles() {
 function DeepSeaVent() {
   const coreRef = useRef<THREE.Mesh>(null!);
   const glowRef = useRef<THREE.Mesh>(null!);
+  const smokeRef = useRef<THREE.Points>(null!);
+  const smokeCount = 60;
+
+  const smokePositions = useMemo(() => {
+    const arr = new Float32Array(smokeCount * 3);
+    for (let i = 0; i < smokeCount; i++) {
+      arr[i * 3] = (Math.random() - 0.5) * 1;
+      arr[i * 3 + 1] = Math.random() * 5;
+      arr[i * 3 + 2] = (Math.random() - 0.5) * 1;
+    }
+    return arr;
+  }, []);
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
@@ -1443,6 +1688,18 @@ function DeepSeaVent() {
     }
     if (glowRef.current) {
       (glowRef.current.material as THREE.MeshBasicMaterial).opacity = 0.08 + Math.sin(t * 2) * 0.04;
+    }
+    // Animate vent smoke
+    if (smokeRef.current) {
+      const posAttr = smokeRef.current.geometry.getAttribute("position");
+      for (let i = 0; i < smokeCount; i++) {
+        let y = posAttr.getY(i);
+        y += 0.02 + Math.sin(t + i) * 0.005;
+        if (y > 6) { y = 0; posAttr.setX(i, (Math.random() - 0.5) * 1); posAttr.setZ(i, (Math.random() - 0.5) * 1); }
+        const x = posAttr.getX(i) + Math.sin(t * 0.5 + i * 0.3) * 0.008;
+        posAttr.setXYZ(i, x, y, posAttr.getZ(i));
+      }
+      posAttr.needsUpdate = true;
     }
   });
 
@@ -1460,6 +1717,13 @@ function DeepSeaVent() {
         <sphereGeometry args={[2.5, 32, 32]} />
         <meshBasicMaterial color="#004060" transparent opacity={0.04} depthWrite={false} />
       </mesh>
+      {/* Vent smoke */}
+      <points ref={smokeRef} position={[0, 0.5, 0]}>
+        <bufferGeometry>
+          <bufferAttribute attach="attributes-position" count={smokeCount} array={smokePositions} itemSize={3} />
+        </bufferGeometry>
+        <pointsMaterial size={0.12} color="#40e0d0" transparent opacity={0.15} sizeAttenuation />
+      </points>
     </group>
   );
 }
