@@ -16,7 +16,6 @@ import {
   ChevronDown,
   Sparkles,
   Eye,
-  ImageOff,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AddToCollectionMenu } from "@/components/AddToCollectionMenu";
@@ -55,10 +54,7 @@ interface LinkCardProps {
 export function LinkCard({ link, onPin, onRetry, onDelete, onClick, onReview, selectionMode, isSelected, onToggleSelect, isHighlighted }: LinkCardProps) {
   const { toast } = useToast();
   const [expanded, setExpanded] = useState(false);
-  const [imgError, setImgError] = useState(false);
   const statusInfo = statusConfig[link.status as keyof typeof statusConfig] ?? statusConfig.pending;
-  const ogImage = (link as any).og_image as string | null;
-  const hasPreview = ogImage && !imgError;
 
   const copyUrl = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -106,20 +102,6 @@ export function LinkCard({ link, onPin, onRetry, onDelete, onClick, onReview, se
               />
             </div>
           )}
-
-          {/* OG Image thumbnail */}
-          {hasPreview && (
-            <div className="shrink-0 w-20 h-14 rounded-md overflow-hidden ring-1 ring-border/50 bg-muted">
-              <img
-                src={ogImage}
-                alt=""
-                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                onError={() => setImgError(true)}
-                loading="lazy"
-              />
-            </div>
-          )}
-
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               {link.is_pinned && (
@@ -187,7 +169,7 @@ export function LinkCard({ link, onPin, onRetry, onDelete, onClick, onReview, se
             </div>
           </div>
 
-          {!hasPreview && link.domain && (
+          {link.domain && (
             <img
               src={`https://www.google.com/s2/favicons?domain=${link.domain}&sz=32`}
               alt=""
@@ -257,26 +239,13 @@ export function LinkCard({ link, onPin, onRetry, onDelete, onClick, onReview, se
           )}
         </div>
 
-        {/* Expanded content with large preview */}
+        {/* Expanded content */}
         <div className={cn(
           "grid transition-all duration-400 ease-in-out",
           expanded ? "grid-rows-[1fr] opacity-100 mt-3" : "grid-rows-[0fr] opacity-0"
         )}>
           <div className="overflow-hidden">
             <div className="border-t border-border/50 pt-3 space-y-3 animate-fade-in">
-              {/* Large OG preview when expanded */}
-              {ogImage && (
-                <div className="rounded-lg overflow-hidden ring-1 ring-border/50 bg-muted max-h-48">
-                  <img
-                    src={ogImage}
-                    alt={link.title || ""}
-                    className="w-full h-full object-cover"
-                    onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }}
-                    loading="lazy"
-                  />
-                </div>
-              )}
-
               {/* Key points */}
               {link.key_points && link.key_points.length > 0 && (
                 <div>

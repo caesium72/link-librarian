@@ -110,7 +110,6 @@ export type Database = {
           key_points: string[] | null
           last_health_check: string | null
           notes: string | null
-          og_image: string | null
           original_url: string
           reading_completed_at: string | null
           reading_started_at: string | null
@@ -141,7 +140,6 @@ export type Database = {
           key_points?: string[] | null
           last_health_check?: string | null
           notes?: string | null
-          og_image?: string | null
           original_url: string
           reading_completed_at?: string | null
           reading_started_at?: string | null
@@ -172,7 +170,6 @@ export type Database = {
           key_points?: string[] | null
           last_health_check?: string | null
           notes?: string | null
-          og_image?: string | null
           original_url?: string
           reading_completed_at?: string | null
           reading_started_at?: string | null
