@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { userId } = await req.json();
+    const { userId, botToken: providedToken } = await req.json();
     if (!userId) {
       return new Response(
         JSON.stringify({ error: "userId required" }),
@@ -24,21 +24,26 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get user's bot token from user_settings
-    const { data: settings, error: settingsError } = await supabase
-      .from("user_settings")
-      .select("telegram_bot_token")
-      .eq("user_id", userId)
-      .single();
+    let botToken = providedToken;
 
-    if (settingsError || !settings?.telegram_bot_token) {
-      return new Response(
-        JSON.stringify({ error: "No bot token configured. Please save your token first." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // If no token provided in request, get from user_settings
+    if (!botToken) {
+      const { data: settings, error: settingsError } = await supabase
+        .from("user_settings")
+        .select("telegram_bot_token")
+        .eq("user_id", userId)
+        .single();
+
+      if (settingsError || !settings?.telegram_bot_token) {
+        return new Response(
+          JSON.stringify({ error: "No bot token configured. Please save your token first." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      botToken = settings.telegram_bot_token;
     }
 
-    const botToken = settings.telegram_bot_token;
     const webhookUrl = `${supabaseUrl}/functions/v1/telegram-webhook`;
 
     const response = await fetch(
