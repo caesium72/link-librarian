@@ -1632,7 +1632,7 @@ function SwimmingFish({ edges, nodeMap }: { edges: Edge3D[]; nodeMap: Map<string
 // ─── Giant Whale circling the graph ───
 function GiantWhale() {
   const groupRef = useRef<THREE.Group>(null!);
-  const tailRef = useRef<THREE.Mesh>(null!);
+  const tailRef = useRef<THREE.Group>(null!);
   const orbitRadius = 22;
   const orbitSpeed = 0.03;
   const whaleScale = 1.8;
