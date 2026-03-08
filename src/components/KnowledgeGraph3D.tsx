@@ -106,7 +106,7 @@ interface Edge3D {
   weight: number;
 }
 
-function buildGraph3D(links: Link[], theme: "cosmos" | "atomic" | "sphere" | "ocean") {
+function buildGraph3D(links: Link[], theme: "cosmos" | "atomic" | "sphere" | "ocean" | "galaxy") {
   const tagCount: Record<string, number> = {};
   const cooccurrence: Record<string, number> = {};
   const tagLinks: Record<string, Link[]> = {};
