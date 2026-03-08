@@ -2442,6 +2442,18 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
                     onHover={setHoveredTag}
                     onMoonClick={handleMoonClick}
                   />
+                ) : theme === "ocean" ? (
+                  <OceanScene
+                    nodes={nodes}
+                    edges={edges}
+                    selectedTag={selectedTag}
+                    hoveredTag={hoveredTag}
+                    connectedTags={connectedTags}
+                    maxWeight={maxWeight}
+                    maxCount={maxCount}
+                    onSelect={setSelectedTag}
+                    onHover={setHoveredTag}
+                  />
                 ) : (
                   <SphereScene
                     nodes={nodes}
