@@ -790,7 +790,7 @@ function EdgeLine({
   const groupRef = useRef<THREE.Group>(null!);
   const pulseRef = useRef<THREE.Mesh>(null!);
 
-  const { curve, lineObj } = useMemo(() => {
+  const { curve, lineObj, glowLine } = useMemo(() => {
     const start = new THREE.Vector3(...from);
     const end = new THREE.Vector3(...to);
     const mid = start.clone().add(end).multiplyScalar(0.5);
@@ -799,13 +799,26 @@ function EdgeLine({
 
     const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
     const points = curve.getPoints(48);
+    const weightNorm = weight / maxWeight;
+
+    // Main line - much more visible
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    const color = isHighlighted ? sourceColor : "#3a3a4a";
-    const opacity = isDimmed ? 0.02 : isHighlighted ? 0.6 : 0.12;
+    const color = isHighlighted ? sourceColor : "#6a6a8a";
+    const opacity = isDimmed ? 0.04 : isHighlighted ? 0.85 : 0.2 + weightNorm * 0.25;
     const material = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
     const lineObj = new THREE.Line(geometry, material);
-    return { curve, lineObj };
-  }, [from, to, isHighlighted, isDimmed, sourceColor]);
+
+    // Glow line for depth
+    const glowGeo = new THREE.BufferGeometry().setFromPoints(points);
+    const glowMat = new THREE.LineBasicMaterial({
+      color: isHighlighted ? sourceColor : "#8888aa",
+      transparent: true,
+      opacity: isDimmed ? 0.02 : isHighlighted ? 0.4 : 0.08 + weightNorm * 0.1,
+    });
+    const glowLine = new THREE.Line(glowGeo, glowMat);
+
+    return { curve, lineObj, glowLine };
+  }, [from, to, isHighlighted, isDimmed, sourceColor, weight, maxWeight]);
 
   useFrame((state) => {
     if (!pulseRef.current || !isHighlighted) return;
@@ -816,11 +829,12 @@ function EdgeLine({
 
   return (
     <group ref={groupRef}>
+      <primitive object={glowLine} />
       <primitive object={lineObj} />
       {isHighlighted && (
         <mesh ref={pulseRef}>
-          <sphereGeometry args={[0.04, 8, 8]} />
-          <meshBasicMaterial color={sourceColor} transparent opacity={0.8} />
+          <sphereGeometry args={[0.06, 10, 10]} />
+          <meshBasicMaterial color={sourceColor} transparent opacity={0.9} />
         </mesh>
       )}
     </group>
