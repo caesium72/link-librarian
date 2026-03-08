@@ -1688,7 +1688,7 @@ function MoonPreviewPopover({
 interface KnowledgeGraph3DProps {
   links: Link[];
   isLoading: boolean;
-  theme?: "cosmos" | "atomic";
+  theme?: "cosmos" | "atomic" | "sphere";
 }
 
 export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: KnowledgeGraph3DProps) {
