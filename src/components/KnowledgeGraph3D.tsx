@@ -2417,6 +2417,24 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
   const maxWeight = useMemo(() => Math.max(...edges.map((e) => e.weight), 1), [edges]);
   const maxCount = useMemo(() => Math.max(...nodes.map((n) => n.count), 1), [nodes]);
 
+  // Graph statistics
+  const graphStats = useMemo(() => {
+    const totalNodes = nodes.length;
+    const totalEdges = edges.length;
+    const maxPossibleEdges = totalNodes > 1 ? (totalNodes * (totalNodes - 1)) / 2 : 0;
+    const density = maxPossibleEdges > 0 ? totalEdges / maxPossibleEdges : 0;
+    const degreeMap: Record<string, number> = {};
+    nodes.forEach(n => { degreeMap[n.id] = 0; });
+    edges.forEach(e => { degreeMap[e.from] = (degreeMap[e.from] || 0) + 1; degreeMap[e.to] = (degreeMap[e.to] || 0) + 1; });
+    const degrees = Object.values(degreeMap);
+    const avgConnections = totalNodes > 0 ? degrees.reduce((a, b) => a + b, 0) / totalNodes : 0;
+    const maxDegree = degrees.length > 0 ? Math.max(...degrees) : 0;
+    const isolatedNodes = degrees.filter(d => d === 0).length;
+    const totalLinks = filteredLinks.length;
+    const topNode = nodes.length > 0 ? [...nodes].sort((a, b) => b.count - a.count)[0] : null;
+    return { totalNodes, totalEdges, density, avgConnections, maxDegree, isolatedNodes, totalLinks, topNode };
+  }, [nodes, edges, filteredLinks]);
+
   // Clusters
   const { clusters, clusterSizes } = useMemo(() => computeClusters(nodes, edges), [nodes, edges]);
 
