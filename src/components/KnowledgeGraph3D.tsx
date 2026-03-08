@@ -53,6 +53,10 @@ function getAtomColor(index: number) {
   return ATOM_COLORS[index % ATOM_COLORS.length];
 }
 
+function getSphereColor(index: number) {
+  return SPHERE_COLORS[index % SPHERE_COLORS.length];
+}
+
 interface Node3D {
   id: string;
   label: string;
