@@ -6,7 +6,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ExternalLink, Filter, RotateCcw, Circle, X } from "lucide-react";
+import { ExternalLink, Filter, RotateCcw, Circle, X, Search, Route, Clock3, GitBranch } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
 import type { Link } from "@/types/links";
 
 // ─── Planet color palette (Cosmos theme) ───
@@ -1465,11 +1467,13 @@ function DeepSeaVent() {
 // ─── Ocean Scene ───
 function OceanScene({
   nodes, edges, selectedTag, hoveredTag, connectedTags, maxWeight, maxCount, onSelect, onHover,
+  forceBrightNodes = null, pathEdgeKeys = null,
 }: {
   nodes: Node3D[]; edges: Edge3D[];
   selectedTag: string | null; hoveredTag: string | null; connectedTags: Set<string>;
   maxWeight: number; maxCount: number;
   onSelect: (id: string | null) => void; onHover: (id: string | null) => void;
+  forceBrightNodes?: Set<string> | null; pathEdgeKeys?: Set<string> | null;
 }) {
   const nodeMap = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
 
@@ -1516,7 +1520,7 @@ function OceanScene({
             isSelected={selectedTag === node.id}
             isConnected={connectedTags.has(node.id)}
             isHovered={hoveredTag === node.id}
-            isDimmed={!!selectedTag && selectedTag !== node.id}
+            isDimmed={forceBrightNodes ? !forceBrightNodes.has(node.id) : (!!selectedTag && selectedTag !== node.id)}
             maxCount={maxCount}
             onSelect={onSelect}
             onHover={onHover}
@@ -1537,25 +1541,14 @@ function OceanScene({
 
 
 function CosmosScene({
-  nodes,
-  edges,
-  selectedTag,
-  hoveredTag,
-  connectedTags,
-  maxWeight,
-  maxCount,
-  onSelect,
-  onHover,
+  nodes, edges, selectedTag, hoveredTag, connectedTags, maxWeight, maxCount, onSelect, onHover,
+  forceBrightNodes = null, pathEdgeKeys = null,
 }: {
-  nodes: Node3D[];
-  edges: Edge3D[];
-  selectedTag: string | null;
-  hoveredTag: string | null;
-  connectedTags: Set<string>;
-  maxWeight: number;
-  maxCount: number;
-  onSelect: (id: string | null) => void;
-  onHover: (id: string | null) => void;
+  nodes: Node3D[]; edges: Edge3D[];
+  selectedTag: string | null; hoveredTag: string | null; connectedTags: Set<string>;
+  maxWeight: number; maxCount: number;
+  onSelect: (id: string | null) => void; onHover: (id: string | null) => void;
+  forceBrightNodes?: Set<string> | null; pathEdgeKeys?: Set<string> | null;
 }) {
   const nodeMap = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
 
@@ -1576,10 +1569,13 @@ function CosmosScene({
         const s = nodeMap.get(edge.source);
         const t = nodeMap.get(edge.target);
         if (!s || !t) return null;
-        const isHighlighted =
+        const isPathEdge = pathEdgeKeys?.has(`${edge.source}|||${edge.target}`) || pathEdgeKeys?.has(`${edge.target}|||${edge.source}`);
+        const isHighlighted = !!isPathEdge ||
           selectedTag === edge.source || selectedTag === edge.target ||
           hoveredTag === edge.source || hoveredTag === edge.target;
-        const isDimmed = !!(selectedTag || hoveredTag) && !isHighlighted;
+        const isDimmed = forceBrightNodes
+          ? (!forceBrightNodes.has(edge.source) && !forceBrightNodes.has(edge.target))
+          : (!!(selectedTag || hoveredTag) && !isHighlighted);
         return (
           <EdgeLine
             key={`${edge.source}-${edge.target}`}
@@ -1608,7 +1604,7 @@ function CosmosScene({
             isSelected={selectedTag === node.id}
             isConnected={connectedTags.has(node.id)}
             isHovered={hoveredTag === node.id}
-            isDimmed={!!selectedTag && selectedTag !== node.id}
+            isDimmed={forceBrightNodes ? !forceBrightNodes.has(node.id) : (!!selectedTag && selectedTag !== node.id)}
             maxCount={maxCount}
             onSelect={onSelect}
             onHover={onHover}
@@ -1633,29 +1629,17 @@ function CosmosScene({
 
 // ─── Atomic Scene ───
 function AtomicScene({
-  nodes,
-  edges,
-  selectedTag,
-  hoveredTag,
-  connectedTags,
-  maxWeight,
-  maxCount,
-  tagLinks,
-  onSelect,
-  onHover,
-  onMoonClick,
+  nodes, edges, selectedTag, hoveredTag, connectedTags, maxWeight, maxCount,
+  tagLinks, onSelect, onHover, onMoonClick,
+  forceBrightNodes = null, pathEdgeKeys = null,
 }: {
-  nodes: Node3D[];
-  edges: Edge3D[];
-  selectedTag: string | null;
-  hoveredTag: string | null;
-  connectedTags: Set<string>;
-  maxWeight: number;
-  maxCount: number;
+  nodes: Node3D[]; edges: Edge3D[];
+  selectedTag: string | null; hoveredTag: string | null; connectedTags: Set<string>;
+  maxWeight: number; maxCount: number;
   tagLinks: Record<string, Link[]>;
-  onSelect: (id: string | null) => void;
-  onHover: (id: string | null) => void;
+  onSelect: (id: string | null) => void; onHover: (id: string | null) => void;
   onMoonClick: (nodeId: string, moonIdx: number, position: THREE.Vector3) => void;
+  forceBrightNodes?: Set<string> | null; pathEdgeKeys?: Set<string> | null;
 }) {
   const nodeMap = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
 
@@ -1675,10 +1659,13 @@ function AtomicScene({
         const s = nodeMap.get(edge.source);
         const t = nodeMap.get(edge.target);
         if (!s || !t) return null;
-        const isHighlighted =
+        const isPathEdge = pathEdgeKeys?.has(`${edge.source}|||${edge.target}`) || pathEdgeKeys?.has(`${edge.target}|||${edge.source}`);
+        const isHighlighted = !!isPathEdge ||
           selectedTag === edge.source || selectedTag === edge.target ||
           hoveredTag === edge.source || hoveredTag === edge.target;
-        const isDimmed = !!(selectedTag || hoveredTag) && !isHighlighted;
+        const isDimmed = forceBrightNodes
+          ? (!forceBrightNodes.has(edge.source) && !forceBrightNodes.has(edge.target))
+          : (!!(selectedTag || hoveredTag) && !isHighlighted);
         return (
           <EdgeLine
             key={`${edge.source}-${edge.target}`}
@@ -1707,7 +1694,7 @@ function AtomicScene({
             isSelected={selectedTag === node.id}
             isConnected={connectedTags.has(node.id)}
             isHovered={hoveredTag === node.id}
-            isDimmed={!!selectedTag && selectedTag !== node.id}
+            isDimmed={forceBrightNodes ? !forceBrightNodes.has(node.id) : (!!selectedTag && selectedTag !== node.id)}
             maxCount={maxCount}
             onSelect={onSelect}
             onHover={onHover}
@@ -2121,25 +2108,14 @@ function SphereCore() {
 
 // ─── Sphere Scene ───
 function SphereScene({
-  nodes,
-  edges,
-  selectedTag,
-  hoveredTag,
-  connectedTags,
-  maxWeight,
-  maxCount,
-  onSelect,
-  onHover,
+  nodes, edges, selectedTag, hoveredTag, connectedTags, maxWeight, maxCount, onSelect, onHover,
+  forceBrightNodes = null, pathEdgeKeys = null,
 }: {
-  nodes: Node3D[];
-  edges: Edge3D[];
-  selectedTag: string | null;
-  hoveredTag: string | null;
-  connectedTags: Set<string>;
-  maxWeight: number;
-  maxCount: number;
-  onSelect: (id: string | null) => void;
-  onHover: (id: string | null) => void;
+  nodes: Node3D[]; edges: Edge3D[];
+  selectedTag: string | null; hoveredTag: string | null; connectedTags: Set<string>;
+  maxWeight: number; maxCount: number;
+  onSelect: (id: string | null) => void; onHover: (id: string | null) => void;
+  forceBrightNodes?: Set<string> | null; pathEdgeKeys?: Set<string> | null;
 }) {
   const nodeMap = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
 
@@ -2160,10 +2136,13 @@ function SphereScene({
         const s = nodeMap.get(edge.source);
         const t = nodeMap.get(edge.target);
         if (!s || !t) return null;
-        const isHighlighted =
+        const isPathEdge = pathEdgeKeys?.has(`${edge.source}|||${edge.target}`) || pathEdgeKeys?.has(`${edge.target}|||${edge.source}`);
+        const isHighlighted = !!isPathEdge ||
           selectedTag === edge.source || selectedTag === edge.target ||
           hoveredTag === edge.source || hoveredTag === edge.target;
-        const isDimmed = !!(selectedTag || hoveredTag) && !isHighlighted;
+        const isDimmed = forceBrightNodes
+          ? (!forceBrightNodes.has(edge.source) && !forceBrightNodes.has(edge.target))
+          : (!!(selectedTag || hoveredTag) && !isHighlighted);
         return (
           <SphereEdgeLine
             key={`${edge.source}-${edge.target}`}
@@ -2192,7 +2171,7 @@ function SphereScene({
             isSelected={selectedTag === node.id}
             isConnected={connectedTags.has(node.id)}
             isHovered={hoveredTag === node.id}
-            isDimmed={!!selectedTag && selectedTag !== node.id}
+            isDimmed={forceBrightNodes ? !forceBrightNodes.has(node.id) : (!!selectedTag && selectedTag !== node.id)}
             maxCount={maxCount}
             onSelect={onSelect}
             onHover={onHover}
@@ -2340,6 +2319,53 @@ function MoonPreviewPopover({
   );
 }
 
+// ─── Utility: BFS shortest path ───
+function findShortestPath(edges: Edge3D[], start: string, end: string): string[] | null {
+  const adj: Record<string, string[]> = {};
+  for (const e of edges) {
+    if (!adj[e.source]) adj[e.source] = [];
+    if (!adj[e.target]) adj[e.target] = [];
+    adj[e.source].push(e.target);
+    adj[e.target].push(e.source);
+  }
+  const queue: string[][] = [[start]];
+  const visited = new Set([start]);
+  while (queue.length > 0) {
+    const path = queue.shift()!;
+    const last = path[path.length - 1];
+    if (last === end) return path;
+    for (const next of (adj[last] || [])) {
+      if (!visited.has(next)) {
+        visited.add(next);
+        queue.push([...path, next]);
+      }
+    }
+  }
+  return null;
+}
+
+// ─── Utility: Compute clusters via Union-Find ───
+const CLUSTER_COLORS = ["#ff6b6b", "#4ecdc4", "#6b8cff", "#ffd93d", "#c478ff", "#ff8c42", "#50d890", "#ff6eb4"];
+
+function computeClusters(nodes: Node3D[], edges: Edge3D[]) {
+  const parent: Record<string, string> = {};
+  const find = (x: string): string => parent[x] === x ? x : (parent[x] = find(parent[x]));
+  const union = (a: string, b: string) => { parent[find(a)] = find(b); };
+  nodes.forEach(n => parent[n.id] = n.id);
+  edges.filter(e => e.weight >= 2).forEach(e => union(e.source, e.target));
+  const clusters = new Map<string, number>();
+  const roots: Record<string, number> = {};
+  let idx = 0;
+  nodes.forEach(n => {
+    const root = find(n.id);
+    if (!(root in roots)) roots[root] = idx++;
+    clusters.set(n.id, roots[root]);
+  });
+  const clusterSizes = new Map<number, number>();
+  clusters.forEach(c => clusterSizes.set(c, (clusterSizes.get(c) || 0) + 1));
+  return { clusters, clusterSizes };
+}
+
 // ─── Main Export ───
 interface KnowledgeGraph3DProps {
   links: Link[];
@@ -2352,9 +2378,88 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
   const [hoveredTag, setHoveredTag] = useState<string | null>(null);
   const [moonPreview, setMoonPreview] = useState<{ nodeId: string; moonIdx: number } | null>(null);
 
-  const { nodes, edges, tagLinks } = useMemo(() => buildGraph3D(links, theme), [links, theme]);
+  // Feature states
+  const [activeFeature, setActiveFeature] = useState<"none" | "search" | "time" | "path" | "cluster">("none");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [timeSlider, setTimeSlider] = useState(100);
+  const [pathStart, setPathStart] = useState<string | null>(null);
+  const [pathEnd, setPathEnd] = useState<string | null>(null);
+  const [selectedCluster, setSelectedCluster] = useState<number | null>(null);
+
+  const handleFeatureToggle = useCallback((feature: typeof activeFeature) => {
+    setActiveFeature(f => {
+      if (f === feature) return "none";
+      setSearchQuery("");
+      setTimeSlider(100);
+      setPathStart(null);
+      setPathEnd(null);
+      setSelectedCluster(null);
+      setSelectedTag(null);
+      return feature;
+    });
+  }, []);
+
+  // Date range for time travel
+  const dateRange = useMemo(() => {
+    if (links.length === 0) return { min: Date.now(), max: Date.now() };
+    const dates = links.map(l => new Date(l.created_at).getTime());
+    return { min: Math.min(...dates), max: Math.max(...dates) };
+  }, [links]);
+
+  // Filter links by time slider
+  const filteredLinks = useMemo(() => {
+    if (activeFeature !== "time" || timeSlider >= 100) return links;
+    const cutoff = dateRange.min + (dateRange.max - dateRange.min) * (timeSlider / 100);
+    return links.filter(l => new Date(l.created_at).getTime() <= cutoff);
+  }, [links, activeFeature, timeSlider, dateRange]);
+
+  const { nodes, edges, tagLinks } = useMemo(() => buildGraph3D(filteredLinks, theme), [filteredLinks, theme]);
   const maxWeight = useMemo(() => Math.max(...edges.map((e) => e.weight), 1), [edges]);
   const maxCount = useMemo(() => Math.max(...nodes.map((n) => n.count), 1), [nodes]);
+
+  // Clusters
+  const { clusters, clusterSizes } = useMemo(() => computeClusters(nodes, edges), [nodes, edges]);
+
+  // Search matching
+  const searchMatchNodes = useMemo(() => {
+    if (activeFeature !== "search" || !searchQuery.trim()) return null;
+    const q = searchQuery.toLowerCase();
+    return new Set(nodes.filter(n => n.label.toLowerCase().includes(q)).map(n => n.id));
+  }, [activeFeature, searchQuery, nodes]);
+
+  // Path finding
+  const pathResult = useMemo(() => {
+    if (activeFeature !== "path" || !pathStart || !pathEnd) return null;
+    return findShortestPath(edges, pathStart, pathEnd);
+  }, [activeFeature, pathStart, pathEnd, edges]);
+
+  const pathEdgeKeys = useMemo(() => {
+    if (!pathResult || pathResult.length < 2) return null;
+    const keys = new Set<string>();
+    for (let i = 0; i < pathResult.length - 1; i++) {
+      keys.add(`${pathResult[i]}|||${pathResult[i + 1]}`);
+    }
+    return keys;
+  }, [pathResult]);
+
+  const pathNodeSet = useMemo(() => {
+    if (!pathResult) return null;
+    return new Set(pathResult);
+  }, [pathResult]);
+
+  // Cluster filtering
+  const clusterNodes = useMemo(() => {
+    if (activeFeature !== "cluster" || selectedCluster === null) return null;
+    return new Set(nodes.filter(n => clusters.get(n.id) === selectedCluster).map(n => n.id));
+  }, [activeFeature, selectedCluster, nodes, clusters]);
+
+  // Compute forceBrightNodes
+  const forceBrightNodes = useMemo((): Set<string> | null => {
+    if (searchMatchNodes) return searchMatchNodes;
+    if (pathNodeSet) return pathNodeSet;
+    if (clusterNodes) return clusterNodes;
+    return null;
+  }, [searchMatchNodes, pathNodeSet, clusterNodes]);
 
   const connectedTags = useMemo(() => {
     const tag = selectedTag || hoveredTag;
@@ -2372,9 +2477,31 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
     return tagLinks[selectedTag].slice(0, 8);
   }, [selectedTag, tagLinks]);
 
-  const handleMoonClick = useCallback((nodeId: string, moonIdx: number, position: THREE.Vector3) => {
+  const handleMoonClick = useCallback((nodeId: string, moonIdx: number, _position: THREE.Vector3) => {
     setMoonPreview({ nodeId, moonIdx });
   }, []);
+
+  // Node select handler (path mode intercept)
+  const handleNodeSelect = useCallback((id: string | null) => {
+    if (activeFeature === "path" && id) {
+      if (!pathStart) {
+        setPathStart(id);
+      } else if (!pathEnd && id !== pathStart) {
+        setPathEnd(id);
+      } else {
+        setPathStart(id);
+        setPathEnd(null);
+      }
+    } else {
+      setSelectedTag(id);
+    }
+  }, [activeFeature, pathStart, pathEnd]);
+
+  // Time slider date display
+  const timeFilterDate = useMemo(() => {
+    const ts = dateRange.min + (dateRange.max - dateRange.min) * (timeSlider / 100);
+    return new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  }, [timeSlider, dateRange]);
 
   if (isLoading) {
     return (
@@ -2391,12 +2518,19 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
       <Card>
         <CardContent className="p-8 text-center">
           <p className="text-sm text-muted-foreground">
-            No tags found. Add tags to your links to see the 3D knowledge graph.
+            {activeFeature === "time" && timeSlider < 100
+              ? "No tags found at this point in time. Move the slider forward."
+              : "No tags found. Add tags to your links to see the 3D knowledge graph."}
           </p>
         </CardContent>
       </Card>
     );
   }
+
+  // Unique cluster list for legend
+  const uniqueClusters = Array.from(clusterSizes.entries())
+    .filter(([_, size]) => size > 1)
+    .sort((a, b) => b[1] - a[1]);
 
   return (
     <div className="space-y-4">
@@ -2408,63 +2542,45 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
               dpr={[1, 2]}
               style={{ background: "transparent" }}
               gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
-              onPointerMissed={() => { setSelectedTag(null); setMoonPreview(null); }}
+              onPointerMissed={() => { if (activeFeature !== "path") setSelectedTag(null); setMoonPreview(null); }}
             >
               <fog attach="fog" args={[
-                theme === "atomic" ? "#050510" : theme === "sphere" ? "#080818" : theme === "ocean" ? "#001525" : "#09090b", 
-                theme === "atomic" ? 25 : theme === "sphere" ? 20 : theme === "ocean" ? 15 : 30, 
+                theme === "atomic" ? "#050510" : theme === "sphere" ? "#080818" : theme === "ocean" ? "#001525" : "#09090b",
+                theme === "atomic" ? 25 : theme === "sphere" ? 20 : theme === "ocean" ? 15 : 30,
                 theme === "atomic" ? 45 : theme === "sphere" ? 50 : theme === "ocean" ? 50 : 55
               ]} />
               <SceneTransition themeKey={theme}>
                 {theme === "cosmos" ? (
                   <CosmosScene
-                    nodes={nodes}
-                    edges={edges}
-                    selectedTag={selectedTag}
-                    hoveredTag={hoveredTag}
-                    connectedTags={connectedTags}
-                    maxWeight={maxWeight}
-                    maxCount={maxCount}
-                    onSelect={setSelectedTag}
-                    onHover={setHoveredTag}
+                    nodes={nodes} edges={edges}
+                    selectedTag={selectedTag} hoveredTag={hoveredTag} connectedTags={connectedTags}
+                    maxWeight={maxWeight} maxCount={maxCount}
+                    onSelect={handleNodeSelect} onHover={setHoveredTag}
+                    forceBrightNodes={forceBrightNodes} pathEdgeKeys={pathEdgeKeys}
                   />
                 ) : theme === "atomic" ? (
                   <AtomicScene
-                    nodes={nodes}
-                    edges={edges}
-                    selectedTag={selectedTag}
-                    hoveredTag={hoveredTag}
-                    connectedTags={connectedTags}
-                    maxWeight={maxWeight}
-                    maxCount={maxCount}
-                    tagLinks={tagLinks}
-                    onSelect={setSelectedTag}
-                    onHover={setHoveredTag}
-                    onMoonClick={handleMoonClick}
+                    nodes={nodes} edges={edges}
+                    selectedTag={selectedTag} hoveredTag={hoveredTag} connectedTags={connectedTags}
+                    maxWeight={maxWeight} maxCount={maxCount} tagLinks={tagLinks}
+                    onSelect={handleNodeSelect} onHover={setHoveredTag} onMoonClick={handleMoonClick}
+                    forceBrightNodes={forceBrightNodes} pathEdgeKeys={pathEdgeKeys}
                   />
                 ) : theme === "ocean" ? (
                   <OceanScene
-                    nodes={nodes}
-                    edges={edges}
-                    selectedTag={selectedTag}
-                    hoveredTag={hoveredTag}
-                    connectedTags={connectedTags}
-                    maxWeight={maxWeight}
-                    maxCount={maxCount}
-                    onSelect={setSelectedTag}
-                    onHover={setHoveredTag}
+                    nodes={nodes} edges={edges}
+                    selectedTag={selectedTag} hoveredTag={hoveredTag} connectedTags={connectedTags}
+                    maxWeight={maxWeight} maxCount={maxCount}
+                    onSelect={handleNodeSelect} onHover={setHoveredTag}
+                    forceBrightNodes={forceBrightNodes} pathEdgeKeys={pathEdgeKeys}
                   />
                 ) : (
                   <SphereScene
-                    nodes={nodes}
-                    edges={edges}
-                    selectedTag={selectedTag}
-                    hoveredTag={hoveredTag}
-                    connectedTags={connectedTags}
-                    maxWeight={maxWeight}
-                    maxCount={maxCount}
-                    onSelect={setSelectedTag}
-                    onHover={setHoveredTag}
+                    nodes={nodes} edges={edges}
+                    selectedTag={selectedTag} hoveredTag={hoveredTag} connectedTags={connectedTags}
+                    maxWeight={maxWeight} maxCount={maxCount}
+                    onSelect={handleNodeSelect} onHover={setHoveredTag}
+                    forceBrightNodes={forceBrightNodes} pathEdgeKeys={pathEdgeKeys}
                   />
                 )}
               </SceneTransition>
@@ -2484,6 +2600,129 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
             />
           )}
 
+          {/* Feature Panel - Search */}
+          {activeFeature === "search" && (
+            <div className="absolute top-3 left-3 flex items-center gap-2 bg-background/90 backdrop-blur-md rounded-lg border border-border/60 px-3 py-2 animate-in fade-in zoom-in-95 duration-200 pointer-events-auto z-40">
+              <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <Input
+                placeholder="Filter nodes..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="h-7 text-xs w-44 bg-transparent border-none focus-visible:ring-0 px-0"
+                autoFocus
+              />
+              {searchQuery && (
+                <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                  {searchMatchNodes?.size || 0}/{nodes.length}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Feature Panel - Time Travel */}
+          {activeFeature === "time" && (
+            <div className="absolute top-3 left-3 flex items-center gap-3 bg-background/90 backdrop-blur-md rounded-lg border border-border/60 px-3 py-2 animate-in fade-in zoom-in-95 duration-200 pointer-events-auto z-40">
+              <Clock3 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <Slider
+                value={[timeSlider]}
+                onValueChange={([v]) => setTimeSlider(v)}
+                min={0}
+                max={100}
+                step={1}
+                className="w-44"
+              />
+              <div className="flex flex-col gap-0.5 shrink-0">
+                <span className="text-[10px] font-medium whitespace-nowrap">{timeFilterDate}</span>
+                <span className="text-[9px] text-muted-foreground">{nodes.length} nodes · {filteredLinks.length}/{links.length} links</span>
+              </div>
+            </div>
+          )}
+
+          {/* Feature Panel - Path Finder */}
+          {activeFeature === "path" && (
+            <div className="absolute top-3 left-3 flex items-center gap-2 bg-background/90 backdrop-blur-md rounded-lg border border-border/60 px-3 py-2 animate-in fade-in zoom-in-95 duration-200 pointer-events-auto z-40">
+              <Route className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              {!pathStart ? (
+                <span className="text-[10px] text-muted-foreground">Click first node</span>
+              ) : !pathEnd ? (
+                <div className="flex items-center gap-1.5">
+                  <Badge variant="outline" className="text-[10px] h-5">{pathStart}</Badge>
+                  <span className="text-[10px] text-muted-foreground">→ Click second node</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <Badge variant="outline" className="text-[10px] h-5">{pathStart}</Badge>
+                  <span className="text-[10px]">→</span>
+                  <Badge variant="outline" className="text-[10px] h-5">{pathEnd}</Badge>
+                  {pathResult ? (
+                    <Badge variant="default" className="text-[10px] h-5">
+                      {pathResult.length - 1} hop{pathResult.length - 1 !== 1 ? "s" : ""}
+                    </Badge>
+                  ) : (
+                    <span className="text-[10px] text-destructive">No path</span>
+                  )}
+                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => { setPathStart(null); setPathEnd(null); }}>
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Feature Panel - Clusters */}
+          {activeFeature === "cluster" && (
+            <div className="absolute top-3 left-3 bg-background/90 backdrop-blur-md rounded-lg border border-border/60 px-3 py-2 animate-in fade-in zoom-in-95 duration-200 pointer-events-auto z-40 max-w-[220px]">
+              <div className="flex items-center gap-1.5 mb-2">
+                <GitBranch className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-[10px] font-semibold">Clusters</span>
+                {selectedCluster !== null && (
+                  <Button variant="ghost" size="icon" className="h-4 w-4 ml-auto" onClick={() => setSelectedCluster(null)}>
+                    <X className="h-2.5 w-2.5" />
+                  </Button>
+                )}
+              </div>
+              <div className="space-y-1">
+                {uniqueClusters.length === 0 ? (
+                  <span className="text-[10px] text-muted-foreground">No clusters found (need stronger tag connections)</span>
+                ) : uniqueClusters.map(([clusterId, size]) => {
+                  const clusterNodeNames = nodes.filter(n => clusters.get(n.id) === clusterId).map(n => n.label).slice(0, 4);
+                  return (
+                    <button
+                      key={clusterId}
+                      className={`flex items-center gap-1.5 w-full text-left p-1 rounded text-[10px] transition-colors ${selectedCluster === clusterId ? "bg-primary/20" : "hover:bg-muted/50"}`}
+                      onClick={() => setSelectedCluster(selectedCluster === clusterId ? null : clusterId)}
+                    >
+                      <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: CLUSTER_COLORS[clusterId % CLUSTER_COLORS.length] }} />
+                      <span className="truncate">{clusterNodeNames.join(", ")}{size > 4 ? ` +${size - 4}` : ""}</span>
+                      <span className="text-muted-foreground ml-auto shrink-0">{size}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Feature Toolbar */}
+          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-0.5 bg-background/90 backdrop-blur-md rounded-full border border-border/60 px-1.5 py-1 animate-in fade-in slide-in-from-bottom-3 duration-500 pointer-events-auto">
+            {([
+              { key: "search" as const, icon: <Search className="h-3.5 w-3.5" />, label: "Search" },
+              { key: "time" as const, icon: <Clock3 className="h-3.5 w-3.5" />, label: "Time Travel" },
+              { key: "path" as const, icon: <Route className="h-3.5 w-3.5" />, label: "Path Finder" },
+              { key: "cluster" as const, icon: <GitBranch className="h-3.5 w-3.5" />, label: "Clusters" },
+            ]).map(f => (
+              <Button
+                key={f.key}
+                variant={activeFeature === f.key ? "default" : "ghost"}
+                size="sm"
+                className="h-7 gap-1 text-[10px] rounded-full px-2.5"
+                onClick={() => handleFeatureToggle(f.key)}
+              >
+                {f.icon}
+                <span className="hidden sm:inline">{f.label}</span>
+              </Button>
+            ))}
+          </div>
+
           {/* Controls hint */}
           <div className="absolute bottom-3 left-3 flex items-center gap-1.5 text-[10px] text-muted-foreground bg-background/80 backdrop-blur-sm rounded-md px-2 py-1 border border-border/40 animate-in fade-in duration-500">
             <RotateCcw className="h-3 w-3" />
@@ -2492,11 +2731,11 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
           </div>
 
           {/* Hovered tag tooltip */}
-          {hoveredTag && !selectedTag && (
-            <div className="absolute top-3 left-3 bg-background/90 backdrop-blur-sm rounded-lg px-3 py-2 border border-border/60 animate-in fade-in zoom-in-95 duration-200">
+          {hoveredTag && !selectedTag && activeFeature === "none" && (
+            <div className="absolute top-3 left-3 bg-background/90 backdrop-blur-sm rounded-lg px-3 py-2 border border-border/60 animate-in fade-in zoom-in-95 duration-200 z-30">
               <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full" style={{ 
-                  background: theme === "cosmos" 
+                <div className="w-2.5 h-2.5 rounded-full" style={{
+                  background: theme === "cosmos"
                     ? getPlanetColor(nodes.find(n => n.id === hoveredTag)?.colorIndex || 0).core
                     : theme === "atomic"
                     ? getAtomColor(nodes.find(n => n.id === hoveredTag)?.colorIndex || 0).core
@@ -2537,7 +2776,7 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
                 <div className="flex flex-wrap gap-1.5">
                   {Array.from(connectedTags).map((tag, i) => {
                     const tagNode = nodes.find(n => n.id === tag);
-                    const color = tagNode 
+                    const color = tagNode
                       ? (theme === "cosmos" ? getPlanetColor(tagNode.colorIndex).core : theme === "atomic" ? getAtomColor(tagNode.colorIndex).core : theme === "ocean" ? getOceanColor(tagNode.colorIndex).core : getSphereColor(tagNode.colorIndex).core)
                       : undefined;
                     return (
