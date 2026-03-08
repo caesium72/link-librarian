@@ -170,7 +170,7 @@ const Analytics = () => {
     return (links.length / days).toFixed(1);
   }, [links, dateRange]);
 
-  // Weekly heatmap (last 12 weeks)
+  // Weekly heatmap (last 12 weeks) - saving activity
   const heatmapData = useMemo(() => {
     const weeks: { day: number; week: number; count: number; date: string }[] = [];
     const today = new Date();
@@ -191,6 +191,65 @@ const Analytics = () => {
   }, [allLinks]);
 
   const maxHeatmap = Math.max(1, ...heatmapData.map((c) => c.count));
+
+  // Reading heatmap (last 52 weeks) - GitHub-style contribution graph
+  const readingHeatmapData = useMemo(() => {
+    const weeks: { day: number; week: number; count: number; date: string; month: string }[] = [];
+    const today = new Date();
+    const totalWeeks = 52;
+    for (let w = totalWeeks - 1; w >= 0; w--) {
+      for (let d = 0; d < 7; d++) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - (w * 7 + (6 - d)));
+        const key = format(date, "yyyy-MM-dd");
+        weeks.push({ day: d, week: totalWeeks - 1 - w, count: 0, date: key, month: format(date, "MMM") });
+      }
+    }
+    allLinks.forEach((l) => {
+      if (l.reading_completed_at) {
+        const day = l.reading_completed_at.slice(0, 10);
+        const cell = weeks.find((c) => c.date === day);
+        if (cell) cell.count++;
+      }
+    });
+    return weeks;
+  }, [allLinks]);
+
+  const maxReadingHeatmap = Math.max(1, ...readingHeatmapData.map((c) => c.count));
+  const totalWeeks = 52;
+
+  // Month labels for reading heatmap
+  const monthLabels = useMemo(() => {
+    const labels: { label: string; week: number }[] = [];
+    let lastMonth = "";
+    for (let w = 0; w < totalWeeks; w++) {
+      const cell = readingHeatmapData.find((c) => c.week === w && c.day === 0);
+      if (cell && cell.month !== lastMonth) {
+        labels.push({ label: cell.month, week: w });
+        lastMonth = cell.month;
+      }
+    }
+    return labels;
+  }, [readingHeatmapData]);
+
+  // Reading stats for the year
+  const readingYearStats = useMemo(() => {
+    const totalRead = readingHeatmapData.reduce((sum, c) => sum + c.count, 0);
+    const activeDays = readingHeatmapData.filter((c) => c.count > 0).length;
+    let currentStreak = 0;
+    const sorted = [...readingHeatmapData].reverse();
+    for (const cell of sorted) {
+      if (cell.count > 0) currentStreak++;
+      else break;
+    }
+    let longestStreak = 0;
+    let tempStreak = 0;
+    for (const cell of readingHeatmapData) {
+      if (cell.count > 0) { tempStreak++; longestStreak = Math.max(longestStreak, tempStreak); }
+      else tempStreak = 0;
+    }
+    return { totalRead, activeDays, currentStreak, longestStreak };
+  }, [readingHeatmapData]);
 
   const selectPreset = (days: number) => {
     if (days === 0) {
