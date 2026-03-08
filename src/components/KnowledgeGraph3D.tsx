@@ -828,6 +828,10 @@ function BlackHole() {
   const disk2Ref = useRef<THREE.Mesh>(null!);
   const coreRef = useRef<THREE.Mesh>(null!);
   const glowRef = useRef<THREE.Mesh>(null!);
+  // Gravitational lensing rings
+  const lensRefs = [useRef<THREE.Mesh>(null!), useRef<THREE.Mesh>(null!), useRef<THREE.Mesh>(null!), useRef<THREE.Mesh>(null!), useRef<THREE.Mesh>(null!)];
+  const photonRingRef = useRef<THREE.Mesh>(null!);
+  const distortionRef = useRef<THREE.Mesh>(null!);
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
@@ -840,22 +844,79 @@ function BlackHole() {
     if (glowRef.current) {
       (glowRef.current.material as THREE.MeshBasicMaterial).opacity = 0.12 + Math.sin(t * 1.5) * 0.04;
     }
+    // Animate lensing rings - ripple outward with phase offsets
+    lensRefs.forEach((ref, i) => {
+      if (ref.current) {
+        const phase = t * 1.2 + i * 0.8;
+        const breathe = 1 + Math.sin(phase) * 0.06;
+        ref.current.scale.setScalar(breathe);
+        (ref.current.material as THREE.MeshBasicMaterial).opacity =
+          (0.08 - i * 0.012) + Math.sin(phase + Math.PI / 3) * 0.03;
+        ref.current.rotation.z = t * 0.02 * (i % 2 === 0 ? 1 : -1);
+      }
+    });
+    // Photon ring rotation
+    if (photonRingRef.current) {
+      photonRingRef.current.rotation.z = t * 0.3;
+      const pr = photonRingRef.current.material as THREE.MeshBasicMaterial;
+      pr.opacity = 0.25 + Math.sin(t * 3) * 0.1;
+    }
+    // Distortion sphere shimmer
+    if (distortionRef.current) {
+      const s = 1 + Math.sin(t * 0.8) * 0.08;
+      distortionRef.current.scale.setScalar(s);
+      (distortionRef.current.material as THREE.MeshBasicMaterial).opacity = 0.04 + Math.sin(t * 1.2) * 0.02;
+    }
   });
+
+  const lensData = [
+    { radius: 1.6, thickness: 0.035, color: "#8060ff" },
+    { radius: 2.0, thickness: 0.025, color: "#a080ff" },
+    { radius: 2.5, thickness: 0.018, color: "#c0a0ff" },
+    { radius: 3.1, thickness: 0.012, color: "#d0c0ff" },
+    { radius: 3.8, thickness: 0.008, color: "#e0d8ff" },
+  ];
 
   return (
     <group>
+      {/* Event horizon core */}
       <mesh ref={coreRef}>
         <sphereGeometry args={[0.6, 32, 32]} />
         <meshBasicMaterial color="#000000" />
       </mesh>
+
+      {/* Gravitational lensing distortion sphere */}
+      <mesh ref={distortionRef}>
+        <sphereGeometry args={[1.8, 64, 64]} />
+        <meshBasicMaterial color="#6040ff" transparent opacity={0.04} depthWrite={false} side={THREE.BackSide} />
+      </mesh>
+
+      {/* Inner glow - event horizon edge */}
       <mesh ref={glowRef}>
         <sphereGeometry args={[1.2, 32, 32]} />
         <meshBasicMaterial color="#6040ff" transparent opacity={0.12} depthWrite={false} />
       </mesh>
+
+      {/* Photon ring - bright thin ring at photon sphere */}
+      <mesh ref={photonRingRef} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[1.0, 0.04, 16, 128]} />
+        <meshBasicMaterial color="#ffcc66" transparent opacity={0.3} depthWrite={false} />
+      </mesh>
+
+      {/* Gravitational lensing rings - concentric halos */}
+      {lensData.map((lens, i) => (
+        <mesh key={`lens-${i}`} ref={lensRefs[i]} rotation={[Math.PI / 2.1 + i * 0.05, i * 0.03, 0]}>
+          <torusGeometry args={[lens.radius, lens.thickness, 16, 256]} />
+          <meshBasicMaterial color={lens.color} transparent opacity={0.08 - i * 0.012} depthWrite={false} />
+        </mesh>
+      ))}
+
+      {/* Accretion disk - primary */}
       <mesh ref={diskRef} rotation={[Math.PI / 2.2, 0, 0]}>
         <torusGeometry args={[2.0, 0.15, 4, 128]} />
         <meshStandardMaterial color="#ff8040" emissive="#ff6020" emissiveIntensity={0.8} transparent opacity={0.5} side={THREE.DoubleSide} />
       </mesh>
+      {/* Accretion disk - secondary */}
       <mesh ref={disk2Ref} rotation={[Math.PI / 2.5, 0.3, 0]}>
         <torusGeometry args={[2.8, 0.08, 4, 128]} />
         <meshStandardMaterial color="#a060ff" emissive="#8040e0" emissiveIntensity={0.5} transparent opacity={0.3} side={THREE.DoubleSide} />
