@@ -1236,6 +1236,81 @@ function SphereNode({
   const emissiveIntensity = isSelected ? 1.8 : isHovered ? 1.2 : isDimmed ? 0.02 : 0.4;
   const sphereOpacity = isSelected ? 1.0 : isDimmed ? 0.4 : 0.9;
 
+  // Particle system for selected node
+  const particleCount = 24;
+  const particlesRef = useRef<THREE.Points>(null!);
+  const particleData = useMemo(() => {
+    const positions = new Float32Array(particleCount * 3);
+    const speeds = new Float32Array(particleCount);
+    const offsets = new Float32Array(particleCount);
+    for (let i = 0; i < particleCount; i++) {
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+      const r = node.radius * (1.5 + Math.random() * 1.5);
+      positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+      positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+      positions[i * 3 + 2] = r * Math.cos(phi);
+      speeds[i] = 0.3 + Math.random() * 0.7;
+      offsets[i] = Math.random() * Math.PI * 2;
+    }
+    return { positions, speeds, offsets };
+  }, [node.radius]);
+
+  // Orbiting ring refs
+  const ring1Ref = useRef<THREE.Mesh>(null!);
+  const ring2Ref = useRef<THREE.Mesh>(null!);
+  const ring3Ref = useRef<THREE.Mesh>(null!);
+
+  useFrame((state, delta) => {
+    if (!meshRef.current) return;
+    const target = isSelected ? 1.8 : isHovered ? 1.5 : isConnected ? 1.2 : 1;
+    currentScale.current += (target - currentScale.current) * Math.min(delta * 6, 1);
+
+    const pulse = Math.sin(state.clock.elapsedTime * 1.8 + pulsePhase.current) * 0.05;
+    meshRef.current.scale.setScalar(currentScale.current + pulse);
+    
+    if (glowRef.current) {
+      const glowPulse = 1 + Math.sin(state.clock.elapsedTime * 2 + pulsePhase.current) * 0.1;
+      glowRef.current.scale.setScalar(glowPulse);
+    }
+
+    // Animate particles when selected
+    if (particlesRef.current && isSelected) {
+      const geo = particlesRef.current.geometry;
+      const posAttr = geo.getAttribute("position");
+      const t = state.clock.elapsedTime;
+      for (let i = 0; i < particleCount; i++) {
+        const speed = particleData.speeds[i];
+        const offset = particleData.offsets[i];
+        const angle = t * speed + offset;
+        const r = node.radius * (1.5 + Math.sin(t * speed * 0.5 + offset) * 0.8);
+        const phi = Math.acos(Math.sin(angle * 0.7 + offset));
+        posAttr.setXYZ(
+          i,
+          r * Math.sin(phi) * Math.cos(angle),
+          r * Math.sin(phi) * Math.sin(angle),
+          r * Math.cos(phi)
+        );
+      }
+      posAttr.needsUpdate = true;
+    }
+
+    // Animate orbiting rings when selected
+    if (isSelected) {
+      if (ring1Ref.current) ring1Ref.current.rotation.z = state.clock.elapsedTime * 0.8;
+      if (ring2Ref.current) ring2Ref.current.rotation.x = state.clock.elapsedTime * 0.6;
+      if (ring3Ref.current) ring3Ref.current.rotation.y = state.clock.elapsedTime * 0.5;
+    }
+  });
+
+  const dimColor = "#2a2a35";
+  const dimGlow = "#1a1a22";
+  const activeColor = isDimmed ? dimColor : sphereColor.core;
+  const activeGlow = isDimmed ? dimGlow : sphereColor.glow;
+
+  const emissiveIntensity = isSelected ? 1.8 : isHovered ? 1.2 : isDimmed ? 0.02 : 0.4;
+  const sphereOpacity = isSelected ? 1.0 : isDimmed ? 0.4 : 0.9;
+
   return (
     <group position={node.position}>
       {/* Outer glow layers for 3D depth effect */}
@@ -1247,6 +1322,46 @@ function SphereNode({
         <sphereGeometry args={[node.radius * 1.8, 32, 32]} />
         <meshBasicMaterial color={activeColor} transparent opacity={isSelected ? 0.25 : isDimmed ? 0.02 : 0.1} depthWrite={false} />
       </mesh>
+
+      {/* Orbiting selection rings */}
+      {isSelected && (
+        <>
+          <mesh ref={ring1Ref} rotation={[Math.PI / 3, 0, 0]}>
+            <torusGeometry args={[node.radius * 2.2, 0.02, 8, 64]} />
+            <meshBasicMaterial color={sphereColor.trail} transparent opacity={0.6} />
+          </mesh>
+          <mesh ref={ring2Ref} rotation={[0, Math.PI / 4, Math.PI / 6]}>
+            <torusGeometry args={[node.radius * 2.6, 0.015, 8, 64]} />
+            <meshBasicMaterial color={sphereColor.glow} transparent opacity={0.4} />
+          </mesh>
+          <mesh ref={ring3Ref} rotation={[Math.PI / 2, Math.PI / 5, 0]}>
+            <torusGeometry args={[node.radius * 3.0, 0.01, 8, 64]} />
+            <meshBasicMaterial color={activeColor} transparent opacity={0.3} />
+          </mesh>
+        </>
+      )}
+
+      {/* Particle burst when selected */}
+      {isSelected && (
+        <points ref={particlesRef}>
+          <bufferGeometry>
+            <bufferAttribute
+              attach="attributes-position"
+              array={particleData.positions}
+              count={particleCount}
+              itemSize={3}
+            />
+          </bufferGeometry>
+          <pointsMaterial
+            color={sphereColor.trail}
+            size={0.08}
+            transparent
+            opacity={0.8}
+            depthWrite={false}
+            sizeAttenuation
+          />
+        </points>
+      )}
       
       {/* Core sphere with glass-like material */}
       <mesh
