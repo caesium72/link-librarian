@@ -624,7 +624,7 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseUp}
-              onClick={() => { if (!draggingNode) setSelectedTag(null); }}
+              onClick={() => { if (!draggingNode) { setSelectedTag(null); setExpandedTag(null); } }}
             >
               <g transform={`translate(${pan.x},${pan.y}) scale(${zoom})`}>
                 {/* Edges with smooth curves */}
