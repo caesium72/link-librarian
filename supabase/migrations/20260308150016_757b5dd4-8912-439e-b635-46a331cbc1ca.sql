@@ -1,0 +1,1 @@
+ALTER TABLE public.links ADD COLUMN og_image text DEFAULT NULL;
