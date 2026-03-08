@@ -711,7 +711,7 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
                       onMouseDown={(e) => handleNodeDragStart(e, node.id)}
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (!draggingNode) setSelectedTag(selectedTag === node.id ? null : node.id);
+                        handleNodeClick(node.id);
                       }}
                     >
                       {/* Outer energy glow */}
