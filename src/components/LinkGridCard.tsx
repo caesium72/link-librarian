@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "@/types/links";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -55,7 +56,10 @@ export function LinkGridCard({
   isHighlighted,
 }: LinkGridCardProps) {
   const { toast } = useToast();
+  const [imgError, setImgError] = useState(false);
   const statusInfo = statusConfig[link.status as keyof typeof statusConfig] ?? statusConfig.pending;
+  const ogImage = (link as any).og_image as string | null;
+  const hasPreview = ogImage && !imgError;
 
   const copyUrl = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -84,7 +88,20 @@ export function LinkGridCard({
     >
       <div className={cn("absolute top-0 left-0 w-full h-0.5", statusInfo.dot)} />
 
-      <CardContent className="p-3 flex flex-col h-full">
+      {/* OG Image preview banner */}
+      {hasPreview && (
+        <div className="w-full h-28 overflow-hidden bg-muted">
+          <img
+            src={ogImage}
+            alt=""
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            onError={() => setImgError(true)}
+            loading="lazy"
+          />
+        </div>
+      )}
+
+      <CardContent className={cn("p-3 flex flex-col", hasPreview ? "pt-2.5" : "h-full")}>
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-center gap-1.5 min-w-0 flex-1">
             {selectionMode && (
@@ -108,7 +125,7 @@ export function LinkGridCard({
             <img
               src={`https://www.google.com/s2/favicons?domain=${link.domain}&sz=32`}
               alt=""
-              className="h-6 w-6 rounded shrink-0 object-contain ring-1 ring-border/50"
+              className="h-5 w-5 rounded shrink-0 object-contain ring-1 ring-border/50"
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
           )}
