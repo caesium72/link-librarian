@@ -606,7 +606,7 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
         </div>
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <GripHorizontal className="h-3.5 w-3.5" />
-          <span>Drag nodes · Scroll to zoom · Click to select</span>
+          <span>Drag nodes · Scroll to zoom · Click to select · Double-click to expand</span>
         </div>
       </div>
 
