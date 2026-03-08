@@ -1593,17 +1593,17 @@ function SphereEdgeLine({
     // Main line
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
     const weightNorm = weight / maxWeight;
-    const color = isHighlighted ? sourceColor : "#5a5a6a";
-    const opacity = isDimmed ? 0.03 : isHighlighted ? 0.85 : 0.25 + weightNorm * 0.2;
+    const color = isHighlighted ? sourceColor : "#7a7a9a";
+    const opacity = isDimmed ? 0.05 : isHighlighted ? 0.9 : 0.3 + weightNorm * 0.25;
     const material = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
     const lineObj = new THREE.Line(geometry, material);
     
     // Glow line (thicker, more transparent)
     const glowGeo = new THREE.BufferGeometry().setFromPoints(points);
     const glowMat = new THREE.LineBasicMaterial({ 
-      color: isHighlighted ? sourceColor : "#8888aa", 
+      color: isHighlighted ? sourceColor : "#9999bb", 
       transparent: true, 
-      opacity: isDimmed ? 0.01 : isHighlighted ? 0.4 : 0.08 
+      opacity: isDimmed ? 0.02 : isHighlighted ? 0.5 : 0.12 + weightNorm * 0.1
     });
     const glowLine = new THREE.Line(glowGeo, glowMat);
     
