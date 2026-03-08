@@ -218,9 +218,9 @@ const Settings = () => {
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <span className="flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">2</span>
-                <Label className="font-mono text-sm">Paste your Bot Token</Label>
+                <Label className="font-mono text-sm">Connect Your Bot</Label>
               </div>
-              <div className="ml-8 space-y-2">
+              <div className="ml-8 space-y-3">
                 <div className="relative">
                   <Input
                     type={showToken ? "text" : "password"}
@@ -228,6 +228,7 @@ const Settings = () => {
                     value={botToken}
                     onChange={(e) => setBotToken(e.target.value)}
                     className="font-mono text-sm pr-10"
+                    disabled={webhookSet}
                   />
                   <button
                     type="button"
@@ -237,15 +238,35 @@ const Settings = () => {
                     {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
-                <Button
-                  onClick={handleSaveToken}
-                  disabled={saving || !botToken.trim()}
-                  size="sm"
-                  className="font-mono"
-                >
-                  {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
-                  Save Token
-                </Button>
+                
+                {webhookSet ? (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-primary font-mono">
+                      <CheckCircle2 className="h-4 w-4" />
+                      Bot connected and ready!
+                    </div>
+                    <Button
+                      onClick={handleResetBot}
+                      disabled={saving}
+                      size="sm"
+                      variant="outline"
+                      className="font-mono text-xs"
+                    >
+                      {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
+                      Reset
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    onClick={handleSaveAndSetupBot}
+                    disabled={saving || !botToken.trim()}
+                    size="sm"
+                    className="font-mono"
+                  >
+                    {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
+                    Connect Bot
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -253,55 +274,29 @@ const Settings = () => {
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <span className="flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">3</span>
-                <Label className="font-mono text-sm">Activate Webhook</Label>
-              </div>
-              <div className="ml-8 space-y-2">
-                <p className="text-xs text-muted-foreground">
-                  This tells Telegram to send messages from your bot to Link Librarian.
-                </p>
-                {webhookSet ? (
-                  <div className="flex items-center gap-2 text-sm text-primary font-mono">
-                    <CheckCircle2 className="h-4 w-4" />
-                    Webhook active
-                  </div>
-                ) : (
-                  <Button
-                    onClick={handleSetupWebhook}
-                    disabled={settingUpWebhook || !hasToken}
-                    size="sm"
-                    variant="outline"
-                    className="font-mono"
-                  >
-                    {settingUpWebhook ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
-                    Activate Webhook
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            {/* Step 4 */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <span className="flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">4</span>
-                <Label className="font-mono text-sm">Add Bot to your Group/Channel</Label>
+                <Label className="font-mono text-sm">Add Bot to Telegram</Label>
               </div>
               <p className="text-xs text-muted-foreground ml-8">
-                Add your bot as an <strong>admin</strong> to the Telegram group or channel where you paste links. It needs admin rights to read messages. Then just paste any link in the chat — it'll appear in your dashboard!
+                Add your bot as an <strong>admin</strong> to any Telegram group or channel where you want to capture links. Then just paste links in the chat — they'll automatically appear in your dashboard!
               </p>
             </div>
 
             {/* Status */}
-            {hasToken && (
-              <div className={`p-3 rounded-lg border text-sm font-mono ${webhookSet ? "border-primary/30 bg-primary/5 text-primary" : "border-border bg-muted text-muted-foreground"}`}>
+            {botToken && (
+              <div className={`p-3 rounded-lg border text-sm font-mono ${
+                webhookSet 
+                  ? "border-primary/30 bg-primary/5 text-primary" 
+                  : "border-border bg-muted text-muted-foreground"
+              }`}>
                 {webhookSet ? (
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4 shrink-0" />
-                    All set! Links you paste in Telegram will appear in your dashboard.
+                    All set! Your bot will capture links from Telegram automatically.
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
                     <AlertCircle className="h-4 w-4 shrink-0" />
-                    Token saved. Activate the webhook to start receiving links.
+                    Click "Connect Bot" above to complete the setup.
                   </div>
                 )}
               </div>
