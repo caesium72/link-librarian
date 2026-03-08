@@ -43,6 +43,7 @@ serve(async (req) => {
     // Step 1: Fetch page metadata
     let pageTitle = "";
     let pageDescription = "";
+    let ogImage = "";
     let canonicalUrl = url;
     let finalDomain = link.domain || "";
 
