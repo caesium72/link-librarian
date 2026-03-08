@@ -598,6 +598,50 @@ export default function Knowledge() {
                             </Card>
                           ))}
                         </div>
+
+                        {/* Tag Cloud Visualization */}
+                        <Card className="mt-4 animate-in fade-in zoom-in-95 duration-500" style={{ animationDelay: "150ms", animationFillMode: "both" }}>
+                          <CardContent className="p-4">
+                            <h4 className="text-xs font-semibold mb-3 flex items-center gap-1.5">
+                              <Layers className="h-3.5 w-3.5 text-primary" /> Topic Cloud
+                            </h4>
+                            <div className="flex flex-wrap items-center justify-center gap-2 py-2">
+                              {trendingData.trending_topics.map((topic: any, i: number) => {
+                                const heat = topic.heat ?? 50;
+                                const minSize = 0.7;
+                                const maxSize = 1.8;
+                                const scale = minSize + (heat / 100) * (maxSize - minSize);
+                                const opacity = 0.5 + (heat / 100) * 0.5;
+                                const colors = [
+                                  "hsl(var(--primary))",
+                                  "hsl(var(--chart-1))",
+                                  "hsl(var(--chart-2))",
+                                  "hsl(var(--chart-3))",
+                                  "hsl(var(--chart-4))",
+                                  "hsl(var(--chart-5))",
+                                ];
+                                const color = colors[i % colors.length];
+                                return (
+                                  <span
+                                    key={i}
+                                    className="cursor-default transition-all duration-300 hover:scale-110 font-semibold animate-in fade-in zoom-in-50"
+                                    style={{
+                                      fontSize: `${scale}rem`,
+                                      color,
+                                      opacity,
+                                      animationDelay: `${i * 80}ms`,
+                                      animationFillMode: "both",
+                                      animationDuration: "500ms",
+                                    }}
+                                    title={`${topic.name} — Heat: ${heat}% (${topic.trend})`}
+                                  >
+                                    {topic.name}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          </CardContent>
+                        </Card>
                       </div>
                     )}
 
