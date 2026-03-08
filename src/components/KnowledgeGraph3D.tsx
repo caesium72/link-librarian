@@ -2488,7 +2488,7 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
           <div className="absolute bottom-3 left-3 flex items-center gap-1.5 text-[10px] text-muted-foreground bg-background/80 backdrop-blur-sm rounded-md px-2 py-1 border border-border/40 animate-in fade-in duration-500">
             <RotateCcw className="h-3 w-3" />
             Drag to orbit · Scroll to zoom · Click nodes
-            {theme === "atomic" && " · Click electrons"}
+            {theme === "atomic" && " · Click electrons"}{theme === "ocean" && " · Watch the jellyfish"}
           </div>
 
           {/* Hovered tag tooltip */}
