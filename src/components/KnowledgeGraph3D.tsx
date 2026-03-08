@@ -803,17 +803,17 @@ function EdgeLine({
 
     // Main line - much more visible
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    const color = isHighlighted ? sourceColor : "#6a6a8a";
-    const opacity = isDimmed ? 0.04 : isHighlighted ? 0.85 : 0.2 + weightNorm * 0.25;
+    const color = isHighlighted ? sourceColor : "#505068";
+    const opacity = isDimmed ? 0.03 : isHighlighted ? 0.6 : 0.12 + weightNorm * 0.15;
     const material = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
     const lineObj = new THREE.Line(geometry, material);
 
     // Glow line for depth
     const glowGeo = new THREE.BufferGeometry().setFromPoints(points);
     const glowMat = new THREE.LineBasicMaterial({
-      color: isHighlighted ? sourceColor : "#8888aa",
+      color: isHighlighted ? sourceColor : "#6a6a88",
       transparent: true,
-      opacity: isDimmed ? 0.02 : isHighlighted ? 0.4 : 0.08 + weightNorm * 0.1,
+      opacity: isDimmed ? 0.01 : isHighlighted ? 0.25 : 0.05 + weightNorm * 0.06,
     });
     const glowLine = new THREE.Line(glowGeo, glowMat);
 
