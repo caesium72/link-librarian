@@ -31,7 +31,7 @@ export default function Knowledge() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("trending");
   const [graphMode, setGraphMode] = useState<"3d" | "2d">("3d");
-  const [graph3DTheme, setGraph3DTheme] = useState<"cosmos" | "atomic">("cosmos");
+  const [graph3DTheme, setGraph3DTheme] = useState<"cosmos" | "atomic" | "sphere">("cosmos");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [displayMode, setDisplayMode] = useState<"3d" | "2d">("3d");
