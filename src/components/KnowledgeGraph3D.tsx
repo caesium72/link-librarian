@@ -1580,10 +1580,13 @@ function CosmosScene({
         const s = nodeMap.get(edge.source);
         const t = nodeMap.get(edge.target);
         if (!s || !t) return null;
-        const isHighlighted =
+        const isPathEdge = pathEdgeKeys?.has(`${edge.source}|||${edge.target}`) || pathEdgeKeys?.has(`${edge.target}|||${edge.source}`);
+        const isHighlighted = !!isPathEdge ||
           selectedTag === edge.source || selectedTag === edge.target ||
           hoveredTag === edge.source || hoveredTag === edge.target;
-        const isDimmed = !!(selectedTag || hoveredTag) && !isHighlighted;
+        const isDimmed = forceBrightNodes
+          ? (!forceBrightNodes.has(edge.source) && !forceBrightNodes.has(edge.target))
+          : (!!(selectedTag || hoveredTag) && !isHighlighted);
         return (
           <EdgeLine
             key={`${edge.source}-${edge.target}`}
