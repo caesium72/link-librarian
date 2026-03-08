@@ -4,10 +4,30 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Slider } from "@/components/ui/slider";
+import { Label } from "@/components/ui/label";
 import {
   Search, ZoomIn, ZoomOut, Maximize2, GripHorizontal,
-  ExternalLink, Filter, MapIcon,
+  ExternalLink, Filter, MapIcon, Settings2,
 } from "lucide-react";
+
+export interface PhysicsSettings {
+  damping: number;       // 0.5 - 0.98
+  repulsion: number;     // 200 - 3000
+  attraction: number;    // 0.001 - 0.02
+  gravity: number;       // 0.001 - 0.01
+  maxVelocity: number;   // 1 - 15
+  lerpFactor: number;    // 0.05 - 0.5
+}
+
+const DEFAULT_PHYSICS: PhysicsSettings = {
+  damping: 0.82,
+  repulsion: 900,
+  attraction: 0.004,
+  gravity: 0.003,
+  maxVelocity: 5,
+  lerpFactor: 0.18,
+};
 import type { Link } from "@/types/links";
 
 interface GraphNode {
