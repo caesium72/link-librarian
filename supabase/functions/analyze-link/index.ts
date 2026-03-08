@@ -43,6 +43,7 @@ serve(async (req) => {
     // Step 1: Fetch page metadata
     let pageTitle = "";
     let pageDescription = "";
+    let ogImage = "";
     let canonicalUrl = url;
     let finalDomain = link.domain || "";
 
@@ -84,6 +85,29 @@ serve(async (req) => {
 
       const ogDescMatch = html.match(/<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']+)["']/i);
       if (ogDescMatch && !pageDescription) pageDescription = ogDescMatch[1].trim();
+
+      // Extract OG image
+      const ogImageMatch = html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i) ||
+        html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:image["']/i);
+      if (ogImageMatch) {
+        let ogImg = ogImageMatch[1].trim();
+        if (ogImg.startsWith("/")) {
+          try { const base = new URL(url); ogImg = `${base.protocol}//${base.host}${ogImg}`; } catch { /* keep */ }
+        }
+        ogImage = ogImg;
+      }
+
+      // Fallback to twitter:image
+      if (!ogImage) {
+        const twitterImgMatch = html.match(/<meta[^>]*(?:name|property)=["']twitter:image["'][^>]*content=["']([^"']+)["']/i);
+        if (twitterImgMatch) {
+          let twImg = twitterImgMatch[1].trim();
+          if (twImg.startsWith("/")) {
+            try { const base = new URL(url); twImg = `${base.protocol}//${base.host}${twImg}`; } catch { /* keep */ }
+          }
+          ogImage = twImg;
+        }
+      }
 
     } catch (e) {
       console.error("Failed to fetch page:", e);
@@ -171,7 +195,6 @@ Based on the URL, domain, title, and description, provide:
       const errText = await aiResponse.text();
       console.error("AI error:", aiResponse.status, errText);
 
-      // Mark as failed
       await supabase
         .from("links")
         .update({
@@ -179,6 +202,7 @@ Based on the URL, domain, title, and description, provide:
           title: pageTitle || url,
           canonical_url: canonicalUrl,
           domain: finalDomain,
+          og_image: ogImage || null,
         })
         .eq("id", linkId);
 
@@ -203,6 +227,7 @@ Based on the URL, domain, title, and description, provide:
           title: pageTitle || url,
           canonical_url: canonicalUrl,
           domain: finalDomain,
+          og_image: ogImage || null,
         })
         .eq("id", linkId);
 
@@ -260,6 +285,7 @@ Based on the URL, domain, title, and description, provide:
         confidence_score: Math.min(1, Math.max(0, analysis.confidence)),
         canonical_url: canonicalUrl,
         domain: finalDomain,
+        og_image: ogImage || null,
         status: "ready",
       })
       .eq("id", linkId);
