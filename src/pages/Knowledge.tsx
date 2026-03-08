@@ -567,8 +567,9 @@ export default function Knowledge() {
                             <p className="text-sm font-medium mb-0.5">Trending Insights</p>
                             <p className="text-xs text-muted-foreground">{trendingData.insights_summary}</p>
                           </div>
-                          <Button variant="ghost" size="sm" className="shrink-0 text-xs h-7 gap-1" onClick={fetchTrendingData}>
-                            <RefreshCw className="h-3 w-3" /> Refresh
+                          <Button variant="ghost" size="sm" className="shrink-0 text-xs h-7 gap-1" onClick={() => fetchTrendingData()}>
+                            {isAutoRefresh ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                            {lastFetchedAt ? `${Math.round((Date.now() - lastFetchedAt) / 60000)}m ago` : "Refresh"}
                           </Button>
                         </CardContent>
                       </Card>
