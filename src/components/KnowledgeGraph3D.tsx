@@ -1748,13 +1748,17 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
         <CardContent className="p-0 relative">
           <div className="h-[500px] w-full bg-background">
             <Canvas
-              camera={{ position: theme === "atomic" ? [0, 6, 20] : [0, 8, 25], fov: 50 }}
+              camera={{ position: theme === "atomic" ? [0, 6, 20] : theme === "sphere" ? [0, 10, 28] : [0, 8, 25], fov: 50 }}
               dpr={[1, 2]}
               style={{ background: "transparent" }}
               gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
               onPointerMissed={() => { setSelectedTag(null); setMoonPreview(null); }}
             >
-              <fog attach="fog" args={[theme === "atomic" ? "#050510" : "#09090b", theme === "atomic" ? 25 : 30, theme === "atomic" ? 45 : 55]} />
+              <fog attach="fog" args={[
+                theme === "atomic" ? "#050510" : theme === "sphere" ? "#080818" : "#09090b", 
+                theme === "atomic" ? 25 : theme === "sphere" ? 20 : 30, 
+                theme === "atomic" ? 45 : theme === "sphere" ? 50 : 55
+              ]} />
               {theme === "cosmos" ? (
                 <CosmosScene
                   nodes={nodes}
@@ -1767,7 +1771,7 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
                   onSelect={setSelectedTag}
                   onHover={setHoveredTag}
                 />
-              ) : (
+              ) : theme === "atomic" ? (
                 <AtomicScene
                   nodes={nodes}
                   edges={edges}
@@ -1780,6 +1784,18 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
                   onSelect={setSelectedTag}
                   onHover={setHoveredTag}
                   onMoonClick={handleMoonClick}
+                />
+              ) : (
+                <SphereScene
+                  nodes={nodes}
+                  edges={edges}
+                  selectedTag={selectedTag}
+                  hoveredTag={hoveredTag}
+                  connectedTags={connectedTags}
+                  maxWeight={maxWeight}
+                  maxCount={maxCount}
+                  onSelect={setSelectedTag}
+                  onHover={setHoveredTag}
                 />
               )}
             </Canvas>
