@@ -1319,7 +1319,12 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
   const [hoveredTag, setHoveredTag] = useState<string | null>(null);
   const [moonPreview, setMoonPreview] = useState<{ nodeId: string; moonIdx: number } | null>(null);
 
-  const { nodes, edges, tagLinks } = useMemo(() => buildGraph3D(links, theme), [links, theme]);
+  // Theme transition state — must be before early returns
+  const [isThemeTransitioning, setIsThemeTransitioning] = useState(false);
+  const [displayedTheme, setDisplayedTheme] = useState(theme);
+  const prevThemeRef = useRef(theme);
+
+  const { nodes, edges, tagLinks } = useMemo(() => buildGraph3D(links, displayedTheme), [links, displayedTheme]);
   const maxWeight = useMemo(() => Math.max(...edges.map((e) => e.weight), 1), [edges]);
   const maxCount = useMemo(() => Math.max(...nodes.map((n) => n.count), 1), [nodes]);
 
@@ -1343,6 +1348,16 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
     setMoonPreview({ nodeId, moonIdx });
   }, []);
 
+  // Smooth transition when theme prop changes
+  if (theme !== prevThemeRef.current) {
+    prevThemeRef.current = theme;
+    setIsThemeTransitioning(true);
+    setTimeout(() => {
+      setDisplayedTheme(theme);
+      setTimeout(() => setIsThemeTransitioning(false), 50);
+    }, 400);
+  }
+
   if (isLoading) {
     return (
       <Card>
@@ -1363,21 +1378,6 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
         </CardContent>
       </Card>
     );
-  }
-
-  // Theme transition state
-  const [isThemeTransitioning, setIsThemeTransitioning] = useState(false);
-  const [displayedTheme, setDisplayedTheme] = useState(theme);
-  const prevThemeRef = useRef(theme);
-
-  // Smooth transition when theme changes
-  if (theme !== prevThemeRef.current) {
-    prevThemeRef.current = theme;
-    setIsThemeTransitioning(true);
-    setTimeout(() => {
-      setDisplayedTheme(theme);
-      setTimeout(() => setIsThemeTransitioning(false), 50);
-    }, 400);
   }
 
   return (
