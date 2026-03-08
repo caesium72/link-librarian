@@ -538,7 +538,7 @@ export default function Knowledge() {
                       <Flame className="h-8 w-8 text-destructive mx-auto mb-3 animate-bounce" style={{ animationDuration: "2s" }} />
                       <p className="text-sm font-medium mb-1">Real-Time Trending Analysis</p>
                       <p className="text-xs text-muted-foreground mb-4">AI-powered analysis of what's trending in tech right now</p>
-                      <Button onClick={fetchTrendingData} className="gap-2 transition-all duration-300 hover:shadow-lg hover:shadow-primary/20 hover:scale-105">
+                      <Button onClick={() => fetchTrendingData()} className="gap-2 transition-all duration-300 hover:shadow-lg hover:shadow-primary/20 hover:scale-105">
                         <TrendingUp className="h-4 w-4" /> Fetch Trending
                       </Button>
                     </CardContent>
