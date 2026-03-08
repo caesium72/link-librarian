@@ -170,7 +170,7 @@ const Analytics = () => {
     return (links.length / days).toFixed(1);
   }, [links, dateRange]);
 
-  // Weekly heatmap (last 12 weeks)
+  // Weekly heatmap (last 12 weeks) - saving activity
   const heatmapData = useMemo(() => {
     const weeks: { day: number; week: number; count: number; date: string }[] = [];
     const today = new Date();
@@ -191,6 +191,65 @@ const Analytics = () => {
   }, [allLinks]);
 
   const maxHeatmap = Math.max(1, ...heatmapData.map((c) => c.count));
+
+  // Reading heatmap (last 52 weeks) - GitHub-style contribution graph
+  const readingHeatmapData = useMemo(() => {
+    const weeks: { day: number; week: number; count: number; date: string; month: string }[] = [];
+    const today = new Date();
+    const totalWeeks = 52;
+    for (let w = totalWeeks - 1; w >= 0; w--) {
+      for (let d = 0; d < 7; d++) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - (w * 7 + (6 - d)));
+        const key = format(date, "yyyy-MM-dd");
+        weeks.push({ day: d, week: totalWeeks - 1 - w, count: 0, date: key, month: format(date, "MMM") });
+      }
+    }
+    allLinks.forEach((l) => {
+      if (l.reading_completed_at) {
+        const day = l.reading_completed_at.slice(0, 10);
+        const cell = weeks.find((c) => c.date === day);
+        if (cell) cell.count++;
+      }
+    });
+    return weeks;
+  }, [allLinks]);
+
+  const maxReadingHeatmap = Math.max(1, ...readingHeatmapData.map((c) => c.count));
+  const totalWeeks = 52;
+
+  // Month labels for reading heatmap
+  const monthLabels = useMemo(() => {
+    const labels: { label: string; week: number }[] = [];
+    let lastMonth = "";
+    for (let w = 0; w < totalWeeks; w++) {
+      const cell = readingHeatmapData.find((c) => c.week === w && c.day === 0);
+      if (cell && cell.month !== lastMonth) {
+        labels.push({ label: cell.month, week: w });
+        lastMonth = cell.month;
+      }
+    }
+    return labels;
+  }, [readingHeatmapData]);
+
+  // Reading stats for the year
+  const readingYearStats = useMemo(() => {
+    const totalRead = readingHeatmapData.reduce((sum, c) => sum + c.count, 0);
+    const activeDays = readingHeatmapData.filter((c) => c.count > 0).length;
+    let currentStreak = 0;
+    const sorted = [...readingHeatmapData].reverse();
+    for (const cell of sorted) {
+      if (cell.count > 0) currentStreak++;
+      else break;
+    }
+    let longestStreak = 0;
+    let tempStreak = 0;
+    for (const cell of readingHeatmapData) {
+      if (cell.count > 0) { tempStreak++; longestStreak = Math.max(longestStreak, tempStreak); }
+      else tempStreak = 0;
+    }
+    return { totalRead, activeDays, currentStreak, longestStreak };
+  }, [readingHeatmapData]);
 
   const selectPreset = (days: number) => {
     if (days === 0) {
@@ -317,6 +376,114 @@ const Analytics = () => {
             </Card>
           </div>
         </div>
+
+        {/* Reading Heatmap - GitHub style */}
+        <Card className="overflow-hidden group hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-mono flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-primary" />
+              Reading Activity (52 Weeks)
+              <Badge variant="secondary" className="text-[9px] font-mono ml-auto">
+                {readingYearStats.totalRead} articles read
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {/* Stats row */}
+            <div className="flex gap-4 mb-4">
+              <div className="flex items-center gap-1.5">
+                <div className="p-1 rounded bg-primary/10"><Flame className="h-3 w-3 text-primary" /></div>
+                <div>
+                  <p className="text-sm font-bold font-mono">{readingYearStats.currentStreak}</p>
+                  <p className="text-[8px] text-muted-foreground font-mono uppercase">Current Streak</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="p-1 rounded bg-chart-4/10"><Zap className="h-3 w-3 text-chart-4" /></div>
+                <div>
+                  <p className="text-sm font-bold font-mono">{readingYearStats.longestStreak}</p>
+                  <p className="text-[8px] text-muted-foreground font-mono uppercase">Longest Streak</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="p-1 rounded bg-chart-2/10"><CalendarIcon className="h-3 w-3 text-chart-2" /></div>
+                <div>
+                  <p className="text-sm font-bold font-mono">{readingYearStats.activeDays}</p>
+                  <p className="text-[8px] text-muted-foreground font-mono uppercase">Active Days</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Month labels */}
+            <div className="flex gap-0 mb-1 ml-8">
+              {monthLabels.map((m, i) => (
+                <div
+                  key={`${m.label}-${i}`}
+                  className="text-[8px] font-mono text-muted-foreground"
+                  style={{ position: "relative", left: `${m.week * 13}px` }}
+                >
+                  {m.label}
+                </div>
+              ))}
+            </div>
+
+            {/* Heatmap grid */}
+            <div className="flex gap-1">
+              <div className="flex flex-col gap-[2px] mr-1 pt-0.5">
+                {DAY_NAMES.map((d, i) => (
+                  i % 2 === 1
+                    ? <div key={d} className="text-[7px] font-mono text-muted-foreground h-[11px] leading-[11px]">{d}</div>
+                    : <div key={d} className="h-[11px]" />
+                ))}
+              </div>
+              <div className="flex gap-[2px] flex-1 overflow-x-auto">
+                {Array.from({ length: totalWeeks }, (_, w) => (
+                  <div key={w} className="flex flex-col gap-[2px]">
+                    {Array.from({ length: 7 }, (_, d) => {
+                      const cell = readingHeatmapData.find((c) => c.week === w && c.day === d);
+                      const intensity = cell ? cell.count / maxReadingHeatmap : 0;
+                      return (
+                        <div
+                          key={d}
+                          className="w-[11px] h-[11px] rounded-[2px] transition-all duration-200 hover:scale-[1.8] hover:z-10 cursor-default"
+                          title={cell ? `${format(new Date(cell.date), "MMM d, yyyy")}: ${cell.count} read` : ""}
+                          style={{
+                            backgroundColor: intensity === 0
+                              ? "hsl(var(--muted) / 0.5)"
+                              : intensity <= 0.25
+                              ? "hsl(var(--primary) / 0.25)"
+                              : intensity <= 0.5
+                              ? "hsl(var(--primary) / 0.5)"
+                              : intensity <= 0.75
+                              ? "hsl(var(--primary) / 0.75)"
+                              : "hsl(var(--primary))",
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Legend */}
+            <div className="flex items-center gap-1 mt-3 justify-end">
+              <span className="text-[8px] font-mono text-muted-foreground">Less</span>
+              {[0, 0.25, 0.5, 0.75, 1].map((v) => (
+                <div
+                  key={v}
+                  className="w-[11px] h-[11px] rounded-[2px]"
+                  style={{
+                    backgroundColor: v === 0
+                      ? "hsl(var(--muted) / 0.5)"
+                      : `hsl(var(--primary) / ${v})`,
+                  }}
+                />
+              ))}
+              <span className="text-[8px] font-mono text-muted-foreground">More</span>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Activity Heatmap */}
         <Card className="overflow-hidden group hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
