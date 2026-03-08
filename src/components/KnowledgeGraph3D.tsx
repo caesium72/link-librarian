@@ -2425,7 +2425,10 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
     const density = maxPossibleEdges > 0 ? totalEdges / maxPossibleEdges : 0;
     const degreeMap: Record<string, number> = {};
     nodes.forEach(n => { degreeMap[n.id] = 0; });
-    edges.forEach(e => { dsource] = (degreeMap[e.source] || 0) + 1; degreeMap[e.target] = (degreeMap[e.target] || 0) + 1ap[e.target; });
+    edges.forEach(e => {
+      degreeMap[e.source] = (degreeMap[e.source] || 0) + 1;
+      degreeMap[e.target] = (degreeMap[e.target] || 0) + 1;
+    });
     const degrees = Object.values(degreeMap);
     const avgConnections = totalNodes > 0 ? degrees.reduce((a, b) => a + b, 0) / totalNodes : 0;
     const maxDegree = degrees.length > 0 ? Math.max(...degrees) : 0;
