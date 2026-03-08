@@ -2258,6 +2258,11 @@ function ColorLegend({ nodes, maxCount, theme }: { nodes: Node3D[]; maxCount: nu
           <p className="text-[9px] text-muted-foreground font-medium">Electrons = Sub-links</p>
           <p className="text-[8px] text-muted-foreground/70">Click electrons for previews</p>
         </div>
+      ) : theme === "ocean" ? (
+        <div className="space-y-0.5">
+          <p className="text-[9px] text-muted-foreground font-medium">Jellyfish = Tag clusters</p>
+          <p className="text-[8px] text-muted-foreground/70">Tentacles sway with currents</p>
+        </div>
       ) : (
         <div className="space-y-0.5">
           <p className="text-[9px] text-muted-foreground font-medium">Surface Layout</p>
