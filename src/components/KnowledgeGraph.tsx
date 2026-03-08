@@ -862,6 +862,118 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
                     </g>
                   );
                 })}
+
+                {/* Expanded satellite link-atoms */}
+                {expandedTag && expandAnim > 0 && expandedSatellites.map((sat, si) => {
+                  const satR = 6;
+                  const progress = expandAnim;
+                  // Animate from center outward
+                  const sx = sat.cx + (sat.x - sat.cx) * progress;
+                  const sy = sat.cy + (sat.y - sat.cy) * progress;
+                  const chartColors = [
+                    "hsl(var(--chart-1))",
+                    "hsl(var(--chart-2))",
+                    "hsl(var(--chart-3))",
+                    "hsl(var(--chart-4))",
+                    "hsl(var(--chart-5))",
+                  ];
+                  const satColor = chartColors[si % chartColors.length];
+
+                  return (
+                    <g key={`sat-${sat.link.id}`} opacity={progress}>
+                      {/* Connection line from parent to satellite */}
+                      <line
+                        x1={sat.cx}
+                        y1={sat.cy}
+                        x2={sx}
+                        y2={sy}
+                        stroke={satColor}
+                        strokeWidth={0.8}
+                        strokeOpacity={0.4 * progress}
+                        strokeDasharray="3 2"
+                      />
+                      {/* Satellite orbit ring */}
+                      <circle
+                        cx={sx}
+                        cy={sy}
+                        r={satR + 4}
+                        fill="none"
+                        stroke={satColor}
+                        strokeWidth={0.4}
+                        strokeOpacity={0.3 * progress}
+                      />
+                      {/* Satellite nucleus */}
+                      <circle
+                        cx={sx}
+                        cy={sy}
+                        r={satR + 1}
+                        fill={satColor}
+                        fillOpacity={0.1 * progress}
+                      />
+                      <circle
+                        cx={sx}
+                        cy={sy}
+                        r={satR}
+                        fill={satColor}
+                        fillOpacity={0.7 * progress}
+                        stroke={satColor}
+                        strokeWidth={0.8}
+                      />
+                      {/* Tiny orbiting electron */}
+                      <g>
+                        <animateTransform
+                          attributeName="transform"
+                          type="rotate"
+                          from={`0 ${sx} ${sy}`}
+                          to={`360 ${sx} ${sy}`}
+                          dur={`${2 + si * 0.3}s`}
+                          repeatCount="indefinite"
+                        />
+                        <circle
+                          cx={sx + satR + 3}
+                          cy={sy}
+                          r={1.2}
+                          fill={satColor}
+                        />
+                      </g>
+                      {/* Satellite highlight */}
+                      <circle
+                        cx={sx - satR * 0.2}
+                        cy={sy - satR * 0.2}
+                        r={satR * 0.3}
+                        fill="hsl(var(--background))"
+                        fillOpacity={0.25 * progress}
+                      />
+                      {/* Link title label */}
+                      <text
+                        x={sx}
+                        y={sy + satR + 10}
+                        textAnchor="middle"
+                        fontSize={7}
+                        fill="hsl(var(--foreground))"
+                        fillOpacity={progress}
+                        className="select-none pointer-events-none"
+                      >
+                        {(sat.link.title || sat.link.domain || "Link").slice(0, 18)}
+                        {(sat.link.title || "").length > 18 ? "…" : ""}
+                      </text>
+                      {/* Clickable overlay */}
+                      <a
+                        href={sat.link.original_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <circle
+                          cx={sx}
+                          cy={sy}
+                          r={satR + 4}
+                          fill="transparent"
+                          cursor="pointer"
+                        />
+                      </a>
+                    </g>
+                  );
+                })}
               </g>
             </svg>
 
