@@ -1,15 +1,15 @@
 import { useRef, useMemo, useState, useCallback } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls, Text, Billboard, Float } from "@react-three/drei";
+import { OrbitControls, Text, Billboard, Float, Html } from "@react-three/drei";
 import * as THREE from "three";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ExternalLink, Filter, RotateCcw, Circle } from "lucide-react";
+import { ExternalLink, Filter, RotateCcw, Circle, X } from "lucide-react";
 import type { Link } from "@/types/links";
 
-// ─── Planet color palette ───
+// ─── Planet color palette (Cosmos theme) ───
 const PLANET_COLORS = [
   { core: "#e8a838", glow: "#f5d070", ring: "#d4a030", name: "Saturn Gold" },
   { core: "#6b8cff", glow: "#a0b4ff", ring: "#4a6bef", name: "Neptune Blue" },
@@ -21,8 +21,24 @@ const PLANET_COLORS = [
   { core: "#ff6eb4", glow: "#ffa0d0", ring: "#e04898", name: "Venus Pink" },
 ];
 
+// ─── Atom color palette (Atomic theme) ───
+const ATOM_COLORS = [
+  { core: "#00ff88", glow: "#80ffcc", trail: "#00cc66", name: "Neon Green" },
+  { core: "#ff00ff", glow: "#ff80ff", trail: "#cc00cc", name: "Magenta" },
+  { core: "#00ccff", glow: "#80e0ff", trail: "#0099cc", name: "Cyan" },
+  { core: "#ffff00", glow: "#ffff80", trail: "#cccc00", name: "Yellow" },
+  { core: "#ff6600", glow: "#ffaa66", trail: "#cc5500", name: "Orange" },
+  { core: "#cc66ff", glow: "#e0a0ff", trail: "#9933cc", name: "Purple" },
+  { core: "#ff3366", glow: "#ff8099", trail: "#cc1144", name: "Pink" },
+  { core: "#66ff99", glow: "#99ffcc", trail: "#33cc66", name: "Mint" },
+];
+
 function getPlanetColor(index: number) {
   return PLANET_COLORS[index % PLANET_COLORS.length];
+}
+
+function getAtomColor(index: number) {
+  return ATOM_COLORS[index % ATOM_COLORS.length];
 }
 
 interface Node3D {
@@ -40,7 +56,7 @@ interface Edge3D {
   weight: number;
 }
 
-function buildGraph3D(links: Link[]) {
+function buildGraph3D(links: Link[], theme: "cosmos" | "atomic") {
   const tagCount: Record<string, number> = {};
   const cooccurrence: Record<string, number> = {};
   const tagLinks: Record<string, Link[]> = {};
@@ -68,14 +84,21 @@ function buildGraph3D(links: Link[]) {
   const topSet = new Set(topTags);
   const maxC = Math.max(...topTags.map((t) => tagCount[t]), 1);
 
-  // Orbital shell layout — like electron shells around a nucleus
-  // Most important tags go in inner orbits, less important in outer orbits
-  const shellConfig = [
-    { maxNodes: 3, radius: 4, tiltY: 0 },      // Inner shell — top 3 tags
-    { maxNodes: 6, radius: 7, tiltY: 0.4 },     // Second shell
-    { maxNodes: 10, radius: 11, tiltY: -0.3 },   // Third shell
-    { maxNodes: 21, radius: 16, tiltY: 0.6 },    // Outer shell
-  ];
+  // Atomic theme: tighter electron shells
+  // Cosmos theme: wider orbital shells
+  const shellConfig = theme === "atomic" 
+    ? [
+        { maxNodes: 4, radius: 3, tiltY: 0 },
+        { maxNodes: 8, radius: 5.5, tiltY: 0.5 },
+        { maxNodes: 12, radius: 8.5, tiltY: -0.3 },
+        { maxNodes: 16, radius: 12, tiltY: 0.4 },
+      ]
+    : [
+        { maxNodes: 3, radius: 4, tiltY: 0 },
+        { maxNodes: 6, radius: 7, tiltY: 0.4 },
+        { maxNodes: 10, radius: 11, tiltY: -0.3 },
+        { maxNodes: 21, radius: 16, tiltY: 0.6 },
+      ];
 
   const nodes: Node3D[] = [];
   let tagIndex = 0;
@@ -88,9 +111,10 @@ function buildGraph3D(links: Link[]) {
     for (let i = 0; i < count; i++) {
       const tag = nodesInShell[i];
       const angle = (2 * Math.PI * i) / count;
-      // Distribute on tilted orbital plane with slight vertical scatter
-      const verticalScatter = (Math.random() - 0.5) * 1.5;
-      const r = 0.25 + (tagCount[tag] / maxC) * 0.55;
+      const verticalScatter = (Math.random() - 0.5) * (theme === "atomic" ? 0.8 : 1.5);
+      const r = theme === "atomic" 
+        ? 0.2 + (tagCount[tag] / maxC) * 0.4
+        : 0.25 + (tagCount[tag] / maxC) * 0.55;
 
       nodes.push({
         id: tag,
@@ -159,12 +183,171 @@ function SaturnRing({
   );
 }
 
-// ─── Orbiting moons / electron spheres ───
+// ─── Comet trail for atomic theme ───
+interface CometTrailProps {
+  positions: THREE.Vector3[];
+  color: string;
+}
+
+function CometTrail({ positions, color }: CometTrailProps) {
+  const lineRef = useRef<THREE.Line>(null!);
+  
+  const geometry = useMemo(() => {
+    const geo = new THREE.BufferGeometry();
+    const posArray = new Float32Array(positions.length * 3);
+    positions.forEach((pos, i) => {
+      posArray[i * 3] = pos.x;
+      posArray[i * 3 + 1] = pos.y;
+      posArray[i * 3 + 2] = pos.z;
+    });
+    geo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+    return geo;
+  }, [positions]);
+
+  const material = useMemo(() => {
+    return new THREE.LineBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.6,
+      linewidth: 2,
+    });
+  }, [color]);
+
+  if (positions.length < 2) return null;
+
+  return <primitive object={new THREE.Line(geometry, material)} />;
+}
+
+// ─── Orbiting moons with comet trails (Atomic theme) ───
+interface MoonData {
+  orbitRadius: number;
+  size: number;
+  speed: number;
+  phase: number;
+  tiltX: number;
+  tiltZ: number;
+}
+
+function OrbitingMoonsWithTrails({ 
+  parentRadius, 
+  color, 
+  glowColor, 
+  trailColor,
+  count, 
+  isDimmed,
+  nodeId,
+  tagLinks,
+  onMoonClick,
+}: { 
+  parentRadius: number; 
+  color: string; 
+  glowColor: string; 
+  trailColor: string;
+  count: number; 
+  isDimmed: boolean;
+  nodeId: string;
+  tagLinks: Record<string, Link[]>;
+  onMoonClick: (nodeId: string, moonIdx: number, position: THREE.Vector3) => void;
+}) {
+  const groupRef = useRef<THREE.Group>(null!);
+  const trailHistories = useRef<THREE.Vector3[][]>([]);
+  const [trails, setTrails] = useState<THREE.Vector3[][]>([]);
+  
+  const moonData = useMemo(() => {
+    const moons: MoonData[] = [];
+    const numMoons = Math.min(Math.max(count, 1), 4);
+    trailHistories.current = Array(numMoons).fill(null).map(() => []);
+    for (let i = 0; i < numMoons; i++) {
+      moons.push({
+        orbitRadius: parentRadius * (2.2 + i * 0.5),
+        size: 0.06 + Math.random() * 0.04,
+        speed: (1.2 + Math.random() * 0.8) * (i % 2 === 0 ? 1 : -1),
+        phase: (Math.PI * 2 * i) / numMoons,
+        tiltX: (Math.random() - 0.5) * 1.0,
+        tiltZ: (Math.random() - 0.5) * 0.4,
+      });
+    }
+    return moons;
+  }, [parentRadius, count]);
+
+  useFrame((state) => {
+    if (!groupRef.current) return;
+    const children = groupRef.current.children;
+    const t = state.clock.elapsedTime;
+    const newTrails: THREE.Vector3[][] = [];
+    
+    moonData.forEach((moon, i) => {
+      if (children[i]) {
+        const angle = t * moon.speed + moon.phase;
+        const x = Math.cos(angle) * moon.orbitRadius;
+        const y = Math.sin(angle) * moon.orbitRadius * Math.sin(moon.tiltX);
+        const z = Math.sin(angle) * moon.orbitRadius * Math.cos(moon.tiltX);
+        children[i].position.set(x, y, z);
+        
+        // Update trail history
+        const worldPos = new THREE.Vector3();
+        children[i].getWorldPosition(worldPos);
+        trailHistories.current[i].unshift(worldPos.clone());
+        if (trailHistories.current[i].length > 15) {
+          trailHistories.current[i].pop();
+        }
+        newTrails.push([...trailHistories.current[i]]);
+      }
+    });
+    
+    // Update trails every few frames for performance
+    if (Math.floor(t * 30) % 2 === 0) {
+      setTrails(newTrails);
+    }
+  });
+
+  const moonColor = isDimmed ? "#2a2a35" : color;
+  const moonEmissive = isDimmed ? "#1a1a22" : glowColor;
+  const moonOpacity = isDimmed ? 0.3 : 0.95;
+
+  return (
+    <>
+      <group ref={groupRef}>
+        {moonData.map((moon, i) => (
+          <mesh 
+            key={i}
+            onClick={(e) => {
+              e.stopPropagation();
+              const worldPos = new THREE.Vector3();
+              e.object.getWorldPosition(worldPos);
+              onMoonClick(nodeId, i, worldPos);
+            }}
+            onPointerOver={() => { document.body.style.cursor = "pointer"; }}
+            onPointerOut={() => { document.body.style.cursor = "auto"; }}
+          >
+            <sphereGeometry args={[moon.size, 16, 16]} />
+            <meshPhysicalMaterial
+              color={moonColor}
+              emissive={moonEmissive}
+              emissiveIntensity={isDimmed ? 0.05 : 0.8}
+              metalness={0.2}
+              roughness={0.3}
+              clearcoat={1.0}
+              transparent
+              opacity={moonOpacity}
+            />
+          </mesh>
+        ))}
+      </group>
+      {/* Comet trails */}
+      {!isDimmed && trails.map((trail, i) => (
+        <CometTrail key={i} positions={trail} color={trailColor} />
+      ))}
+    </>
+  );
+}
+
+// ─── Original orbiting moons (Cosmos theme - no trails) ───
 function OrbitingMoons({ parentRadius, color, glowColor, count, isDimmed }: { parentRadius: number; color: string; glowColor: string; count: number; isDimmed: boolean }) {
   const groupRef = useRef<THREE.Group>(null!);
   const moonData = useMemo(() => {
     const moons = [];
-    const numMoons = Math.min(Math.max(count, 1), 4); // 1-4 moons based on link count
+    const numMoons = Math.min(Math.max(count, 1), 4);
     for (let i = 0; i < numMoons; i++) {
       moons.push({
         orbitRadius: parentRadius * (2.8 + i * 0.7),
@@ -234,7 +417,7 @@ function AtmosphereShell({ radius, color, opacity }: { radius: number; color: st
   );
 }
 
-// ─── 3D Planet Node ───
+// ─── 3D Planet Node (Cosmos theme) ───
 function PlanetNode({
   node,
   isSelected,
@@ -259,7 +442,6 @@ function PlanetNode({
   const pulsePhase = useRef(Math.random() * Math.PI * 2);
   const planet = getPlanetColor(node.colorIndex);
 
-  // Wobble axis for realistic rotation
   const wobbleAxis = useRef(new THREE.Vector3(
     Math.random() * 0.3 - 0.15,
     1,
@@ -271,15 +453,12 @@ function PlanetNode({
     const target = isSelected ? 1.5 : isHovered ? 1.3 : isConnected ? 1.12 : 1;
     currentScale.current += (target - currentScale.current) * Math.min(delta * 5, 1);
 
-    // Breathing pulse
     const pulse = Math.sin(state.clock.elapsedTime * 1.2 + pulsePhase.current) * 0.03;
     meshRef.current.scale.setScalar(currentScale.current + pulse);
 
-    // Realistic axial rotation
     meshRef.current.rotateOnAxis(wobbleAxis.current, delta * 0.4);
   });
 
-  // When dimmed (another node is selected), go dark grey
   const dimColor = "#2a2a35";
   const dimGlow = "#1a1a22";
   const activeColor = isDimmed ? dimColor : planet.core;
@@ -293,11 +472,9 @@ function PlanetNode({
 
   return (
     <group position={node.position}>
-      {/* Outer atmosphere glow — hidden when dimmed, bright when selected */}
       <AtmosphereShell radius={node.radius * 2.8} color={activeGlow} opacity={isSelected ? 0.2 : isDimmed ? 0.01 : 0.05} />
       <AtmosphereShell radius={node.radius * 1.8} color={activeColor} opacity={isSelected ? 0.3 : isDimmed ? 0.02 : 0.08} />
 
-      {/* Main planet sphere */}
       <mesh
         ref={meshRef}
         onClick={(e) => { e.stopPropagation(); onSelect(isSelected ? null : node.id); }}
@@ -318,7 +495,6 @@ function PlanetNode({
         />
       </mesh>
 
-      {/* Saturn-style rings */}
       <SaturnRing
         radius={node.radius * 1.7}
         thickness={0.025 + sizeNorm * 0.018}
@@ -347,7 +523,6 @@ function PlanetNode({
         speed={isDimmed ? 0.1 : 0.6}
       />
 
-      {/* Orbiting moon spheres */}
       <OrbitingMoons
         parentRadius={node.radius}
         color={activeRing}
@@ -356,7 +531,6 @@ function PlanetNode({
         isDimmed={isDimmed}
       />
 
-      {/* Label */}
       <Billboard follow lockX={false} lockY={false} lockZ={false}>
         <Text
           position={[0, node.radius + 0.4, 0]}
@@ -373,6 +547,132 @@ function PlanetNode({
         <Text
           position={[0, 0, 0]}
           fontSize={0.16}
+          color="#ffffff"
+          anchorX="center"
+          anchorY="middle"
+          font={undefined}
+          outlineWidth={0.012}
+          outlineColor="#000000"
+        >
+          {String(node.count)}
+        </Text>
+      </Billboard>
+    </group>
+  );
+}
+
+// ─── Atom Node (Atomic theme) ───
+function AtomNode({
+  node,
+  isSelected,
+  isConnected,
+  isHovered,
+  isDimmed,
+  maxCount,
+  onSelect,
+  onHover,
+  tagLinks,
+  onMoonClick,
+}: {
+  node: Node3D;
+  isSelected: boolean;
+  isConnected: boolean;
+  isHovered: boolean;
+  isDimmed: boolean;
+  maxCount: number;
+  onSelect: (id: string | null) => void;
+  onHover: (id: string | null) => void;
+  tagLinks: Record<string, Link[]>;
+  onMoonClick: (nodeId: string, moonIdx: number, position: THREE.Vector3) => void;
+}) {
+  const meshRef = useRef<THREE.Mesh>(null!);
+  const currentScale = useRef(1);
+  const pulsePhase = useRef(Math.random() * Math.PI * 2);
+  const atom = getAtomColor(node.colorIndex);
+
+  useFrame((state, delta) => {
+    if (!meshRef.current) return;
+    const target = isSelected ? 1.6 : isHovered ? 1.4 : isConnected ? 1.15 : 1;
+    currentScale.current += (target - currentScale.current) * Math.min(delta * 6, 1);
+
+    const pulse = Math.sin(state.clock.elapsedTime * 2.5 + pulsePhase.current) * 0.04;
+    meshRef.current.scale.setScalar(currentScale.current + pulse);
+  });
+
+  const dimColor = "#1a1a22";
+  const dimGlow = "#0a0a10";
+  const activeColor = isDimmed ? dimColor : atom.core;
+  const activeGlow = isDimmed ? dimGlow : atom.glow;
+  const trailColor = isDimmed ? "#1a1a22" : atom.trail;
+
+  const emissiveIntensity = isSelected ? 2.0 : isHovered ? 1.2 : isDimmed ? 0.02 : 0.5;
+  const sphereOpacity = isSelected ? 1.0 : isDimmed ? 0.4 : 0.85;
+
+  return (
+    <group position={node.position}>
+      {/* Outer glow */}
+      <AtmosphereShell radius={node.radius * 2.2} color={activeGlow} opacity={isSelected ? 0.25 : isDimmed ? 0.01 : 0.08} />
+      
+      {/* Core sphere */}
+      <mesh
+        ref={meshRef}
+        onClick={(e) => { e.stopPropagation(); onSelect(isSelected ? null : node.id); }}
+        onPointerOver={(e) => { e.stopPropagation(); onHover(node.id); document.body.style.cursor = "pointer"; }}
+        onPointerOut={() => { onHover(null); document.body.style.cursor = "auto"; }}
+      >
+        <sphereGeometry args={[node.radius, 48, 48]} />
+        <meshPhysicalMaterial
+          color={activeColor}
+          emissive={activeGlow}
+          emissiveIntensity={emissiveIntensity}
+          metalness={0.0}
+          roughness={0.2}
+          clearcoat={1.0}
+          clearcoatRoughness={0.05}
+          transparent
+          opacity={sphereOpacity}
+        />
+      </mesh>
+
+      {/* Electron orbital ring (neon style) */}
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[node.radius * 1.8, 0.008, 8, 64]} />
+        <meshBasicMaterial color={activeGlow} transparent opacity={isDimmed ? 0.05 : 0.4} />
+      </mesh>
+      <mesh rotation={[Math.PI / 2.5, 0.5, 0]}>
+        <torusGeometry args={[node.radius * 2.2, 0.006, 8, 64]} />
+        <meshBasicMaterial color={activeColor} transparent opacity={isDimmed ? 0.03 : 0.25} />
+      </mesh>
+
+      {/* Orbiting electrons with comet trails */}
+      <OrbitingMoonsWithTrails
+        parentRadius={node.radius}
+        color={activeColor}
+        glowColor={activeGlow}
+        trailColor={trailColor}
+        count={node.count}
+        isDimmed={isDimmed}
+        nodeId={node.id}
+        tagLinks={tagLinks}
+        onMoonClick={onMoonClick}
+      />
+
+      <Billboard follow lockX={false} lockY={false} lockZ={false}>
+        <Text
+          position={[0, node.radius + 0.35, 0]}
+          fontSize={0.2}
+          color={isSelected || isHovered ? "#ffffff" : "#e0e0e0"}
+          anchorX="center"
+          anchorY="bottom"
+          font={undefined}
+          outlineWidth={0.02}
+          outlineColor="#000000"
+        >
+          {node.label}
+        </Text>
+        <Text
+          position={[0, 0, 0]}
+          fontSize={0.15}
           color="#ffffff"
           anchorX="center"
           anchorY="middle"
@@ -427,7 +727,6 @@ function EdgeLine({
     return { curve, lineObj };
   }, [from, to, isHighlighted, isDimmed, sourceColor]);
 
-  // Pulse traveling along the edge
   useFrame((state) => {
     if (!pulseRef.current || !isHighlighted) return;
     const t = (state.clock.elapsedTime * 0.3) % 1;
@@ -480,7 +779,7 @@ function Particles() {
   );
 }
 
-// ─── Central black hole with accretion disk ───
+// ─── Central black hole with accretion disk (Cosmos theme) ───
 function BlackHole() {
   const diskRef = useRef<THREE.Mesh>(null!);
   const disk2Ref = useRef<THREE.Mesh>(null!);
@@ -522,7 +821,72 @@ function BlackHole() {
   );
 }
 
-// ─── Orbital ring guides (electron shell style) ───
+// ─── Central Nucleus (Atomic theme) ───
+function AtomNucleus() {
+  const groupRef = useRef<THREE.Group>(null!);
+  const coreRef = useRef<THREE.Mesh>(null!);
+  const protonsRef = useRef<THREE.Group>(null!);
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    if (coreRef.current) {
+      const pulse = 1 + Math.sin(t * 3) * 0.08;
+      coreRef.current.scale.setScalar(pulse);
+    }
+    if (protonsRef.current) {
+      protonsRef.current.rotation.y = t * 0.3;
+      protonsRef.current.rotation.x = Math.sin(t * 0.2) * 0.2;
+    }
+  });
+
+  return (
+    <group ref={groupRef}>
+      {/* Central glowing core */}
+      <mesh ref={coreRef}>
+        <sphereGeometry args={[0.5, 32, 32]} />
+        <meshPhysicalMaterial
+          color="#ff3366"
+          emissive="#ff0044"
+          emissiveIntensity={1.5}
+          metalness={0}
+          roughness={0.2}
+          clearcoat={1}
+        />
+      </mesh>
+      {/* Outer glow */}
+      <mesh>
+        <sphereGeometry args={[0.8, 32, 32]} />
+        <meshBasicMaterial color="#ff6699" transparent opacity={0.15} depthWrite={false} />
+      </mesh>
+      <mesh>
+        <sphereGeometry args={[1.2, 32, 32]} />
+        <meshBasicMaterial color="#ff99bb" transparent opacity={0.08} depthWrite={false} />
+      </mesh>
+      
+      {/* Orbiting protons/neutrons */}
+      <group ref={protonsRef}>
+        {[0, 1, 2, 3].map((i) => {
+          const angle = (Math.PI * 2 * i) / 4;
+          const r = 0.9;
+          return (
+            <mesh key={i} position={[Math.cos(angle) * r, Math.sin(angle) * r * 0.3, Math.sin(angle) * r]}>
+              <sphereGeometry args={[0.12, 16, 16]} />
+              <meshPhysicalMaterial
+                color={i % 2 === 0 ? "#00ccff" : "#ff6600"}
+                emissive={i % 2 === 0 ? "#0099cc" : "#cc5500"}
+                emissiveIntensity={0.8}
+                metalness={0}
+                roughness={0.3}
+              />
+            </mesh>
+          );
+        })}
+      </group>
+    </group>
+  );
+}
+
+// ─── Orbital ring guides (Cosmos theme) ───
 function OrbitalRings() {
   const refs = [useRef<THREE.Mesh>(null!), useRef<THREE.Mesh>(null!), useRef<THREE.Mesh>(null!), useRef<THREE.Mesh>(null!)];
 
@@ -553,8 +917,39 @@ function OrbitalRings() {
   );
 }
 
-// ─── Scene ───
-function GraphScene({
+// ─── Electron Shells (Atomic theme) ───
+function ElectronShells() {
+  const refs = [useRef<THREE.Mesh>(null!), useRef<THREE.Mesh>(null!), useRef<THREE.Mesh>(null!), useRef<THREE.Mesh>(null!)];
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    const speeds = [0.05, -0.04, 0.03, -0.025];
+    refs.forEach((ref, i) => {
+      if (ref.current) ref.current.rotation.y = t * speeds[i];
+    });
+  });
+
+  const shellData = [
+    { radius: 3, tiltX: Math.PI / 2, color: "#00ff88" },
+    { radius: 5.5, tiltX: Math.PI / 2 + 0.5, color: "#ff00ff" },
+    { radius: 8.5, tiltX: Math.PI / 2 - 0.3, color: "#00ccff" },
+    { radius: 12, tiltX: Math.PI / 2 + 0.4, color: "#ffff00" },
+  ];
+
+  return (
+    <>
+      {shellData.map((s, i) => (
+        <mesh key={i} ref={refs[i]} rotation={[s.tiltX, 0, 0]}>
+          <torusGeometry args={[s.radius, 0.012, 8, 128]} />
+          <meshBasicMaterial color={s.color} transparent opacity={0.15} depthWrite={false} />
+        </mesh>
+      ))}
+    </>
+  );
+}
+
+// ─── Cosmos Scene ───
+function CosmosScene({
   nodes,
   edges,
   selectedTag,
@@ -649,13 +1044,117 @@ function GraphScene({
   );
 }
 
+// ─── Atomic Scene ───
+function AtomicScene({
+  nodes,
+  edges,
+  selectedTag,
+  hoveredTag,
+  connectedTags,
+  maxWeight,
+  maxCount,
+  tagLinks,
+  onSelect,
+  onHover,
+  onMoonClick,
+}: {
+  nodes: Node3D[];
+  edges: Edge3D[];
+  selectedTag: string | null;
+  hoveredTag: string | null;
+  connectedTags: Set<string>;
+  maxWeight: number;
+  maxCount: number;
+  tagLinks: Record<string, Link[]>;
+  onSelect: (id: string | null) => void;
+  onHover: (id: string | null) => void;
+  onMoonClick: (nodeId: string, moonIdx: number, position: THREE.Vector3) => void;
+}) {
+  const nodeMap = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
+
+  return (
+    <>
+      <ambientLight intensity={0.15} />
+      <pointLight position={[10, 10, 10]} intensity={1.5} color="#00ff88" />
+      <pointLight position={[-10, -5, -5]} intensity={1.0} color="#ff00ff" />
+      <pointLight position={[0, 8, -10]} intensity={0.8} color="#00ccff" />
+      <pointLight position={[5, -5, 8]} intensity={0.6} color="#ffff00" />
+
+      <AtomNucleus />
+      <ElectronShells />
+      <Particles />
+
+      {edges.map((edge) => {
+        const s = nodeMap.get(edge.source);
+        const t = nodeMap.get(edge.target);
+        if (!s || !t) return null;
+        const isHighlighted =
+          selectedTag === edge.source || selectedTag === edge.target ||
+          hoveredTag === edge.source || hoveredTag === edge.target;
+        const isDimmed = !!(selectedTag || hoveredTag) && !isHighlighted;
+        return (
+          <EdgeLine
+            key={`${edge.source}-${edge.target}`}
+            from={s.position}
+            to={t.position}
+            weight={edge.weight}
+            maxWeight={maxWeight}
+            isHighlighted={isHighlighted}
+            isDimmed={isDimmed}
+            sourceColor={getAtomColor(s.colorIndex).core}
+            targetColor={getAtomColor(t.colorIndex).core}
+          />
+        );
+      })}
+
+      {nodes.map((node) => (
+        <Float
+          key={node.id}
+          speed={selectedTag === node.id ? 3.0 : 1.5}
+          rotationIntensity={0}
+          floatIntensity={selectedTag === node.id ? 0.4 : 0.15}
+          floatingRange={[-0.04, 0.04]}
+        >
+          <AtomNode
+            node={node}
+            isSelected={selectedTag === node.id}
+            isConnected={connectedTags.has(node.id)}
+            isHovered={hoveredTag === node.id}
+            isDimmed={!!selectedTag && selectedTag !== node.id}
+            maxCount={maxCount}
+            onSelect={onSelect}
+            onHover={onHover}
+            tagLinks={tagLinks}
+            onMoonClick={onMoonClick}
+          />
+        </Float>
+      ))}
+
+      <OrbitControls
+        enableDamping
+        dampingFactor={0.08}
+        rotateSpeed={0.6}
+        zoomSpeed={0.9}
+        minDistance={5}
+        maxDistance={30}
+        enablePan={false}
+        autoRotate
+        autoRotateSpeed={0.3}
+      />
+    </>
+  );
+}
+
 // ─── Color Legend ───
-function ColorLegend({ nodes, maxCount }: { nodes: Node3D[]; maxCount: number }) {
+function ColorLegend({ nodes, maxCount, theme }: { nodes: Node3D[]; maxCount: number; theme: "cosmos" | "atomic" }) {
+  const colors = theme === "cosmos" ? PLANET_COLORS : ATOM_COLORS;
+  
   return (
     <div className="absolute top-3 right-3 bg-background/85 backdrop-blur-md rounded-lg border border-border/50 p-3 space-y-2.5 max-w-[180px] animate-in fade-in slide-in-from-right-3 duration-500 pointer-events-auto">
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Legend</p>
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        {theme === "cosmos" ? "🪐 Cosmos" : "⚛️ Atomic"} Legend
+      </p>
 
-      {/* Size meaning */}
       <div className="space-y-1">
         <p className="text-[9px] text-muted-foreground font-medium">Node Size = Link Count</p>
         <div className="flex items-end gap-1.5 h-5">
@@ -666,11 +1165,10 @@ function ColorLegend({ nodes, maxCount }: { nodes: Node3D[]; maxCount: number })
         </div>
       </div>
 
-      {/* Color groups */}
       <div className="space-y-1">
         <p className="text-[9px] text-muted-foreground font-medium">Color = Tag Group</p>
         <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
-          {PLANET_COLORS.map((c, i) => (
+          {colors.map((c, i) => (
             <div key={i} className="flex items-center gap-1">
               <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: c.core, boxShadow: `0 0 4px ${c.glow}` }} />
               <span className="text-[8px] text-muted-foreground truncate">{c.name}</span>
@@ -679,13 +1177,18 @@ function ColorLegend({ nodes, maxCount }: { nodes: Node3D[]; maxCount: number })
         </div>
       </div>
 
-      {/* Rings meaning */}
-      <div className="space-y-0.5">
-        <p className="text-[9px] text-muted-foreground font-medium">Rings = Connections</p>
-        <p className="text-[8px] text-muted-foreground/70">Brighter rings = more active</p>
-      </div>
+      {theme === "cosmos" ? (
+        <div className="space-y-0.5">
+          <p className="text-[9px] text-muted-foreground font-medium">Rings = Connections</p>
+          <p className="text-[8px] text-muted-foreground/70">Brighter rings = more active</p>
+        </div>
+      ) : (
+        <div className="space-y-0.5">
+          <p className="text-[9px] text-muted-foreground font-medium">Electrons = Sub-links</p>
+          <p className="text-[8px] text-muted-foreground/70">Click electrons for previews</p>
+        </div>
+      )}
 
-      {/* Edge meaning */}
       <div className="space-y-0.5">
         <p className="text-[9px] text-muted-foreground font-medium">Edges = Co-occurrence</p>
         <p className="text-[8px] text-muted-foreground/70">Tags appearing together on links</p>
@@ -694,17 +1197,81 @@ function ColorLegend({ nodes, maxCount }: { nodes: Node3D[]; maxCount: number })
   );
 }
 
+// ─── Moon Preview Popover ───
+function MoonPreviewPopover({
+  nodeId,
+  tagLinks,
+  onClose,
+  onSelectTag,
+}: {
+  nodeId: string;
+  tagLinks: Record<string, Link[]>;
+  onClose: () => void;
+  onSelectTag: (tag: string) => void;
+}) {
+  const links = tagLinks[nodeId]?.slice(0, 3) || [];
+  
+  return (
+    <div className="absolute top-3 left-3 bg-background/95 backdrop-blur-md rounded-lg border border-border/60 p-3 max-w-[240px] animate-in fade-in zoom-in-95 duration-200 pointer-events-auto z-50">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs font-semibold flex items-center gap-1.5">
+          <Circle className="h-2.5 w-2.5 fill-primary text-primary animate-pulse" />
+          {nodeId}
+        </p>
+        <Button variant="ghost" size="icon" className="h-5 w-5" onClick={onClose}>
+          <X className="h-3 w-3" />
+        </Button>
+      </div>
+      
+      {links.length === 0 ? (
+        <p className="text-[10px] text-muted-foreground">No links found</p>
+      ) : (
+        <div className="space-y-1.5">
+          {links.map((link, i) => (
+            <a
+              key={link.id}
+              href={link.original_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors group"
+            >
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-medium truncate group-hover:text-primary transition-colors">
+                  {link.title || "Untitled"}
+                </p>
+                <p className="text-[9px] text-muted-foreground truncate">{link.domain}</p>
+              </div>
+              <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </a>
+          ))}
+        </div>
+      )}
+      
+      <Button
+        variant="ghost"
+        size="sm"
+        className="w-full mt-2 h-6 text-[10px]"
+        onClick={() => onSelectTag(nodeId)}
+      >
+        View all {tagLinks[nodeId]?.length || 0} links →
+      </Button>
+    </div>
+  );
+}
+
 // ─── Main Export ───
 interface KnowledgeGraph3DProps {
   links: Link[];
   isLoading: boolean;
+  theme?: "cosmos" | "atomic";
 }
 
-export function KnowledgeGraph3D({ links, isLoading }: KnowledgeGraph3DProps) {
+export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: KnowledgeGraph3DProps) {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [hoveredTag, setHoveredTag] = useState<string | null>(null);
+  const [moonPreview, setMoonPreview] = useState<{ nodeId: string; moonIdx: number } | null>(null);
 
-  const { nodes, edges, tagLinks } = useMemo(() => buildGraph3D(links), [links]);
+  const { nodes, edges, tagLinks } = useMemo(() => buildGraph3D(links, theme), [links, theme]);
   const maxWeight = useMemo(() => Math.max(...edges.map((e) => e.weight), 1), [edges]);
   const maxCount = useMemo(() => Math.max(...nodes.map((n) => n.count), 1), [nodes]);
 
@@ -723,6 +1290,10 @@ export function KnowledgeGraph3D({ links, isLoading }: KnowledgeGraph3DProps) {
     if (!selectedTag || !tagLinks[selectedTag]) return [];
     return tagLinks[selectedTag].slice(0, 8);
   }, [selectedTag, tagLinks]);
+
+  const handleMoonClick = useCallback((nodeId: string, moonIdx: number, position: THREE.Vector3) => {
+    setMoonPreview({ nodeId, moonIdx });
+  }, []);
 
   if (isLoading) {
     return (
@@ -752,41 +1323,72 @@ export function KnowledgeGraph3D({ links, isLoading }: KnowledgeGraph3DProps) {
         <CardContent className="p-0 relative">
           <div className="h-[500px] w-full bg-background">
             <Canvas
-              camera={{ position: [0, 8, 25], fov: 50 }}
+              camera={{ position: theme === "atomic" ? [0, 6, 20] : [0, 8, 25], fov: 50 }}
               dpr={[1, 2]}
               style={{ background: "transparent" }}
               gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
-              onPointerMissed={() => setSelectedTag(null)}
+              onPointerMissed={() => { setSelectedTag(null); setMoonPreview(null); }}
             >
-              <fog attach="fog" args={["#09090b", 30, 55]} />
-              <GraphScene
-                nodes={nodes}
-                edges={edges}
-                selectedTag={selectedTag}
-                hoveredTag={hoveredTag}
-                connectedTags={connectedTags}
-                maxWeight={maxWeight}
-                maxCount={maxCount}
-                onSelect={setSelectedTag}
-                onHover={setHoveredTag}
-              />
+              <fog attach="fog" args={[theme === "atomic" ? "#050510" : "#09090b", theme === "atomic" ? 25 : 30, theme === "atomic" ? 45 : 55]} />
+              {theme === "cosmos" ? (
+                <CosmosScene
+                  nodes={nodes}
+                  edges={edges}
+                  selectedTag={selectedTag}
+                  hoveredTag={hoveredTag}
+                  connectedTags={connectedTags}
+                  maxWeight={maxWeight}
+                  maxCount={maxCount}
+                  onSelect={setSelectedTag}
+                  onHover={setHoveredTag}
+                />
+              ) : (
+                <AtomicScene
+                  nodes={nodes}
+                  edges={edges}
+                  selectedTag={selectedTag}
+                  hoveredTag={hoveredTag}
+                  connectedTags={connectedTags}
+                  maxWeight={maxWeight}
+                  maxCount={maxCount}
+                  tagLinks={tagLinks}
+                  onSelect={setSelectedTag}
+                  onHover={setHoveredTag}
+                  onMoonClick={handleMoonClick}
+                />
+              )}
             </Canvas>
           </div>
 
           {/* Color Legend */}
-          <ColorLegend nodes={nodes} maxCount={maxCount} />
+          <ColorLegend nodes={nodes} maxCount={maxCount} theme={theme} />
+
+          {/* Moon Preview Popover (Atomic theme) */}
+          {moonPreview && theme === "atomic" && (
+            <MoonPreviewPopover
+              nodeId={moonPreview.nodeId}
+              tagLinks={tagLinks}
+              onClose={() => setMoonPreview(null)}
+              onSelectTag={(tag) => { setSelectedTag(tag); setMoonPreview(null); }}
+            />
+          )}
 
           {/* Controls hint */}
           <div className="absolute bottom-3 left-3 flex items-center gap-1.5 text-[10px] text-muted-foreground bg-background/80 backdrop-blur-sm rounded-md px-2 py-1 border border-border/40 animate-in fade-in duration-500">
             <RotateCcw className="h-3 w-3" />
             Drag to orbit · Scroll to zoom · Click nodes
+            {theme === "atomic" && " · Click electrons"}
           </div>
 
           {/* Hovered tag tooltip */}
           {hoveredTag && !selectedTag && (
             <div className="absolute top-3 left-3 bg-background/90 backdrop-blur-sm rounded-lg px-3 py-2 border border-border/60 animate-in fade-in zoom-in-95 duration-200">
               <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full" style={{ background: getPlanetColor(nodes.find(n => n.id === hoveredTag)?.colorIndex || 0).core }} />
+                <div className="w-2.5 h-2.5 rounded-full" style={{ 
+                  background: theme === "cosmos" 
+                    ? getPlanetColor(nodes.find(n => n.id === hoveredTag)?.colorIndex || 0).core
+                    : getAtomColor(nodes.find(n => n.id === hoveredTag)?.colorIndex || 0).core
+                }} />
                 <p className="text-xs font-semibold">{hoveredTag}</p>
               </div>
               <p className="text-[10px] text-muted-foreground">
@@ -820,7 +1422,9 @@ export function KnowledgeGraph3D({ links, isLoading }: KnowledgeGraph3DProps) {
                 <div className="flex flex-wrap gap-1.5">
                   {Array.from(connectedTags).map((tag, i) => {
                     const tagNode = nodes.find(n => n.id === tag);
-                    const color = tagNode ? getPlanetColor(tagNode.colorIndex).core : undefined;
+                    const color = tagNode 
+                      ? (theme === "cosmos" ? getPlanetColor(tagNode.colorIndex).core : getAtomColor(tagNode.colorIndex).core)
+                      : undefined;
                     return (
                       <Badge
                         key={tag}
