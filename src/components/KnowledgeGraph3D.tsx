@@ -68,24 +68,45 @@ function buildGraph3D(links: Link[]) {
   const topSet = new Set(topTags);
   const maxC = Math.max(...topTags.map((t) => tagCount[t]), 1);
 
-  const nodes: Node3D[] = topTags.map((tag, i) => {
-    const phi = Math.acos(1 - (2 * (i + 0.5)) / topTags.length);
-    const theta = Math.PI * (1 + Math.sqrt(5)) * i;
-    const spread = 5;
-    const r = 0.25 + (tagCount[tag] / maxC) * 0.55;
-    return {
-      id: tag,
-      label: tag,
-      count: tagCount[tag],
-      position: [
-        spread * Math.sin(phi) * Math.cos(theta),
-        spread * Math.sin(phi) * Math.sin(theta),
-        spread * Math.cos(phi),
-      ] as [number, number, number],
-      radius: r,
-      colorIndex: i,
-    };
-  });
+  // Orbital shell layout — like electron shells around a nucleus
+  // Most important tags go in inner orbits, less important in outer orbits
+  const shellConfig = [
+    { maxNodes: 3, radius: 4, tiltY: 0 },      // Inner shell — top 3 tags
+    { maxNodes: 6, radius: 7, tiltY: 0.4 },     // Second shell
+    { maxNodes: 10, radius: 11, tiltY: -0.3 },   // Third shell
+    { maxNodes: 21, radius: 16, tiltY: 0.6 },    // Outer shell
+  ];
+
+  const nodes: Node3D[] = [];
+  let tagIndex = 0;
+
+  for (const shell of shellConfig) {
+    const nodesInShell = topTags.slice(tagIndex, tagIndex + shell.maxNodes);
+    const count = nodesInShell.length;
+    if (count === 0) break;
+
+    for (let i = 0; i < count; i++) {
+      const tag = nodesInShell[i];
+      const angle = (2 * Math.PI * i) / count;
+      // Distribute on tilted orbital plane with slight vertical scatter
+      const verticalScatter = (Math.random() - 0.5) * 1.5;
+      const r = 0.25 + (tagCount[tag] / maxC) * 0.55;
+
+      nodes.push({
+        id: tag,
+        label: tag,
+        count: tagCount[tag],
+        position: [
+          shell.radius * Math.cos(angle),
+          shell.radius * Math.sin(angle) * Math.sin(shell.tiltY) + verticalScatter,
+          shell.radius * Math.sin(angle) * Math.cos(shell.tiltY),
+        ] as [number, number, number],
+        radius: r,
+        colorIndex: tagIndex + i,
+      });
+    }
+    tagIndex += count;
+  }
 
   const edges: Edge3D[] = [];
   for (const [key, weight] of Object.entries(cooccurrence)) {
