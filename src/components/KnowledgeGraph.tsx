@@ -779,6 +779,32 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
                             key={`electron-${node.id}-${ei}`}
                             transform={`rotate(${tiltAngle}, ${pos.x}, ${pos.y})`}
                           >
+                            {/* Trail particles (staggered behind the electron) */}
+                            {[1, 2, 3, 4, 5].map((ti) => {
+                              const trailDelay = ti * 0.08;
+                              const trailR = electronR * (1 - ti * 0.14);
+                              const trailOpacity = (isSelected ? 0.5 : 0.35) - ti * 0.07;
+                              return (
+                                <g key={`trail-${node.id}-${ei}-${ti}`}>
+                                  <animateTransform
+                                    attributeName="transform"
+                                    type="rotate"
+                                    from={`${startAngle - ti * 8} ${pos.x} ${pos.y}`}
+                                    to={`${startAngle + 360 - ti * 8} ${pos.x} ${pos.y}`}
+                                    dur={`${speed}s`}
+                                    repeatCount="indefinite"
+                                  />
+                                  <circle
+                                    cx={pos.x + orbitR}
+                                    cy={pos.y}
+                                    r={Math.max(0.5, trailR)}
+                                    fill={electronColor}
+                                    fillOpacity={Math.max(0.03, trailOpacity)}
+                                  />
+                                </g>
+                              );
+                            })}
+                            {/* Main electron */}
                             <g>
                               <animateTransform
                                 attributeName="transform"
