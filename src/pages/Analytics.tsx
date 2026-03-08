@@ -1,4 +1,5 @@
 import { useRequireAuth } from "@/hooks/useAuth";
+import { KnowledgeReport } from "@/components/KnowledgeReport";
 import { useQuery } from "@tanstack/react-query";
 import { fetchLinks } from "@/lib/api/links";
 import { Link as RouterLink } from "react-router-dom";
