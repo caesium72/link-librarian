@@ -2226,6 +2226,16 @@ function GalaxyStarfield() {
 }
 
 // ─── Galaxy Scene ───
+function GalaxyDisk({ children }: { children: React.ReactNode }) {
+  const groupRef = useRef<any>(null!);
+  useFrame((_, delta) => {
+    if (groupRef.current) {
+      groupRef.current.rotation.y += delta * 0.03;
+    }
+  });
+  return <group ref={groupRef}>{children}</group>;
+}
+
 function GalaxyScene({
   nodes, edges, selectedTag, hoveredTag, connectedTags, maxWeight, maxCount, onSelect, onHover,
   forceBrightNodes = null, pathEdgeKeys = null,
@@ -2251,49 +2261,51 @@ function GalaxyScene({
       <NebulaClouds />
       <CometTrails />
 
-      {edges.map((edge) => {
-        const s = nodeMap.get(edge.source);
-        const t = nodeMap.get(edge.target);
-        if (!s || !t) return null;
-        const isPathEdge = pathEdgeKeys?.has(`${edge.source}|||${edge.target}`) || pathEdgeKeys?.has(`${edge.target}|||${edge.source}`);
-        const isHighlighted = !!isPathEdge ||
-          selectedTag === edge.source || selectedTag === edge.target ||
-          hoveredTag === edge.source || hoveredTag === edge.target;
-        const isDimmed = forceBrightNodes
-          ? (!forceBrightNodes.has(edge.source) && !forceBrightNodes.has(edge.target))
-          : (!!(selectedTag || hoveredTag) && !isHighlighted);
-        return (
-          <GalaxyEdgeLine
-            key={`${edge.source}-${edge.target}`}
-            from={s.position} to={t.position}
-            weight={edge.weight} maxWeight={maxWeight}
-            isHighlighted={isHighlighted} isDimmed={isDimmed}
-            sourceColor={getGalaxyColor(s.colorIndex).core}
-            targetColor={getGalaxyColor(t.colorIndex).core}
-          />
-        );
-      })}
+      <GalaxyDisk>
+        {edges.map((edge) => {
+          const s = nodeMap.get(edge.source);
+          const t = nodeMap.get(edge.target);
+          if (!s || !t) return null;
+          const isPathEdge = pathEdgeKeys?.has(`${edge.source}|||${edge.target}`) || pathEdgeKeys?.has(`${edge.target}|||${edge.source}`);
+          const isHighlighted = !!isPathEdge ||
+            selectedTag === edge.source || selectedTag === edge.target ||
+            hoveredTag === edge.source || hoveredTag === edge.target;
+          const isDimmed = forceBrightNodes
+            ? (!forceBrightNodes.has(edge.source) && !forceBrightNodes.has(edge.target))
+            : (!!(selectedTag || hoveredTag) && !isHighlighted);
+          return (
+            <GalaxyEdgeLine
+              key={`${edge.source}-${edge.target}`}
+              from={s.position} to={t.position}
+              weight={edge.weight} maxWeight={maxWeight}
+              isHighlighted={isHighlighted} isDimmed={isDimmed}
+              sourceColor={getGalaxyColor(s.colorIndex).core}
+              targetColor={getGalaxyColor(t.colorIndex).core}
+            />
+          );
+        })}
 
-      {nodes.map((node) => (
-        <Float
-          key={node.id}
-          speed={selectedTag === node.id ? 2.0 : 1.0}
-          rotationIntensity={0.02}
-          floatIntensity={selectedTag === node.id ? 0.3 : 0.1}
-          floatingRange={[-0.05, 0.05]}
-        >
-          <GalaxyNode
-            node={node}
-            isSelected={selectedTag === node.id}
-            isConnected={connectedTags.has(node.id)}
-            isHovered={hoveredTag === node.id}
-            isDimmed={forceBrightNodes ? !forceBrightNodes.has(node.id) : (!!selectedTag && selectedTag !== node.id)}
-            maxCount={maxCount}
-            onSelect={onSelect}
-            onHover={onHover}
-          />
-        </Float>
-      ))}
+        {nodes.map((node) => (
+          <Float
+            key={node.id}
+            speed={selectedTag === node.id ? 2.0 : 1.0}
+            rotationIntensity={0.02}
+            floatIntensity={selectedTag === node.id ? 0.3 : 0.1}
+            floatingRange={[-0.05, 0.05]}
+          >
+            <GalaxyNode
+              node={node}
+              isSelected={selectedTag === node.id}
+              isConnected={connectedTags.has(node.id)}
+              isHovered={hoveredTag === node.id}
+              isDimmed={forceBrightNodes ? !forceBrightNodes.has(node.id) : (!!selectedTag && selectedTag !== node.id)}
+              maxCount={maxCount}
+              onSelect={onSelect}
+              onHover={onHover}
+            />
+          </Float>
+        ))}
+      </GalaxyDisk>
 
       <OrbitControls
         enableDamping dampingFactor={0.05}
