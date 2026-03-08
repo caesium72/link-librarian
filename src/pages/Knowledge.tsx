@@ -514,6 +514,15 @@ export default function Knowledge() {
                         <Atom className="h-3 w-3" />
                         Atomic
                       </Button>
+                      <Button
+                        variant={graph3DTheme === "sphere" ? "default" : "outline"}
+                        size="sm"
+                        className="gap-1.5 text-xs h-7 transition-all duration-300"
+                        onClick={() => setGraph3DTheme("sphere")}
+                      >
+                        <Globe className="h-3 w-3" />
+                        Sphere
+                      </Button>
                     </>
                   )}
                   
