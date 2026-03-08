@@ -59,6 +59,18 @@ const OCEAN_COLORS = [
   { core: "#64ffda", glow: "#a0ffe8", tentacle: "#1de9b6", name: "Plankton Teal" },
 ];
 
+// ─── Galaxy color palette (Galaxy theme) ───
+const GALAXY_COLORS = [
+  { core: "#e0b0ff", glow: "#f0d0ff", trail: "#c080e0", name: "Nebula Violet" },
+  { core: "#ff9ecd", glow: "#ffcce0", trail: "#e06090", name: "Stellar Rose" },
+  { core: "#80d4ff", glow: "#b0e8ff", trail: "#40a0e0", name: "Blue Giant" },
+  { core: "#ffe066", glow: "#fff0a0", trail: "#e0c030", name: "Yellow Dwarf" },
+  { core: "#ff8866", glow: "#ffb8a0", trail: "#e05030", name: "Red Supergiant" },
+  { core: "#66ffd0", glow: "#a0ffe8", trail: "#30e0a0", name: "Quasar Teal" },
+  { core: "#b8b0ff", glow: "#d0ccff", trail: "#8070e0", name: "Pulsar Indigo" },
+  { core: "#ffc880", glow: "#ffe0b0", trail: "#e0a040", name: "Binary Gold" },
+];
+
 function getPlanetColor(index: number) {
   return PLANET_COLORS[index % PLANET_COLORS.length];
 }
@@ -73,6 +85,10 @@ function getSphereColor(index: number) {
 
 function getOceanColor(index: number) {
   return OCEAN_COLORS[index % OCEAN_COLORS.length];
+}
+
+function getGalaxyColor(index: number) {
+  return GALAXY_COLORS[index % GALAXY_COLORS.length];
 }
 
 interface Node3D {
