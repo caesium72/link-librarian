@@ -608,7 +608,7 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
                   );
                 })}
 
-                {/* Nodes */}
+                {/* Atom Nodes */}
                 {nodes.map((node, idx) => {
                   const pos = positions[idx] || { x: node.x, y: node.y };
                   const r = node.radius;
@@ -619,14 +619,27 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
                     (selectedTag && !isSelected && !isConnected) ||
                     (searchQuery && !isSearched && !selectedTag);
 
-                  let fillColor = "hsl(var(--primary) / 0.22)";
-                  if (isSelected) fillColor = "hsl(var(--primary))";
-                  else if (isConnected) fillColor = "hsl(var(--primary) / 0.5)";
-                  else if (isSearched) fillColor = "hsl(var(--chart-2))";
+                  const accentColor = isSelected
+                    ? "hsl(var(--primary))"
+                    : isSearched
+                    ? "hsl(var(--chart-2))"
+                    : isConnected
+                    ? "hsl(var(--primary) / 0.6)"
+                    : "hsl(var(--primary) / 0.35)";
 
-                  let strokeColor = "hsl(var(--border))";
-                  if (isSelected) strokeColor = "hsl(var(--primary))";
-                  else if (isSearched) strokeColor = "hsl(var(--chart-2))";
+                  const nucleusColor = isSelected
+                    ? "hsl(var(--primary))"
+                    : isSearched
+                    ? "hsl(var(--chart-2))"
+                    : isConnected
+                    ? "hsl(var(--primary) / 0.7)"
+                    : "hsl(var(--primary) / 0.5)";
+
+                  // Electron orbit count based on node size
+                  const orbitCount = r > 25 ? 3 : r > 18 ? 2 : 1;
+                  const nucleusR = Math.max(4, r * 0.32);
+                  // Electron count scales with link count
+                  const electronCount = Math.min(node.count, orbitCount * 2 + 1);
 
                   return (
                     <g
@@ -642,33 +655,142 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
                         if (!draggingNode) setSelectedTag(selectedTag === node.id ? null : node.id);
                       }}
                     >
-                      {/* Outer glow for selected/searched */}
+                      {/* Outer energy glow */}
                       {(isSelected || isSearched) && (
-                        <circle
-                          cx={pos.x}
-                          cy={pos.y}
-                          r={r + 6}
-                          fill="none"
-                          stroke={isSelected ? "hsl(var(--primary))" : "hsl(var(--chart-2))"}
-                          strokeWidth={2}
-                          strokeOpacity={0.25}
-                          style={{ transition: "r 0.3s ease" }}
-                        />
+                        <>
+                          <circle
+                            cx={pos.x}
+                            cy={pos.y}
+                            r={r + 10}
+                            fill="none"
+                            stroke={accentColor}
+                            strokeWidth={1}
+                            strokeOpacity={0.15}
+                          >
+                            <animate attributeName="r" values={`${r + 8};${r + 14};${r + 8}`} dur="2.5s" repeatCount="indefinite" />
+                            <animate attributeName="stroke-opacity" values="0.15;0.05;0.15" dur="2.5s" repeatCount="indefinite" />
+                          </circle>
+                          <circle
+                            cx={pos.x}
+                            cy={pos.y}
+                            r={r + 4}
+                            fill="none"
+                            stroke={accentColor}
+                            strokeWidth={1.5}
+                            strokeOpacity={0.25}
+                          />
+                        </>
                       )}
-                      {/* Node circle */}
+
+                      {/* Electron orbits (elliptical rings) */}
+                      {Array.from({ length: orbitCount }).map((_, oi) => {
+                        const orbitR = nucleusR + (r - nucleusR) * ((oi + 1) / orbitCount) * 0.95 + 4;
+                        const tiltAngle = oi * (180 / orbitCount) - 30;
+                        const eccentricity = 0.55 + oi * 0.1;
+                        return (
+                          <ellipse
+                            key={`orbit-${node.id}-${oi}`}
+                            cx={pos.x}
+                            cy={pos.y}
+                            rx={orbitR}
+                            ry={orbitR * eccentricity}
+                            fill="none"
+                            stroke={accentColor}
+                            strokeWidth={isSelected ? 0.8 : 0.5}
+                            strokeOpacity={isSelected ? 0.5 : 0.25}
+                            strokeDasharray={oi % 2 === 0 ? "none" : "2 3"}
+                            transform={`rotate(${tiltAngle}, ${pos.x}, ${pos.y})`}
+                            style={{ transition: "stroke-opacity 0.3s ease" }}
+                          />
+                        );
+                      })}
+
+                      {/* Electrons (orbiting dots via rotating group) */}
+                      {Array.from({ length: electronCount }).map((_, ei) => {
+                        const orbitIdx = ei % orbitCount;
+                        const orbitR = nucleusR + (r - nucleusR) * ((orbitIdx + 1) / orbitCount) * 0.95 + 4;
+                        const tiltAngle = orbitIdx * (180 / orbitCount) - 30;
+                        const speed = 3 + orbitIdx * 1.5 + ei * 0.7;
+                        const electronR = Math.max(1.5, nucleusR * 0.3);
+                        const electronColor = isSearched ? "hsl(var(--chart-2))" : "hsl(var(--primary))";
+                        const startAngle = (ei * 360) / electronCount;
+
+                        return (
+                          <g
+                            key={`electron-${node.id}-${ei}`}
+                            transform={`rotate(${tiltAngle}, ${pos.x}, ${pos.y})`}
+                          >
+                            <g>
+                              <animateTransform
+                                attributeName="transform"
+                                type="rotate"
+                                from={`${startAngle} ${pos.x} ${pos.y}`}
+                                to={`${startAngle + 360} ${pos.x} ${pos.y}`}
+                                dur={`${speed}s`}
+                                repeatCount="indefinite"
+                              />
+                              <circle
+                                cx={pos.x + orbitR}
+                                cy={pos.y}
+                                r={electronR}
+                                fill={electronColor}
+                                fillOpacity={isSelected ? 1 : 0.8}
+                              />
+                              <circle
+                                cx={pos.x + orbitR}
+                                cy={pos.y}
+                                r={electronR * 2.5}
+                                fill={electronColor}
+                                fillOpacity={0.12}
+                              />
+                            </g>
+                          </g>
+                        );
+                      })}
+
+                      {/* Nucleus (core sphere with gradient feel) */}
                       <circle
                         cx={pos.x}
                         cy={pos.y}
-                        r={r}
-                        fill={fillColor}
-                        stroke={strokeColor}
-                        strokeWidth={isSelected ? 2.5 : 1}
+                        r={nucleusR + 2}
+                        fill={nucleusColor}
+                        fillOpacity={0.15}
+                      />
+                      <circle
+                        cx={pos.x}
+                        cy={pos.y}
+                        r={nucleusR}
+                        fill={nucleusColor}
+                        stroke={accentColor}
+                        strokeWidth={isSelected ? 2 : 1}
                         style={{ transition: "fill 0.3s ease, stroke 0.3s ease" }}
                       />
-                      {/* Label */}
+                      {/* Nucleus highlight */}
+                      <circle
+                        cx={pos.x - nucleusR * 0.25}
+                        cy={pos.y - nucleusR * 0.25}
+                        r={nucleusR * 0.35}
+                        fill="hsl(var(--background))"
+                        fillOpacity={0.3}
+                      />
+
+                      {/* Count inside nucleus */}
                       <text
                         x={pos.x}
-                        y={pos.y + r + 14}
+                        y={pos.y + (nucleusR > 6 ? 3 : 2.5)}
+                        textAnchor="middle"
+                        fontSize={nucleusR > 6 ? 8 : 6}
+                        fill="hsl(var(--primary-foreground))"
+                        fontWeight={700}
+                        className="select-none pointer-events-none"
+                      >
+                        {node.count}
+                      </text>
+
+                      {/* Label below */}
+                      <text
+                        x={pos.x}
+                        y={pos.y + r + 16}
                         textAnchor="middle"
                         fontSize={10}
                         fill="hsl(var(--foreground))"
@@ -677,18 +799,6 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
                         style={{ transition: "font-weight 0.2s ease" }}
                       >
                         {node.label}
-                      </text>
-                      {/* Count */}
-                      <text
-                        x={pos.x}
-                        y={pos.y + 4}
-                        textAnchor="middle"
-                        fontSize={r > 18 ? 10 : 8}
-                        fill="hsl(var(--primary-foreground))"
-                        fontWeight={600}
-                        className="select-none pointer-events-none"
-                      >
-                        {node.count}
                       </text>
                     </g>
                   );
