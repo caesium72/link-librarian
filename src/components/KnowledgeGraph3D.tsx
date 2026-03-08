@@ -159,6 +159,64 @@ function SaturnRing({
   );
 }
 
+// ─── Orbiting moons / electron spheres ───
+function OrbitingMoons({ parentRadius, color, glowColor, count, isDimmed }: { parentRadius: number; color: string; glowColor: string; count: number; isDimmed: boolean }) {
+  const groupRef = useRef<THREE.Group>(null!);
+  const moonData = useMemo(() => {
+    const moons = [];
+    const numMoons = Math.min(Math.max(count, 1), 4); // 1-4 moons based on link count
+    for (let i = 0; i < numMoons; i++) {
+      moons.push({
+        orbitRadius: parentRadius * (2.8 + i * 0.7),
+        size: 0.04 + Math.random() * 0.04,
+        speed: (0.8 + Math.random() * 0.6) * (i % 2 === 0 ? 1 : -1),
+        phase: (Math.PI * 2 * i) / numMoons,
+        tiltX: (Math.random() - 0.5) * 1.2,
+        tiltZ: (Math.random() - 0.5) * 0.6,
+      });
+    }
+    return moons;
+  }, [parentRadius, count]);
+
+  useFrame((state) => {
+    if (!groupRef.current) return;
+    const children = groupRef.current.children;
+    const t = state.clock.elapsedTime;
+    moonData.forEach((moon, i) => {
+      if (children[i]) {
+        const angle = t * moon.speed + moon.phase;
+        children[i].position.x = Math.cos(angle) * moon.orbitRadius;
+        children[i].position.y = Math.sin(angle) * moon.orbitRadius * Math.sin(moon.tiltX);
+        children[i].position.z = Math.sin(angle) * moon.orbitRadius * Math.cos(moon.tiltX);
+      }
+    });
+  });
+
+  const moonColor = isDimmed ? "#2a2a35" : color;
+  const moonEmissive = isDimmed ? "#1a1a22" : glowColor;
+  const moonOpacity = isDimmed ? 0.3 : 0.9;
+
+  return (
+    <group ref={groupRef}>
+      {moonData.map((moon, i) => (
+        <mesh key={i}>
+          <sphereGeometry args={[moon.size, 16, 16]} />
+          <meshPhysicalMaterial
+            color={moonColor}
+            emissive={moonEmissive}
+            emissiveIntensity={isDimmed ? 0.05 : 0.6}
+            metalness={0.3}
+            roughness={0.4}
+            clearcoat={0.8}
+            transparent
+            opacity={moonOpacity}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 // ─── Atmospheric glow shell ───
 function AtmosphereShell({ radius, color, opacity }: { radius: number; color: string; opacity: number }) {
   const ref = useRef<THREE.Mesh>(null!);
