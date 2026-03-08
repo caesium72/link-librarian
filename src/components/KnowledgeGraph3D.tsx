@@ -2411,9 +2411,9 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
               onPointerMissed={() => { setSelectedTag(null); setMoonPreview(null); }}
             >
               <fog attach="fog" args={[
-                theme === "atomic" ? "#050510" : theme === "sphere" ? "#080818" : "#09090b", 
-                theme === "atomic" ? 25 : theme === "sphere" ? 20 : 30, 
-                theme === "atomic" ? 45 : theme === "sphere" ? 50 : 55
+                theme === "atomic" ? "#050510" : theme === "sphere" ? "#080818" : theme === "ocean" ? "#001525" : "#09090b", 
+                theme === "atomic" ? 25 : theme === "sphere" ? 20 : theme === "ocean" ? 15 : 30, 
+                theme === "atomic" ? 45 : theme === "sphere" ? 50 : theme === "ocean" ? 50 : 55
               ]} />
               <SceneTransition themeKey={theme}>
                 {theme === "cosmos" ? (
