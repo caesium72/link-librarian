@@ -429,6 +429,48 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
     return tagLinks[selectedTag].slice(0, 10);
   }, [selectedTag, tagLinks]);
 
+  // Satellite atoms for expanded node
+  const expandedSatellites = useMemo(() => {
+    if (!expandedTag || !tagLinks[expandedTag]) return [];
+    const satLinks = tagLinks[expandedTag].slice(0, 8);
+    const nodeIdx = nodes.findIndex((n) => n.id === expandedTag);
+    const centerPos = positions[nodeIdx] || { x: 400, y: 350 };
+    const parentR = nodes[nodeIdx]?.radius || 20;
+    const orbitRadius = parentR + 55;
+    return satLinks.map((link, i) => {
+      const angle = (2 * Math.PI * i) / satLinks.length - Math.PI / 2;
+      return {
+        link,
+        x: centerPos.x + orbitRadius * Math.cos(angle),
+        y: centerPos.y + orbitRadius * Math.sin(angle),
+        cx: centerPos.x,
+        cy: centerPos.y,
+      };
+    });
+  }, [expandedTag, tagLinks, nodes, positions]);
+
+  // Expand animation driver
+  useEffect(() => {
+    if (expandedTag) {
+      let start: number | null = null;
+      const duration = 400;
+      const animate = (ts: number) => {
+        if (!start) start = ts;
+        const progress = Math.min((ts - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+        setExpandAnim(eased);
+        if (progress < 1) {
+          expandAnimRef.current = requestAnimationFrame(animate);
+        }
+      };
+      setExpandAnim(0);
+      expandAnimRef.current = requestAnimationFrame(animate);
+      return () => cancelAnimationFrame(expandAnimRef.current);
+    } else {
+      setExpandAnim(0);
+    }
+  }, [expandedTag]);
+
   const getNodePos = useCallback(
     (id: string) => {
       const idx = nodes.findIndex((n) => n.id === id);
@@ -438,9 +480,23 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
     [nodes, positions]
   );
 
+  const handleNodeClick = useCallback((nodeId: string) => {
+    if (draggingNode) return;
+    if (expandedTag === nodeId) {
+      setExpandedTag(null);
+      setSelectedTag(null);
+    } else if (selectedTag === nodeId) {
+      // Second click on selected → expand
+      setExpandedTag(nodeId);
+    } else {
+      setExpandedTag(null);
+      setSelectedTag(nodeId);
+    }
+  }, [selectedTag, expandedTag, draggingNode]);
+
   const handleZoomIn = () => setZoom((z) => Math.min(z * 1.3, 3));
   const handleZoomOut = () => setZoom((z) => Math.max(z / 1.3, 0.3));
-  const handleReset = () => { setZoom(1); setPan({ x: 0, y: 0 }); setSelectedTag(null); setSearchQuery(""); };
+  const handleReset = () => { setZoom(1); setPan({ x: 0, y: 0 }); setSelectedTag(null); setExpandedTag(null); setSearchQuery(""); };
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
