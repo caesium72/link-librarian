@@ -45,6 +45,18 @@ const SPHERE_COLORS = [
   { core: "#7986cb", glow: "#9fa8da", edge: "#5c6bc0", name: "Indigo" },
 ];
 
+// ─── Ocean color palette (Deep Ocean theme) ───
+const OCEAN_COLORS = [
+  { core: "#00e5ff", glow: "#80f0ff", tentacle: "#00b8d4", name: "Jellyfish Cyan" },
+  { core: "#ea80fc", glow: "#f0b0ff", tentacle: "#d500f9", name: "Anemone Purple" },
+  { core: "#69f0ae", glow: "#b0ffd0", tentacle: "#00e676", name: "Algae Green" },
+  { core: "#ffab40", glow: "#ffd080", tentacle: "#ff9100", name: "Coral Orange" },
+  { core: "#ff80ab", glow: "#ffb0cc", tentacle: "#ff4081", name: "Sea Rose" },
+  { core: "#40c4ff", glow: "#80d8ff", tentacle: "#0091ea", name: "Deep Blue" },
+  { core: "#b388ff", glow: "#d0b0ff", tentacle: "#7c4dff", name: "Urchin Violet" },
+  { core: "#64ffda", glow: "#a0ffe8", tentacle: "#1de9b6", name: "Plankton Teal" },
+];
+
 function getPlanetColor(index: number) {
   return PLANET_COLORS[index % PLANET_COLORS.length];
 }
@@ -55,6 +67,10 @@ function getAtomColor(index: number) {
 
 function getSphereColor(index: number) {
   return SPHERE_COLORS[index % SPHERE_COLORS.length];
+}
+
+function getOceanColor(index: number) {
+  return OCEAN_COLORS[index % OCEAN_COLORS.length];
 }
 
 interface Node3D {
@@ -72,7 +88,7 @@ interface Edge3D {
   weight: number;
 }
 
-function buildGraph3D(links: Link[], theme: "cosmos" | "atomic" | "sphere") {
+function buildGraph3D(links: Link[], theme: "cosmos" | "atomic" | "sphere" | "ocean") {
   const tagCount: Record<string, number> = {};
   const cooccurrence: Record<string, number> = {};
   const tagLinks: Record<string, Link[]> = {};
@@ -117,6 +133,29 @@ function buildGraph3D(links: Link[], theme: "cosmos" | "atomic" | "sphere") {
       const z = sphereRadius * Math.sin(phi) * Math.sin(theta);
       
       const r = 0.3 + (tagCount[tag] / maxC) * 0.5;
+
+      nodes.push({
+        id: tag,
+        label: tag,
+        count: tagCount[tag],
+        position: [x, y, z] as [number, number, number],
+        radius: r,
+        colorIndex: i,
+      });
+    }
+  } else if (theme === "ocean") {
+    // Ocean theme: vertical helix arrangement like a coral reef
+    const helixRadius = 8;
+    const helixHeight = 20;
+
+    for (let i = 0; i < topTags.length; i++) {
+      const tag = topTags[i];
+      const frac = i / Math.max(topTags.length - 1, 1);
+      const angle = frac * Math.PI * 4;
+      const y = (frac - 0.5) * helixHeight;
+      const x = helixRadius * Math.cos(angle) * (0.7 + Math.random() * 0.3);
+      const z = helixRadius * Math.sin(angle) * (0.7 + Math.random() * 0.3);
+      const r = 0.25 + (tagCount[tag] / maxC) * 0.5;
 
       nodes.push({
         id: tag,
@@ -1132,6 +1171,370 @@ function SceneTransition({ themeKey, children }: { themeKey: string; children: R
   return <group ref={groupRef}>{children}</group>;
 }
 
+// ─── Jellyfish Node (Ocean theme) ───
+function JellyfishNode({
+  node, isSelected, isConnected, isHovered, isDimmed, maxCount, onSelect, onHover,
+}: {
+  node: Node3D; isSelected: boolean; isConnected: boolean; isHovered: boolean;
+  isDimmed: boolean; maxCount: number;
+  onSelect: (id: string | null) => void; onHover: (id: string | null) => void;
+}) {
+  const meshRef = useRef<THREE.Mesh>(null!);
+  const tentaclesRef = useRef<THREE.Group>(null!);
+  const currentScale = useRef(1);
+  const pulsePhase = useRef(Math.random() * Math.PI * 2);
+  const oceanColor = getOceanColor(node.colorIndex);
+
+  const tentacleCount = 6;
+  const segCount = 10;
+  const tentacleLen = node.radius * 3.5;
+
+  const tentacleData = useMemo(() => {
+    const data: { lines: THREE.Line; angle: number }[] = [];
+    for (let t = 0; t < tentacleCount; t++) {
+      const angle = (Math.PI * 2 * t) / tentacleCount + pulsePhase.current;
+      const points: THREE.Vector3[] = [];
+      for (let s = 0; s <= segCount; s++) {
+        const frac = s / segCount;
+        points.push(new THREE.Vector3(
+          Math.cos(angle) * node.radius * 0.4 * (1 - frac * 0.5),
+          -frac * tentacleLen,
+          Math.sin(angle) * node.radius * 0.4 * (1 - frac * 0.5),
+        ));
+      }
+      const geo = new THREE.BufferGeometry().setFromPoints(points);
+      const mat = new THREE.LineBasicMaterial({
+        color: isDimmed ? "#1a1a22" : oceanColor.tentacle,
+        transparent: true,
+        opacity: isDimmed ? 0.08 : 0.35,
+      });
+      data.push({ lines: new THREE.Line(geo, mat), angle });
+    }
+    return data;
+  }, [node.radius, isDimmed, oceanColor.tentacle]);
+
+  useFrame((state, delta) => {
+    if (!meshRef.current) return;
+    const t = state.clock.elapsedTime;
+    const target = isSelected ? 1.6 : isHovered ? 1.3 : isConnected ? 1.1 : 1;
+    currentScale.current += (target - currentScale.current) * Math.min(delta * 5, 1);
+
+    // Jellyfish breathing
+    const breathe = Math.sin(t * 1.2 + pulsePhase.current) * 0.08;
+    meshRef.current.scale.set(
+      currentScale.current + breathe,
+      currentScale.current - breathe * 0.5,
+      currentScale.current + breathe,
+    );
+
+    // Animate tentacles
+    if (tentaclesRef.current) {
+      tentaclesRef.current.children.forEach((child, idx) => {
+        if (child instanceof THREE.Line) {
+          const geo = child.geometry;
+          const posAttr = geo.getAttribute("position");
+          const angle = tentacleData[idx]?.angle || 0;
+          for (let s = 0; s <= segCount; s++) {
+            const frac = s / segCount;
+            const wave = Math.sin(t * 1.5 + frac * 3.5 + angle) * frac * node.radius * 0.5;
+            const wave2 = Math.cos(t * 1.1 + frac * 2.8 + angle * 1.4) * frac * node.radius * 0.3;
+            posAttr.setXYZ(s,
+              Math.cos(angle) * node.radius * 0.4 * (1 - frac * 0.5) + wave,
+              -frac * tentacleLen - Math.sin(t * 0.8 + angle) * frac * 0.3,
+              Math.sin(angle) * node.radius * 0.4 * (1 - frac * 0.5) + wave2,
+            );
+          }
+          posAttr.needsUpdate = true;
+        }
+      });
+    }
+  });
+
+  const dimColor = "#1a1a22";
+  const dimGlow = "#0a0a10";
+  const activeColor = isDimmed ? dimColor : oceanColor.core;
+  const activeGlow = isDimmed ? dimGlow : oceanColor.glow;
+  const emissiveIntensity = isSelected ? 2.0 : isHovered ? 1.2 : isDimmed ? 0.02 : 0.5;
+
+  return (
+    <group position={node.position}>
+      {/* Bioluminescent outer glow */}
+      <mesh>
+        <sphereGeometry args={[node.radius * 2.5, 32, 32]} />
+        <meshBasicMaterial color={activeGlow} transparent opacity={isSelected ? 0.15 : isDimmed ? 0.01 : 0.06} depthWrite={false} />
+      </mesh>
+
+      {/* Jellyfish bell (dome) */}
+      <mesh
+        ref={meshRef}
+        onClick={(e) => { e.stopPropagation(); onSelect(isSelected ? null : node.id); }}
+        onPointerOver={(e) => { e.stopPropagation(); onHover(node.id); document.body.style.cursor = "pointer"; }}
+        onPointerOut={() => { onHover(null); document.body.style.cursor = "auto"; }}
+      >
+        <sphereGeometry args={[node.radius, 48, 48, 0, Math.PI * 2, 0, Math.PI * 0.6]} />
+        <meshPhysicalMaterial
+          color={activeColor}
+          emissive={activeGlow}
+          emissiveIntensity={emissiveIntensity}
+          metalness={0}
+          roughness={0.1}
+          clearcoat={1.0}
+          clearcoatRoughness={0.05}
+          transmission={isDimmed ? 0 : 0.6}
+          thickness={0.8}
+          transparent
+          opacity={isDimmed ? 0.4 : 0.7}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+
+      {/* Inner bioluminescent core */}
+      <mesh>
+        <sphereGeometry args={[node.radius * 0.4, 16, 16]} />
+        <meshBasicMaterial color={activeColor} transparent opacity={isDimmed ? 0.05 : isSelected ? 0.8 : 0.4} />
+      </mesh>
+
+      {/* Tentacles */}
+      <group ref={tentaclesRef}>
+        {tentacleData.map((td, i) => (
+          <primitive key={i} object={td.lines} />
+        ))}
+      </group>
+
+      <Billboard follow lockX={false} lockY={false} lockZ={false}>
+        <Text
+          position={[0, node.radius + 0.5, 0]}
+          fontSize={0.22}
+          color={isSelected || isHovered ? "#ffffff" : "#c0e8ff"}
+          anchorX="center"
+          anchorY="bottom"
+          font={undefined}
+          outlineWidth={0.02}
+          outlineColor="#001020"
+        >
+          {node.label}
+        </Text>
+        <Text
+          position={[0, 0, 0]}
+          fontSize={0.16}
+          color="#ffffff"
+          anchorX="center"
+          anchorY="middle"
+          font={undefined}
+          outlineWidth={0.012}
+          outlineColor="#001020"
+        >
+          {String(node.count)}
+        </Text>
+      </Billboard>
+    </group>
+  );
+}
+
+// ─── Ocean Edge (flowing current) ───
+function OceanEdgeLine({ from, to, weight, maxWeight, isHighlighted, isDimmed, sourceColor, targetColor }: {
+  from: [number, number, number]; to: [number, number, number];
+  weight: number; maxWeight: number; isHighlighted: boolean; isDimmed: boolean;
+  sourceColor: string; targetColor: string;
+}) {
+  const pulseRef = useRef<THREE.Mesh>(null!);
+
+  const { curve, lineObj, glowLine } = useMemo(() => {
+    const start = new THREE.Vector3(...from);
+    const end = new THREE.Vector3(...to);
+    const mid = start.clone().add(end).multiplyScalar(0.5);
+    mid.y += 1.5;
+    mid.x += (Math.random() - 0.5) * 2;
+
+    const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
+    const points = curve.getPoints(48);
+    const weightNorm = weight / maxWeight;
+
+    const color = isHighlighted ? sourceColor : "#2a4060";
+    const opacity = isDimmed ? 0.02 : isHighlighted ? 0.55 : 0.1 + weightNorm * 0.12;
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const material = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
+    const lineObj = new THREE.Line(geometry, material);
+
+    const glowGeo = new THREE.BufferGeometry().setFromPoints(points);
+    const glowMat = new THREE.LineBasicMaterial({
+      color: isHighlighted ? sourceColor : "#3a5575",
+      transparent: true,
+      opacity: isDimmed ? 0.01 : isHighlighted ? 0.2 : 0.04 + weightNorm * 0.05,
+    });
+    const glowLine = new THREE.Line(glowGeo, glowMat);
+
+    return { curve, lineObj, glowLine };
+  }, [from, to, isHighlighted, isDimmed, sourceColor, weight, maxWeight]);
+
+  useFrame((state) => {
+    if (!pulseRef.current || !isHighlighted) return;
+    const t = (state.clock.elapsedTime * 0.25) % 1;
+    const pos = curve.getPoint(t);
+    pulseRef.current.position.copy(pos);
+  });
+
+  return (
+    <group>
+      <primitive object={glowLine} />
+      <primitive object={lineObj} />
+      {isHighlighted && (
+        <mesh ref={pulseRef}>
+          <sphereGeometry args={[0.06, 10, 10]} />
+          <meshBasicMaterial color={sourceColor} transparent opacity={0.8} />
+        </mesh>
+      )}
+    </group>
+  );
+}
+
+// ─── Ocean Bubbles (rising particles) ───
+function OceanBubbles() {
+  const count = 400;
+  const ref = useRef<THREE.Points>(null!);
+
+  const positions = useMemo(() => {
+    const arr = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      arr[i * 3] = (Math.random() - 0.5) * 50;
+      arr[i * 3 + 1] = (Math.random() - 0.5) * 50;
+      arr[i * 3 + 2] = (Math.random() - 0.5) * 50;
+    }
+    return arr;
+  }, []);
+
+  useFrame((state) => {
+    if (!ref.current) return;
+    const posAttr = ref.current.geometry.getAttribute("position");
+    const t = state.clock.elapsedTime;
+    for (let i = 0; i < count; i++) {
+      let y = posAttr.getY(i);
+      y += 0.008 + Math.sin(t + i) * 0.003;
+      if (y > 25) y = -25;
+      posAttr.setY(i, y);
+      const x = posAttr.getX(i) + Math.sin(t * 0.3 + i * 0.1) * 0.002;
+      posAttr.setX(i, x);
+    }
+    posAttr.needsUpdate = true;
+  });
+
+  return (
+    <points ref={ref}>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
+      </bufferGeometry>
+      <pointsMaterial size={0.05} color="#60c0e0" transparent opacity={0.3} sizeAttenuation />
+    </points>
+  );
+}
+
+// ─── Deep Sea Vent (central element) ───
+function DeepSeaVent() {
+  const coreRef = useRef<THREE.Mesh>(null!);
+  const glowRef = useRef<THREE.Mesh>(null!);
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    if (coreRef.current) {
+      const pulse = 1 + Math.sin(t * 1.5) * 0.1;
+      coreRef.current.scale.setScalar(pulse);
+    }
+    if (glowRef.current) {
+      (glowRef.current.material as THREE.MeshBasicMaterial).opacity = 0.08 + Math.sin(t * 2) * 0.04;
+    }
+  });
+
+  return (
+    <group>
+      <mesh ref={coreRef}>
+        <sphereGeometry args={[0.6, 32, 32]} />
+        <meshPhysicalMaterial color="#00e5ff" emissive="#00b8d4" emissiveIntensity={2} metalness={0} roughness={0.2} />
+      </mesh>
+      <mesh ref={glowRef}>
+        <sphereGeometry args={[1.5, 32, 32]} />
+        <meshBasicMaterial color="#00e5ff" transparent opacity={0.08} depthWrite={false} />
+      </mesh>
+      <mesh>
+        <sphereGeometry args={[2.5, 32, 32]} />
+        <meshBasicMaterial color="#004060" transparent opacity={0.04} depthWrite={false} />
+      </mesh>
+    </group>
+  );
+}
+
+// ─── Ocean Scene ───
+function OceanScene({
+  nodes, edges, selectedTag, hoveredTag, connectedTags, maxWeight, maxCount, onSelect, onHover,
+}: {
+  nodes: Node3D[]; edges: Edge3D[];
+  selectedTag: string | null; hoveredTag: string | null; connectedTags: Set<string>;
+  maxWeight: number; maxCount: number;
+  onSelect: (id: string | null) => void; onHover: (id: string | null) => void;
+}) {
+  const nodeMap = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
+
+  return (
+    <>
+      <ambientLight intensity={0.15} />
+      <pointLight position={[0, 15, 0]} intensity={1.5} color="#80d0ff" />
+      <pointLight position={[-10, -10, 5]} intensity={0.8} color="#00e5ff" />
+      <pointLight position={[10, 5, -10]} intensity={0.6} color="#ea80fc" />
+      <pointLight position={[0, -15, 0]} intensity={0.4} color="#69f0ae" />
+
+      <DeepSeaVent />
+      <OceanBubbles />
+
+      {edges.map((edge) => {
+        const s = nodeMap.get(edge.source);
+        const t = nodeMap.get(edge.target);
+        if (!s || !t) return null;
+        const isHighlighted = selectedTag === edge.source || selectedTag === edge.target ||
+          hoveredTag === edge.source || hoveredTag === edge.target;
+        const isDimmed = !!(selectedTag || hoveredTag) && !isHighlighted;
+        return (
+          <OceanEdgeLine
+            key={`${edge.source}-${edge.target}`}
+            from={s.position} to={t.position}
+            weight={edge.weight} maxWeight={maxWeight}
+            isHighlighted={isHighlighted} isDimmed={isDimmed}
+            sourceColor={getOceanColor(s.colorIndex).core}
+            targetColor={getOceanColor(t.colorIndex).core}
+          />
+        );
+      })}
+
+      {nodes.map((node) => (
+        <Float
+          key={node.id}
+          speed={selectedTag === node.id ? 2.0 : 0.8}
+          rotationIntensity={0.01}
+          floatIntensity={selectedTag === node.id ? 0.4 : 0.2}
+          floatingRange={[-0.1, 0.1]}
+        >
+          <JellyfishNode
+            node={node}
+            isSelected={selectedTag === node.id}
+            isConnected={connectedTags.has(node.id)}
+            isHovered={hoveredTag === node.id}
+            isDimmed={!!selectedTag && selectedTag !== node.id}
+            maxCount={maxCount}
+            onSelect={onSelect}
+            onHover={onHover}
+          />
+        </Float>
+      ))}
+
+      <OrbitControls
+        enableDamping dampingFactor={0.04}
+        rotateSpeed={0.4} zoomSpeed={0.6}
+        minDistance={8} maxDistance={40}
+        enablePan={false}
+        autoRotate autoRotateSpeed={0.1}
+      />
+    </>
+  );
+}
+
 
 function CosmosScene({
   nodes,
@@ -1813,9 +2216,9 @@ function SphereScene({
 }
 
 // ─── Color Legend ───
-function ColorLegend({ nodes, maxCount, theme }: { nodes: Node3D[]; maxCount: number; theme: "cosmos" | "atomic" | "sphere" }) {
-  const colors = theme === "cosmos" ? PLANET_COLORS : theme === "atomic" ? ATOM_COLORS : SPHERE_COLORS;
-  const themeName = theme === "cosmos" ? "🪐 Cosmos" : theme === "atomic" ? "⚛️ Atomic" : "🌐 Sphere";
+function ColorLegend({ nodes, maxCount, theme }: { nodes: Node3D[]; maxCount: number; theme: "cosmos" | "atomic" | "sphere" | "ocean" }) {
+  const colors = theme === "cosmos" ? PLANET_COLORS : theme === "atomic" ? ATOM_COLORS : theme === "ocean" ? OCEAN_COLORS : SPHERE_COLORS;
+  const themeName = theme === "cosmos" ? "🪐 Cosmos" : theme === "atomic" ? "⚛️ Atomic" : theme === "ocean" ? "🌊 Ocean" : "🌐 Sphere";
   
   return (
     <div className="absolute top-3 right-3 bg-background/85 backdrop-blur-md rounded-lg border border-border/50 p-3 space-y-2.5 max-w-[180px] animate-in fade-in slide-in-from-right-3 duration-500 pointer-events-auto">
@@ -1854,6 +2257,11 @@ function ColorLegend({ nodes, maxCount, theme }: { nodes: Node3D[]; maxCount: nu
         <div className="space-y-0.5">
           <p className="text-[9px] text-muted-foreground font-medium">Electrons = Sub-links</p>
           <p className="text-[8px] text-muted-foreground/70">Click electrons for previews</p>
+        </div>
+      ) : theme === "ocean" ? (
+        <div className="space-y-0.5">
+          <p className="text-[9px] text-muted-foreground font-medium">Jellyfish = Tag clusters</p>
+          <p className="text-[8px] text-muted-foreground/70">Tentacles sway with currents</p>
         </div>
       ) : (
         <div className="space-y-0.5">
@@ -1936,7 +2344,7 @@ function MoonPreviewPopover({
 interface KnowledgeGraph3DProps {
   links: Link[];
   isLoading: boolean;
-  theme?: "cosmos" | "atomic" | "sphere";
+  theme?: "cosmos" | "atomic" | "sphere" | "ocean";
 }
 
 export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: KnowledgeGraph3DProps) {
@@ -1996,16 +2404,16 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
         <CardContent className="p-0 relative">
           <div className="h-[500px] w-full bg-background">
             <Canvas
-              camera={{ position: theme === "atomic" ? [0, 6, 20] : theme === "sphere" ? [0, 10, 28] : [0, 8, 25], fov: 50 }}
+              camera={{ position: theme === "atomic" ? [0, 6, 20] : theme === "sphere" ? [0, 10, 28] : theme === "ocean" ? [0, 5, 25] : [0, 8, 25], fov: 50 }}
               dpr={[1, 2]}
               style={{ background: "transparent" }}
               gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
               onPointerMissed={() => { setSelectedTag(null); setMoonPreview(null); }}
             >
               <fog attach="fog" args={[
-                theme === "atomic" ? "#050510" : theme === "sphere" ? "#080818" : "#09090b", 
-                theme === "atomic" ? 25 : theme === "sphere" ? 20 : 30, 
-                theme === "atomic" ? 45 : theme === "sphere" ? 50 : 55
+                theme === "atomic" ? "#050510" : theme === "sphere" ? "#080818" : theme === "ocean" ? "#001525" : "#09090b", 
+                theme === "atomic" ? 25 : theme === "sphere" ? 20 : theme === "ocean" ? 15 : 30, 
+                theme === "atomic" ? 45 : theme === "sphere" ? 50 : theme === "ocean" ? 50 : 55
               ]} />
               <SceneTransition themeKey={theme}>
                 {theme === "cosmos" ? (
@@ -2033,6 +2441,18 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
                     onSelect={setSelectedTag}
                     onHover={setHoveredTag}
                     onMoonClick={handleMoonClick}
+                  />
+                ) : theme === "ocean" ? (
+                  <OceanScene
+                    nodes={nodes}
+                    edges={edges}
+                    selectedTag={selectedTag}
+                    hoveredTag={hoveredTag}
+                    connectedTags={connectedTags}
+                    maxWeight={maxWeight}
+                    maxCount={maxCount}
+                    onSelect={setSelectedTag}
+                    onHover={setHoveredTag}
                   />
                 ) : (
                   <SphereScene
@@ -2068,7 +2488,7 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
           <div className="absolute bottom-3 left-3 flex items-center gap-1.5 text-[10px] text-muted-foreground bg-background/80 backdrop-blur-sm rounded-md px-2 py-1 border border-border/40 animate-in fade-in duration-500">
             <RotateCcw className="h-3 w-3" />
             Drag to orbit · Scroll to zoom · Click nodes
-            {theme === "atomic" && " · Click electrons"}
+            {theme === "atomic" && " · Click electrons"}{theme === "ocean" && " · Watch the jellyfish"}
           </div>
 
           {/* Hovered tag tooltip */}
@@ -2080,6 +2500,8 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
                     ? getPlanetColor(nodes.find(n => n.id === hoveredTag)?.colorIndex || 0).core
                     : theme === "atomic"
                     ? getAtomColor(nodes.find(n => n.id === hoveredTag)?.colorIndex || 0).core
+                    : theme === "ocean"
+                    ? getOceanColor(nodes.find(n => n.id === hoveredTag)?.colorIndex || 0).core
                     : getSphereColor(nodes.find(n => n.id === hoveredTag)?.colorIndex || 0).core
                 }} />
                 <p className="text-xs font-semibold">{hoveredTag}</p>
@@ -2116,7 +2538,7 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
                   {Array.from(connectedTags).map((tag, i) => {
                     const tagNode = nodes.find(n => n.id === tag);
                     const color = tagNode 
-                      ? (theme === "cosmos" ? getPlanetColor(tagNode.colorIndex).core : theme === "atomic" ? getAtomColor(tagNode.colorIndex).core : getSphereColor(tagNode.colorIndex).core)
+                      ? (theme === "cosmos" ? getPlanetColor(tagNode.colorIndex).core : theme === "atomic" ? getAtomColor(tagNode.colorIndex).core : theme === "ocean" ? getOceanColor(tagNode.colorIndex).core : getSphereColor(tagNode.colorIndex).core)
                       : undefined;
                     return (
                       <Badge
