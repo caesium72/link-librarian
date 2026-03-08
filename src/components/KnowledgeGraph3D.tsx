@@ -59,6 +59,18 @@ const OCEAN_COLORS = [
   { core: "#64ffda", glow: "#a0ffe8", tentacle: "#1de9b6", name: "Plankton Teal" },
 ];
 
+// ─── Galaxy color palette (Galaxy theme) ───
+const GALAXY_COLORS = [
+  { core: "#e0b0ff", glow: "#f0d0ff", trail: "#c080e0", name: "Nebula Violet" },
+  { core: "#ff9ecd", glow: "#ffcce0", trail: "#e06090", name: "Stellar Rose" },
+  { core: "#80d4ff", glow: "#b0e8ff", trail: "#40a0e0", name: "Blue Giant" },
+  { core: "#ffe066", glow: "#fff0a0", trail: "#e0c030", name: "Yellow Dwarf" },
+  { core: "#ff8866", glow: "#ffb8a0", trail: "#e05030", name: "Red Supergiant" },
+  { core: "#66ffd0", glow: "#a0ffe8", trail: "#30e0a0", name: "Quasar Teal" },
+  { core: "#b8b0ff", glow: "#d0ccff", trail: "#8070e0", name: "Pulsar Indigo" },
+  { core: "#ffc880", glow: "#ffe0b0", trail: "#e0a040", name: "Binary Gold" },
+];
+
 function getPlanetColor(index: number) {
   return PLANET_COLORS[index % PLANET_COLORS.length];
 }
@@ -73,6 +85,10 @@ function getSphereColor(index: number) {
 
 function getOceanColor(index: number) {
   return OCEAN_COLORS[index % OCEAN_COLORS.length];
+}
+
+function getGalaxyColor(index: number) {
+  return GALAXY_COLORS[index % GALAXY_COLORS.length];
 }
 
 interface Node3D {
@@ -90,7 +106,7 @@ interface Edge3D {
   weight: number;
 }
 
-function buildGraph3D(links: Link[], theme: "cosmos" | "atomic" | "sphere" | "ocean") {
+function buildGraph3D(links: Link[], theme: "cosmos" | "atomic" | "sphere" | "ocean" | "galaxy") {
   const tagCount: Record<string, number> = {};
   const cooccurrence: Record<string, number> = {};
   const tagLinks: Record<string, Link[]> = {};
@@ -135,6 +151,32 @@ function buildGraph3D(links: Link[], theme: "cosmos" | "atomic" | "sphere" | "oc
       const z = sphereRadius * Math.sin(phi) * Math.sin(theta);
       
       const r = 0.3 + (tagCount[tag] / maxC) * 0.5;
+
+      nodes.push({
+        id: tag,
+        label: tag,
+        count: tagCount[tag],
+        position: [x, y, z] as [number, number, number],
+        radius: r,
+        colorIndex: i,
+      });
+    }
+  } else if (theme === "galaxy") {
+    // Galaxy theme: spiral arm layout like a galaxy disk
+    const armCount = 3;
+    const maxRadius = 14;
+
+    for (let i = 0; i < topTags.length; i++) {
+      const tag = topTags[i];
+      const arm = i % armCount;
+      const armOffset = (arm / armCount) * Math.PI * 2;
+      const frac = i / Math.max(topTags.length - 1, 1);
+      const radius = 2 + frac * maxRadius;
+      const spiralAngle = armOffset + frac * Math.PI * 3;
+      const x = radius * Math.cos(spiralAngle) + (Math.random() - 0.5) * 1.5;
+      const z = radius * Math.sin(spiralAngle) + (Math.random() - 0.5) * 1.5;
+      const y = (Math.random() - 0.5) * 1.5; // Thin disk
+      const r = 0.25 + (tagCount[tag] / maxC) * 0.5;
 
       nodes.push({
         id: tag,
@@ -1839,6 +1881,431 @@ function DeepSeaVent() {
   );
 }
 
+// ─── Galaxy Node (Star Cluster) ───
+function GalaxyNode({
+  node, isSelected, isConnected, isHovered, isDimmed, maxCount, onSelect, onHover,
+}: {
+  node: Node3D; isSelected: boolean; isConnected: boolean; isHovered: boolean;
+  isDimmed: boolean; maxCount: number;
+  onSelect: (id: string | null) => void; onHover: (id: string | null) => void;
+}) {
+  const meshRef = useRef<THREE.Mesh>(null!);
+  const currentScale = useRef(1);
+  const galaxyColor = getGalaxyColor(node.colorIndex);
+
+  useFrame((state, delta) => {
+    if (!meshRef.current) return;
+    const t = state.clock.elapsedTime;
+    const target = isSelected ? 1.6 : isHovered ? 1.3 : isConnected ? 1.1 : 1;
+    currentScale.current += (target - currentScale.current) * Math.min(delta * 5, 1);
+    const twinkle = 1 + Math.sin(t * 3 + node.colorIndex) * 0.05;
+    meshRef.current.scale.setScalar(currentScale.current * twinkle);
+    meshRef.current.rotation.y += delta * 0.15;
+  });
+
+  const dimColor = "#0a0a15";
+  const dimGlow = "#050510";
+  const activeColor = isDimmed ? dimColor : galaxyColor.core;
+  const activeGlow = isDimmed ? dimGlow : galaxyColor.glow;
+  const emissiveIntensity = isSelected ? 2.5 : isHovered ? 1.5 : isDimmed ? 0.02 : 0.8;
+
+  // Mini star cluster particles around node
+  const clusterPositions = useMemo(() => {
+    const arr = new Float32Array(30 * 3);
+    for (let i = 0; i < 30; i++) {
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.random() * Math.PI;
+      const r = node.radius * (1.5 + Math.random() * 2);
+      arr[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+      arr[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+      arr[i * 3 + 2] = r * Math.cos(phi);
+    }
+    return arr;
+  }, [node.radius]);
+
+  return (
+    <group position={node.position}>
+      {/* Outer nebula glow */}
+      <mesh>
+        <sphereGeometry args={[node.radius * 3, 32, 32]} />
+        <meshBasicMaterial color={activeGlow} transparent opacity={isSelected ? 0.12 : isDimmed ? 0.01 : 0.05} depthWrite={false} />
+      </mesh>
+
+      {/* Core star */}
+      <mesh
+        ref={meshRef}
+        onClick={(e) => { e.stopPropagation(); onSelect(isSelected ? null : node.id); }}
+        onPointerOver={(e) => { e.stopPropagation(); onHover(node.id); document.body.style.cursor = "pointer"; }}
+        onPointerOut={() => { onHover(null); document.body.style.cursor = "auto"; }}
+      >
+        <sphereGeometry args={[node.radius, 32, 32]} />
+        <meshPhysicalMaterial
+          color={activeColor}
+          emissive={activeGlow}
+          emissiveIntensity={emissiveIntensity}
+          metalness={0.3}
+          roughness={0.1}
+          clearcoat={1.0}
+          transparent
+          opacity={isDimmed ? 0.3 : 0.9}
+        />
+      </mesh>
+
+      {/* Inner bright core */}
+      <mesh>
+        <sphereGeometry args={[node.radius * 0.35, 16, 16]} />
+        <meshBasicMaterial color={isDimmed ? dimColor : "#ffffff"} transparent opacity={isDimmed ? 0.05 : isSelected ? 0.9 : 0.6} />
+      </mesh>
+
+      {/* Star cluster particles */}
+      {!isDimmed && (
+        <points>
+          <bufferGeometry>
+            <bufferAttribute attach="attributes-position" count={30} array={clusterPositions} itemSize={3} />
+          </bufferGeometry>
+          <pointsMaterial size={0.04} color={galaxyColor.core} transparent opacity={0.5} sizeAttenuation />
+        </points>
+      )}
+
+      <Billboard follow lockX={false} lockY={false} lockZ={false}>
+        <Text
+          position={[0, node.radius + 0.5, 0]}
+          fontSize={0.22}
+          color={isSelected || isHovered ? "#ffffff" : "#d0c0e8"}
+          anchorX="center"
+          anchorY="bottom"
+          font={undefined}
+          outlineWidth={0.02}
+          outlineColor="#0a0020"
+        >
+          {node.label}
+        </Text>
+        <Text
+          position={[0, 0, 0]}
+          fontSize={0.16}
+          color="#ffffff"
+          anchorX="center"
+          anchorY="middle"
+          font={undefined}
+          outlineWidth={0.012}
+          outlineColor="#0a0020"
+        >
+          {String(node.count)}
+        </Text>
+      </Billboard>
+    </group>
+  );
+}
+
+// ─── Galaxy Edge (starlight bridge) ───
+function GalaxyEdgeLine({ from, to, weight, maxWeight, isHighlighted, isDimmed, sourceColor, targetColor }: {
+  from: [number, number, number]; to: [number, number, number];
+  weight: number; maxWeight: number; isHighlighted: boolean; isDimmed: boolean;
+  sourceColor: string; targetColor: string;
+}) {
+  const particlesRef = useRef<THREE.Group>(null!);
+  const particleCount = isHighlighted ? 5 : 2;
+
+  const { curve, lineObj } = useMemo(() => {
+    const start = new THREE.Vector3(...from);
+    const end = new THREE.Vector3(...to);
+    const mid = start.clone().add(end).multiplyScalar(0.5);
+    mid.y += 0.8 + Math.random();
+
+    const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
+    const points = curve.getPoints(40);
+    const weightNorm = weight / maxWeight;
+    const color = isHighlighted ? sourceColor : "#2a2040";
+    const opacity = isDimmed ? 0.02 : isHighlighted ? 0.5 : 0.08 + weightNorm * 0.1;
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const material = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
+    return { curve, lineObj: new THREE.Line(geometry, material) };
+  }, [from, to, isHighlighted, isDimmed, sourceColor, weight, maxWeight]);
+
+  const offsets = useMemo(() => Array.from({ length: particleCount }, (_, i) => i / particleCount), [particleCount]);
+
+  useFrame((state) => {
+    if (!particlesRef.current || isDimmed) return;
+    const t = state.clock.elapsedTime;
+    particlesRef.current.children.forEach((child, idx) => {
+      const progress = ((t * 0.12 + offsets[idx]) % 1);
+      const pos = curve.getPoint(progress);
+      child.position.copy(pos);
+    });
+  });
+
+  return (
+    <group>
+      <primitive object={lineObj} />
+      {!isDimmed && (
+        <group ref={particlesRef}>
+          {offsets.map((_, i) => (
+            <mesh key={i}>
+              <sphereGeometry args={[0.03, 6, 6]} />
+              <meshBasicMaterial color={isHighlighted ? sourceColor : "#c0a0e0"} transparent opacity={isHighlighted ? 0.8 : 0.4} />
+            </mesh>
+          ))}
+        </group>
+      )}
+    </group>
+  );
+}
+
+// ─── Nebula Clouds ───
+function NebulaClouds() {
+  const groupRef = useRef<THREE.Group>(null!);
+
+  const clouds = useMemo(() => {
+    return Array.from({ length: 6 }, (_, i) => ({
+      position: [
+        (Math.random() - 0.5) * 30,
+        (Math.random() - 0.5) * 8,
+        (Math.random() - 0.5) * 30,
+      ] as [number, number, number],
+      scale: 3 + Math.random() * 5,
+      color: GALAXY_COLORS[i % GALAXY_COLORS.length].glow,
+      speed: 0.05 + Math.random() * 0.1,
+      phase: Math.random() * Math.PI * 2,
+    }));
+  }, []);
+
+  useFrame((state) => {
+    if (!groupRef.current) return;
+    const t = state.clock.elapsedTime;
+    groupRef.current.children.forEach((child, i) => {
+      const cloud = clouds[i];
+      const mat = (child as THREE.Mesh).material as THREE.MeshBasicMaterial;
+      mat.opacity = 0.03 + Math.sin(t * cloud.speed + cloud.phase) * 0.015;
+      child.rotation.y = t * 0.01 + cloud.phase;
+    });
+  });
+
+  return (
+    <group ref={groupRef}>
+      {clouds.map((cloud, i) => (
+        <mesh key={i} position={cloud.position}>
+          <sphereGeometry args={[cloud.scale, 16, 16]} />
+          <meshBasicMaterial color={cloud.color} transparent opacity={0.03} depthWrite={false} side={THREE.DoubleSide} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+// ─── Comet Trails ───
+function CometTrails() {
+  const cometsRef = useRef<THREE.Group>(null!);
+  const cometCount = 3;
+
+  const cometData = useMemo(() => {
+    return Array.from({ length: cometCount }, (_, i) => ({
+      orbitRadius: 18 + i * 5,
+      speed: 0.08 + i * 0.03,
+      tilt: (Math.random() - 0.5) * 0.6,
+      phase: (i / cometCount) * Math.PI * 2,
+      color: GALAXY_COLORS[i % GALAXY_COLORS.length].trail,
+    }));
+  }, []);
+
+  useFrame((state) => {
+    if (!cometsRef.current) return;
+    const t = state.clock.elapsedTime;
+    cometsRef.current.children.forEach((group, i) => {
+      const comet = cometData[i];
+      const angle = t * comet.speed + comet.phase;
+      const x = comet.orbitRadius * Math.cos(angle);
+      const z = comet.orbitRadius * Math.sin(angle);
+      const y = Math.sin(angle * 0.5) * 3 * comet.tilt;
+      group.position.set(x, y, z);
+      // Face direction of travel
+      const nextAngle = angle + 0.05;
+      group.lookAt(
+        comet.orbitRadius * Math.cos(nextAngle),
+        Math.sin(nextAngle * 0.5) * 3 * comet.tilt,
+        comet.orbitRadius * Math.sin(nextAngle),
+      );
+    });
+  });
+
+  return (
+    <group ref={cometsRef}>
+      {cometData.map((comet, i) => (
+        <group key={i}>
+          {/* Comet head */}
+          <mesh>
+            <sphereGeometry args={[0.12, 8, 8]} />
+            <meshBasicMaterial color="#ffffff" transparent opacity={0.9} />
+          </mesh>
+          {/* Comet glow */}
+          <mesh>
+            <sphereGeometry args={[0.3, 8, 8]} />
+            <meshBasicMaterial color={comet.color} transparent opacity={0.3} depthWrite={false} />
+          </mesh>
+          {/* Trail */}
+          <mesh position={[-1.5, 0, 0]} scale={[3, 0.06, 0.06]}>
+            <sphereGeometry args={[1, 8, 4]} />
+            <meshBasicMaterial color={comet.color} transparent opacity={0.2} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+}
+
+// ─── Galaxy Core (central supermassive element) ───
+function GalaxyCore() {
+  const coreRef = useRef<THREE.Mesh>(null!);
+  const diskRef = useRef<THREE.Mesh>(null!);
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    if (coreRef.current) {
+      const pulse = 1 + Math.sin(t * 1.2) * 0.08;
+      coreRef.current.scale.setScalar(pulse);
+    }
+    if (diskRef.current) {
+      diskRef.current.rotation.y = t * 0.05;
+    }
+  });
+
+  return (
+    <group>
+      {/* Core */}
+      <mesh ref={coreRef}>
+        <sphereGeometry args={[0.5, 32, 32]} />
+        <meshPhysicalMaterial color="#e0b0ff" emissive="#c080e0" emissiveIntensity={3} metalness={0.2} roughness={0.1} />
+      </mesh>
+      {/* Inner glow */}
+      <mesh>
+        <sphereGeometry args={[1.2, 32, 32]} />
+        <meshBasicMaterial color="#e0b0ff" transparent opacity={0.06} depthWrite={false} />
+      </mesh>
+      {/* Accretion disk */}
+      <mesh ref={diskRef} rotation={[Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[1.5, 4, 64]} />
+        <meshBasicMaterial color="#c080e0" transparent opacity={0.04} side={THREE.DoubleSide} depthWrite={false} />
+      </mesh>
+      {/* Outer haze */}
+      <mesh>
+        <sphereGeometry args={[3, 32, 32]} />
+        <meshBasicMaterial color="#2a1040" transparent opacity={0.03} depthWrite={false} />
+      </mesh>
+    </group>
+  );
+}
+
+// ─── Starfield (Galaxy background) ───
+function GalaxyStarfield() {
+  const count = 600;
+  const ref = useRef<THREE.Points>(null!);
+
+  const positions = useMemo(() => {
+    const arr = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      arr[i * 3] = (Math.random() - 0.5) * 80;
+      arr[i * 3 + 1] = (Math.random() - 0.5) * 40;
+      arr[i * 3 + 2] = (Math.random() - 0.5) * 80;
+    }
+    return arr;
+  }, []);
+
+  useFrame((state) => {
+    if (!ref.current) return;
+    const mat = ref.current.material as THREE.PointsMaterial;
+    mat.opacity = 0.4 + Math.sin(state.clock.elapsedTime * 0.3) * 0.1;
+  });
+
+  return (
+    <points ref={ref}>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
+      </bufferGeometry>
+      <pointsMaterial size={0.06} color="#e0d0ff" transparent opacity={0.4} sizeAttenuation />
+    </points>
+  );
+}
+
+// ─── Galaxy Scene ───
+function GalaxyScene({
+  nodes, edges, selectedTag, hoveredTag, connectedTags, maxWeight, maxCount, onSelect, onHover,
+  forceBrightNodes = null, pathEdgeKeys = null,
+}: {
+  nodes: Node3D[]; edges: Edge3D[];
+  selectedTag: string | null; hoveredTag: string | null; connectedTags: Set<string>;
+  maxWeight: number; maxCount: number;
+  onSelect: (id: string | null) => void; onHover: (id: string | null) => void;
+  forceBrightNodes?: Set<string> | null; pathEdgeKeys?: Set<string> | null;
+}) {
+  const nodeMap = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
+
+  return (
+    <>
+      <ambientLight intensity={0.1} />
+      <pointLight position={[0, 10, 0]} intensity={2.0} color="#e0b0ff" />
+      <pointLight position={[-12, 5, 8]} intensity={0.8} color="#ff9ecd" />
+      <pointLight position={[12, -3, -8]} intensity={0.6} color="#80d4ff" />
+      <pointLight position={[0, -8, 0]} intensity={0.3} color="#b8b0ff" />
+
+      <GalaxyCore />
+      <GalaxyStarfield />
+      <NebulaClouds />
+      <CometTrails />
+
+      {edges.map((edge) => {
+        const s = nodeMap.get(edge.source);
+        const t = nodeMap.get(edge.target);
+        if (!s || !t) return null;
+        const isPathEdge = pathEdgeKeys?.has(`${edge.source}|||${edge.target}`) || pathEdgeKeys?.has(`${edge.target}|||${edge.source}`);
+        const isHighlighted = !!isPathEdge ||
+          selectedTag === edge.source || selectedTag === edge.target ||
+          hoveredTag === edge.source || hoveredTag === edge.target;
+        const isDimmed = forceBrightNodes
+          ? (!forceBrightNodes.has(edge.source) && !forceBrightNodes.has(edge.target))
+          : (!!(selectedTag || hoveredTag) && !isHighlighted);
+        return (
+          <GalaxyEdgeLine
+            key={`${edge.source}-${edge.target}`}
+            from={s.position} to={t.position}
+            weight={edge.weight} maxWeight={maxWeight}
+            isHighlighted={isHighlighted} isDimmed={isDimmed}
+            sourceColor={getGalaxyColor(s.colorIndex).core}
+            targetColor={getGalaxyColor(t.colorIndex).core}
+          />
+        );
+      })}
+
+      {nodes.map((node) => (
+        <Float
+          key={node.id}
+          speed={selectedTag === node.id ? 2.0 : 1.0}
+          rotationIntensity={0.02}
+          floatIntensity={selectedTag === node.id ? 0.3 : 0.1}
+          floatingRange={[-0.05, 0.05]}
+        >
+          <GalaxyNode
+            node={node}
+            isSelected={selectedTag === node.id}
+            isConnected={connectedTags.has(node.id)}
+            isHovered={hoveredTag === node.id}
+            isDimmed={forceBrightNodes ? !forceBrightNodes.has(node.id) : (!!selectedTag && selectedTag !== node.id)}
+            maxCount={maxCount}
+            onSelect={onSelect}
+            onHover={onHover}
+          />
+        </Float>
+      ))}
+
+      <OrbitControls
+        enableDamping dampingFactor={0.05}
+        rotateSpeed={0.45} zoomSpeed={0.7}
+        minDistance={8} maxDistance={40}
+        enablePan={false}
+        autoRotate autoRotateSpeed={0.15}
+      />
+    </>
+  );
+}
+
 // ─── Ocean Scene ───
 function OceanScene({
   nodes, edges, selectedTag, hoveredTag, connectedTags, maxWeight, maxCount, onSelect, onHover,
@@ -2585,9 +3052,9 @@ function SphereScene({
 }
 
 // ─── Color Legend ───
-function ColorLegend({ nodes, maxCount, theme }: { nodes: Node3D[]; maxCount: number; theme: "cosmos" | "atomic" | "sphere" | "ocean" }) {
-  const colors = theme === "cosmos" ? PLANET_COLORS : theme === "atomic" ? ATOM_COLORS : theme === "ocean" ? OCEAN_COLORS : SPHERE_COLORS;
-  const themeName = theme === "cosmos" ? "🪐 Cosmos" : theme === "atomic" ? "⚛️ Atomic" : theme === "ocean" ? "🌊 Ocean" : "🌐 Sphere";
+function ColorLegend({ nodes, maxCount, theme }: { nodes: Node3D[]; maxCount: number; theme: "cosmos" | "atomic" | "sphere" | "ocean" | "galaxy" }) {
+  const colors = theme === "cosmos" ? PLANET_COLORS : theme === "atomic" ? ATOM_COLORS : theme === "ocean" ? OCEAN_COLORS : theme === "galaxy" ? GALAXY_COLORS : SPHERE_COLORS;
+  const themeName = theme === "cosmos" ? "🪐 Cosmos" : theme === "atomic" ? "⚛️ Atomic" : theme === "ocean" ? "🌊 Ocean" : theme === "galaxy" ? "🌌 Galaxy" : "🌐 Sphere";
   
   return (
     <div className="absolute top-3 right-3 bg-background/85 backdrop-blur-md rounded-lg border border-border/50 p-3 space-y-2.5 max-w-[180px] animate-in fade-in slide-in-from-right-3 duration-500 pointer-events-auto">
@@ -2760,7 +3227,7 @@ function computeClusters(nodes: Node3D[], edges: Edge3D[]) {
 interface KnowledgeGraph3DProps {
   links: Link[];
   isLoading: boolean;
-  theme?: "cosmos" | "atomic" | "sphere" | "ocean";
+  theme?: "cosmos" | "atomic" | "sphere" | "ocean" | "galaxy";
 }
 
 export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: KnowledgeGraph3DProps) {
@@ -2949,16 +3416,16 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
         <CardContent className="p-0 relative">
           <div className="h-[500px] w-full bg-background">
             <Canvas
-              camera={{ position: theme === "atomic" ? [0, 6, 20] : theme === "sphere" ? [0, 10, 28] : theme === "ocean" ? [0, 5, 25] : [0, 8, 25], fov: 50 }}
+              camera={{ position: theme === "atomic" ? [0, 6, 20] : theme === "sphere" ? [0, 10, 28] : theme === "ocean" ? [0, 5, 25] : theme === "galaxy" ? [0, 12, 22] : [0, 8, 25], fov: 50 }}
               dpr={[1, 2]}
               style={{ background: "transparent" }}
               gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
               onPointerMissed={() => { if (activeFeature !== "path") setSelectedTag(null); setMoonPreview(null); }}
             >
               <fog attach="fog" args={[
-                theme === "atomic" ? "#050510" : theme === "sphere" ? "#080818" : theme === "ocean" ? "#001525" : "#09090b",
-                theme === "atomic" ? 25 : theme === "sphere" ? 20 : theme === "ocean" ? 15 : 30,
-                theme === "atomic" ? 45 : theme === "sphere" ? 50 : theme === "ocean" ? 50 : 55
+                theme === "atomic" ? "#050510" : theme === "sphere" ? "#080818" : theme === "ocean" ? "#001525" : theme === "galaxy" ? "#0a0020" : "#09090b",
+                theme === "atomic" ? 25 : theme === "sphere" ? 20 : theme === "ocean" ? 15 : theme === "galaxy" ? 20 : 30,
+                theme === "atomic" ? 45 : theme === "sphere" ? 50 : theme === "ocean" ? 50 : theme === "galaxy" ? 55 : 55
               ]} />
               <SceneTransition themeKey={theme}>
                 {theme === "cosmos" ? (
@@ -2979,6 +3446,14 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
                   />
                 ) : theme === "ocean" ? (
                   <OceanScene
+                    nodes={nodes} edges={edges}
+                    selectedTag={selectedTag} hoveredTag={hoveredTag} connectedTags={connectedTags}
+                    maxWeight={maxWeight} maxCount={maxCount}
+                    onSelect={handleNodeSelect} onHover={setHoveredTag}
+                    forceBrightNodes={forceBrightNodes} pathEdgeKeys={pathEdgeKeys}
+                  />
+                ) : theme === "galaxy" ? (
+                  <GalaxyScene
                     nodes={nodes} edges={edges}
                     selectedTag={selectedTag} hoveredTag={hoveredTag} connectedTags={connectedTags}
                     maxWeight={maxWeight} maxCount={maxCount}
