@@ -72,7 +72,7 @@ interface Edge3D {
   weight: number;
 }
 
-function buildGraph3D(links: Link[], theme: "cosmos" | "atomic") {
+function buildGraph3D(links: Link[], theme: "cosmos" | "atomic" | "sphere") {
   const tagCount: Record<string, number> = {};
   const cooccurrence: Record<string, number> = {};
   const tagLinks: Record<string, Link[]> = {};
@@ -100,52 +100,79 @@ function buildGraph3D(links: Link[], theme: "cosmos" | "atomic") {
   const topSet = new Set(topTags);
   const maxC = Math.max(...topTags.map((t) => tagCount[t]), 1);
 
-  // Atomic theme: tighter electron shells
-  // Cosmos theme: wider orbital shells
-  const shellConfig = theme === "atomic" 
-    ? [
-        { maxNodes: 4, radius: 3, tiltY: 0 },
-        { maxNodes: 8, radius: 5.5, tiltY: 0.5 },
-        { maxNodes: 12, radius: 8.5, tiltY: -0.3 },
-        { maxNodes: 16, radius: 12, tiltY: 0.4 },
-      ]
-    : [
-        { maxNodes: 3, radius: 4, tiltY: 0 },
-        { maxNodes: 6, radius: 7, tiltY: 0.4 },
-        { maxNodes: 10, radius: 11, tiltY: -0.3 },
-        { maxNodes: 21, radius: 16, tiltY: 0.6 },
-      ];
-
   const nodes: Node3D[] = [];
-  let tagIndex = 0;
 
-  for (const shell of shellConfig) {
-    const nodesInShell = topTags.slice(tagIndex, tagIndex + shell.maxNodes);
-    const count = nodesInShell.length;
-    if (count === 0) break;
-
-    for (let i = 0; i < count; i++) {
-      const tag = nodesInShell[i];
-      const angle = (2 * Math.PI * i) / count;
-      const verticalScatter = (Math.random() - 0.5) * (theme === "atomic" ? 0.8 : 1.5);
-      const r = theme === "atomic" 
-        ? 0.2 + (tagCount[tag] / maxC) * 0.4
-        : 0.25 + (tagCount[tag] / maxC) * 0.55;
+  if (theme === "sphere") {
+    // Sphere theme: distribute nodes on sphere surface using Fibonacci spiral
+    const sphereRadius = 12;
+    const goldenRatio = (1 + Math.sqrt(5)) / 2;
+    
+    for (let i = 0; i < topTags.length; i++) {
+      const tag = topTags[i];
+      const theta = 2 * Math.PI * i / goldenRatio;
+      const phi = Math.acos(1 - 2 * (i + 0.5) / topTags.length);
+      
+      const x = sphereRadius * Math.sin(phi) * Math.cos(theta);
+      const y = sphereRadius * Math.cos(phi);
+      const z = sphereRadius * Math.sin(phi) * Math.sin(theta);
+      
+      const r = 0.3 + (tagCount[tag] / maxC) * 0.5;
 
       nodes.push({
         id: tag,
         label: tag,
         count: tagCount[tag],
-        position: [
-          shell.radius * Math.cos(angle),
-          shell.radius * Math.sin(angle) * Math.sin(shell.tiltY) + verticalScatter,
-          shell.radius * Math.sin(angle) * Math.cos(shell.tiltY),
-        ] as [number, number, number],
+        position: [x, y, z] as [number, number, number],
         radius: r,
-        colorIndex: tagIndex + i,
+        colorIndex: i,
       });
     }
-    tagIndex += count;
+  } else {
+    // Atomic/Cosmos shell-based layout
+    const shellConfig = theme === "atomic" 
+      ? [
+          { maxNodes: 4, radius: 3, tiltY: 0 },
+          { maxNodes: 8, radius: 5.5, tiltY: 0.5 },
+          { maxNodes: 12, radius: 8.5, tiltY: -0.3 },
+          { maxNodes: 16, radius: 12, tiltY: 0.4 },
+        ]
+      : [
+          { maxNodes: 3, radius: 4, tiltY: 0 },
+          { maxNodes: 6, radius: 7, tiltY: 0.4 },
+          { maxNodes: 10, radius: 11, tiltY: -0.3 },
+          { maxNodes: 21, radius: 16, tiltY: 0.6 },
+        ];
+
+    let tagIndex = 0;
+
+    for (const shell of shellConfig) {
+      const nodesInShell = topTags.slice(tagIndex, tagIndex + shell.maxNodes);
+      const count = nodesInShell.length;
+      if (count === 0) break;
+
+      for (let i = 0; i < count; i++) {
+        const tag = nodesInShell[i];
+        const angle = (2 * Math.PI * i) / count;
+        const verticalScatter = (Math.random() - 0.5) * (theme === "atomic" ? 0.8 : 1.5);
+        const r = theme === "atomic" 
+          ? 0.2 + (tagCount[tag] / maxC) * 0.4
+          : 0.25 + (tagCount[tag] / maxC) * 0.55;
+
+        nodes.push({
+          id: tag,
+          label: tag,
+          count: tagCount[tag],
+          position: [
+            shell.radius * Math.cos(angle),
+            shell.radius * Math.sin(angle) * Math.sin(shell.tiltY) + verticalScatter,
+            shell.radius * Math.sin(angle) * Math.cos(shell.tiltY),
+          ] as [number, number, number],
+          radius: r,
+          colorIndex: tagIndex + i,
+        });
+      }
+      tagIndex += count;
+    }
   }
 
   const edges: Edge3D[] = [];
