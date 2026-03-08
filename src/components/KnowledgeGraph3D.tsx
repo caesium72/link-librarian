@@ -991,7 +991,36 @@ function ElectronShells() {
   );
 }
 
-// ─── Cosmos Scene ───
+// ─── Scene Transition Wrapper ───
+function SceneTransition({ themeKey, children }: { themeKey: string; children: React.ReactNode }) {
+  const groupRef = useRef<THREE.Group>(null!);
+  const prevTheme = useRef(themeKey);
+  const opacity = useRef(1);
+  const scale = useRef(1);
+
+  useFrame((_, delta) => {
+    if (!groupRef.current) return;
+    if (prevTheme.current !== themeKey) {
+      opacity.current = 0;
+      scale.current = 0.85;
+      prevTheme.current = themeKey;
+    }
+    opacity.current += (1 - opacity.current) * Math.min(delta * 3, 1);
+    scale.current += (1 - scale.current) * Math.min(delta * 3, 1);
+    groupRef.current.scale.setScalar(scale.current);
+    groupRef.current.traverse((child) => {
+      if ((child as any).material) {
+        const mat = (child as any).material;
+        if (mat._baseOpacity === undefined) mat._baseOpacity = mat.opacity ?? 1;
+        mat.opacity = mat._baseOpacity * opacity.current;
+      }
+    });
+  });
+
+  return <group ref={groupRef}>{children}</group>;
+}
+
+
 function CosmosScene({
   nodes,
   edges,
