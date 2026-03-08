@@ -531,6 +531,14 @@ export default function Knowledge() {
                       >
                         🌊 Ocean
                       </Button>
+                      <Button
+                        variant={graph3DTheme === "galaxy" ? "default" : "outline"}
+                        size="sm"
+                        className="gap-1.5 text-xs h-7 transition-all duration-300"
+                        onClick={() => setGraph3DTheme("galaxy")}
+                      >
+                        🌌 Galaxy
+                      </Button>
                     </>
                   )}
                   
