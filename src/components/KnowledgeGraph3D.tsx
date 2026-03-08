@@ -1743,22 +1743,36 @@ function OceanScene({
 
   return (
     <>
-      <ambientLight intensity={0.15} />
-      <pointLight position={[0, 15, 0]} intensity={1.5} color="#80d0ff" />
-      <pointLight position={[-10, -10, 5]} intensity={0.8} color="#00e5ff" />
+      <ambientLight intensity={0.12} />
+      {/* Depth-varied lighting: brighter at top, darker at bottom */}
+      <pointLight position={[0, 20, 0]} intensity={2.0} color="#80d0ff" />
+      <pointLight position={[-10, 5, 5]} intensity={0.8} color="#00e5ff" />
       <pointLight position={[10, 5, -10]} intensity={0.6} color="#ea80fc" />
-      <pointLight position={[0, -15, 0]} intensity={0.4} color="#69f0ae" />
+      <pointLight position={[0, -15, 0]} intensity={0.2} color="#1a237e" />
+      <pointLight position={[5, -10, 5]} intensity={0.3} color="#69f0ae" />
 
+      {/* Environment elements */}
+      <DepthLayers />
       <DeepSeaVent />
       <OceanBubbles />
+      <OceanPlankton />
+      <CausticLights />
+      <SwimmingFish edges={edges} nodeMap={nodeMap} />
+
+      {/* Fog for depth atmosphere */}
+      <fog attach="fog" args={["#050a18", 20, 55]} />
 
       {edges.map((edge) => {
         const s = nodeMap.get(edge.source);
         const t = nodeMap.get(edge.target);
         if (!s || !t) return null;
-        const isHighlighted = selectedTag === edge.source || selectedTag === edge.target ||
+        const isPathEdge = pathEdgeKeys?.has(`${edge.source}|||${edge.target}`) || pathEdgeKeys?.has(`${edge.target}|||${edge.source}`);
+        const isHighlighted = !!isPathEdge ||
+          selectedTag === edge.source || selectedTag === edge.target ||
           hoveredTag === edge.source || hoveredTag === edge.target;
-        const isDimmed = !!(selectedTag || hoveredTag) && !isHighlighted;
+        const isDimmed = forceBrightNodes
+          ? (!forceBrightNodes.has(edge.source) && !forceBrightNodes.has(edge.target))
+          : (!!(selectedTag || hoveredTag) && !isHighlighted);
         return (
           <OceanEdgeLine
             key={`${edge.source}-${edge.target}`}
