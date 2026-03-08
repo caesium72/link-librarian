@@ -2727,6 +2727,7 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
               { key: "time" as const, icon: <Clock3 className="h-3.5 w-3.5" />, label: "Time Travel" },
               { key: "path" as const, icon: <Route className="h-3.5 w-3.5" />, label: "Path Finder" },
               { key: "cluster" as const, icon: <GitBranch className="h-3.5 w-3.5" />, label: "Clusters" },
+              { key: "stats" as const, icon: <BarChart3 className="h-3.5 w-3.5" />, label: "Stats" },
             ]).map(f => (
               <Button
                 key={f.key}
