@@ -520,7 +520,7 @@ export default function Knowledge() {
                   <div className="w-px h-4 bg-border" />
                   {["all", "ai", "dev", "opensource", "startup"].map((c) => (
                     <Button key={c} variant={trendingCategory === c ? "secondary" : "ghost"} size="sm" className="text-xs h-6 px-2.5 capitalize"
-                      onClick={() => { setTrendingCategory(c); setTrendingRealLoaded(false); }}>
+                      onClick={() => setTrendingCategory(c)}>
                       {c === "all" ? "All" : c === "ai" ? "🤖 AI" : c === "dev" ? "🛠 Dev" : c === "opensource" ? "📦 OSS" : "🚀 Startups"}
                     </Button>
                   ))}
