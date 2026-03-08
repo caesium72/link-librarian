@@ -97,7 +97,7 @@ const Settings = () => {
     try {
       // First, test the token by trying to set up the webhook
       const { data: webhookData, error: webhookError } = await supabase.functions.invoke("setup-telegram", {
-        body: { userId: user!.id }
+        body: { userId: user!.id, botToken: botToken.trim() }
       });
 
       if (webhookError) throw webhookError;
