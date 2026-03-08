@@ -33,6 +33,18 @@ const ATOM_COLORS = [
   { core: "#66ff99", glow: "#99ffcc", trail: "#33cc66", name: "Mint" },
 ];
 
+// ─── Sphere color palette (Sphere theme) ───
+const SPHERE_COLORS = [
+  { core: "#4fc3f7", glow: "#81d4fa", edge: "#29b6f6", name: "Sky Blue" },
+  { core: "#ba68c8", glow: "#ce93d8", edge: "#ab47bc", name: "Lavender" },
+  { core: "#81c784", glow: "#a5d6a7", edge: "#66bb6a", name: "Sage" },
+  { core: "#ffb74d", glow: "#ffcc80", edge: "#ffa726", name: "Amber" },
+  { core: "#f06292", glow: "#f48fb1", edge: "#ec407a", name: "Rose" },
+  { core: "#4dd0e1", glow: "#80deea", edge: "#26c6da", name: "Teal" },
+  { core: "#fff176", glow: "#fff59d", edge: "#ffee58", name: "Lemon" },
+  { core: "#7986cb", glow: "#9fa8da", edge: "#5c6bc0", name: "Indigo" },
+];
+
 function getPlanetColor(index: number) {
   return PLANET_COLORS[index % PLANET_COLORS.length];
 }
