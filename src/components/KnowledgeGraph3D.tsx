@@ -543,6 +543,14 @@ function PlanetNode({
 
   return (
     <group position={node.position}>
+      <group ref={groupRef}>
+      {/* Gravitational lensing halo for nearby nodes */}
+      {proximity > 0.1 && (
+        <mesh ref={lensHaloRef} rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[node.radius * 2.2, 0.03, 16, 64]} />
+          <meshBasicMaterial color="#8070ff" transparent opacity={proximity * 0.15} depthWrite={false} />
+        </mesh>
+      )}
       <AtmosphereShell radius={node.radius * 2.8} color={activeGlow} opacity={isSelected ? 0.2 : isDimmed ? 0.01 : 0.05} />
       <AtmosphereShell radius={node.radius * 1.8} color={activeColor} opacity={isSelected ? 0.3 : isDimmed ? 0.02 : 0.08} />
 
