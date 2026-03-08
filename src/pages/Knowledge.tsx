@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft, Flame, Clock, Star, Sparkles, ExternalLink,
   BookOpen, TrendingUp, Eye, RefreshCw, Share2, Box, Layers,
-  Maximize2, Minimize2, Save, Loader2, Wand2, Atom,
+  Maximize2, Minimize2, Save, Loader2, Wand2, Atom, Globe,
 } from "lucide-react";
 import { KnowledgeGraph } from "@/components/KnowledgeGraph";
 import { KnowledgeGraph3D } from "@/components/KnowledgeGraph3D";
