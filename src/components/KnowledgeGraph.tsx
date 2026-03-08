@@ -4,10 +4,30 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Slider } from "@/components/ui/slider";
+import { Label } from "@/components/ui/label";
 import {
   Search, ZoomIn, ZoomOut, Maximize2, GripHorizontal,
-  ExternalLink, Filter, MapIcon,
+  ExternalLink, Filter, MapIcon, Settings2,
 } from "lucide-react";
+
+export interface PhysicsSettings {
+  damping: number;       // 0.5 - 0.98
+  repulsion: number;     // 200 - 3000
+  attraction: number;    // 0.001 - 0.02
+  gravity: number;       // 0.001 - 0.01
+  maxVelocity: number;   // 1 - 15
+  lerpFactor: number;    // 0.05 - 0.5
+}
+
+const DEFAULT_PHYSICS: PhysicsSettings = {
+  damping: 0.82,
+  repulsion: 900,
+  attraction: 0.004,
+  gravity: 0.003,
+  maxVelocity: 5,
+  lerpFactor: 0.18,
+};
 import type { Link } from "@/types/links";
 
 interface GraphNode {
@@ -91,7 +111,8 @@ function useSimulation(
   initialNodes: GraphNode[],
   edges: GraphEdge[],
   width: number,
-  height: number
+  height: number,
+  physicsRef: React.RefObject<PhysicsSettings>
 ) {
   const nodesRef = useRef<GraphNode[]>([]);
   const [positions, setPositions] = useState<SimPositions[]>([]);
@@ -116,7 +137,7 @@ function useSimulation(
 
     const tick = () => {
       const nodes = nodesRef.current;
-      // Smoother alpha decay over longer period
+      const p = physicsRef.current!;
       const progress = iterRef.current / 800;
       const alpha = Math.max(0.001, Math.exp(-2.5 * progress));
 
@@ -139,10 +160,8 @@ function useSimulation(
           const dist = Math.sqrt(dx * dx + dy * dy) || 0.1;
           const minDist = nodes[i].radius + nodes[j].radius + 24;
 
-          // Softer repulsion curve
-          let force = (900 * alpha) / (dist * dist);
+          let force = (p.repulsion * alpha) / (dist * dist);
 
-          // Gentle collision push
           if (dist < minDist) {
             force += ((minDist - dist) / minDist) * 5 * alpha;
           }
@@ -169,7 +188,7 @@ function useSimulation(
         const dy = t.y - s.y;
         const dist = Math.sqrt(dx * dx + dy * dy) || 0.1;
         const idealDist = s.radius + t.radius + 70;
-        const force = (dist - idealDist) * 0.004 * alpha * Math.min(edge.weight, 5);
+        const force = (dist - idealDist) * p.attraction * alpha * Math.min(edge.weight, 5);
         const fx = (dx / dist) * force;
         const fy = (dy / dist) * force;
         if (s.id !== dragRef.current) { s.vx += fx; s.vy += fy; }
@@ -179,18 +198,16 @@ function useSimulation(
       // Gentle center gravity
       for (const node of nodes) {
         if (node.id === dragRef.current) continue;
-        node.vx += (cx - node.x) * 0.003 * alpha;
-        node.vy += (cy - node.y) * 0.003 * alpha;
+        node.vx += (cx - node.x) * p.gravity * alpha;
+        node.vy += (cy - node.y) * p.gravity * alpha;
       }
 
-      // Higher damping for smoother, less jittery motion
-      const damping = 0.82;
+      // Damping and velocity clamping
       for (const node of nodes) {
         if (node.id === dragRef.current) continue;
-        node.vx *= damping;
-        node.vy *= damping;
-        // Lower max velocity for gentler movement
-        const maxV = 5;
+        node.vx *= p.damping;
+        node.vy *= p.damping;
+        const maxV = p.maxVelocity;
         node.vx = Math.max(-maxV, Math.min(maxV, node.vx));
         node.vy = Math.max(-maxV, Math.min(maxV, node.vy));
         node.x += node.vx;
@@ -199,13 +216,12 @@ function useSimulation(
         node.y = Math.max(padding, Math.min(height - padding, node.y));
       }
 
-      // Smoother interpolation (higher lerp = closer tracking but still soft)
-      const lerpFactor = 0.18;
+      // Smooth interpolation
       const newDisplay = nodes.map((n, i) => {
         const prev = displayRef.current[i] || { x: n.x, y: n.y };
         return {
-          x: prev.x + (n.x - prev.x) * lerpFactor,
-          y: prev.y + (n.y - prev.y) * lerpFactor,
+          x: prev.x + (n.x - prev.x) * p.lerpFactor,
+          y: prev.y + (n.y - prev.y) * p.lerpFactor,
         };
       });
       displayRef.current = newDisplay;
@@ -369,6 +385,10 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [draggingNode, setDraggingNode] = useState<string | null>(null);
   const [showMinimap, setShowMinimap] = useState(true);
+  const [showPhysics, setShowPhysics] = useState(false);
+  const [physics, setPhysics] = useState<PhysicsSettings>({ ...DEFAULT_PHYSICS });
+  const physicsRef = useRef<PhysicsSettings>(physics);
+  physicsRef.current = physics;
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [dims, setDims] = useState({ w: 800, h: 600 });
@@ -393,7 +413,8 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
     initialNodes,
     edges,
     dims.w,
-    dims.h
+    dims.h,
+    physicsRef
   );
 
   const maxCount = useMemo(
@@ -544,12 +565,63 @@ export function KnowledgeGraph({ links, isLoading }: KnowledgeGraphProps) {
           >
             <MapIcon className="h-3.5 w-3.5" />
           </Button>
+          <Button
+            variant={showPhysics ? "default" : "outline"}
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setShowPhysics((v) => !v)}
+            title="Physics settings"
+          >
+            <Settings2 className="h-3.5 w-3.5" />
+          </Button>
         </div>
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <GripHorizontal className="h-3.5 w-3.5" />
           <span>Drag nodes · Scroll to zoom · Click to select</span>
         </div>
       </div>
+
+      {/* Physics Settings Panel */}
+      {showPhysics && (
+        <Card className="animate-in fade-in slide-in-from-top-2 duration-300">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                <Settings2 className="h-3.5 w-3.5" /> Physics Settings
+              </h4>
+              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setPhysics({ ...DEFAULT_PHYSICS })}>
+                Reset defaults
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Damping: {physics.damping.toFixed(2)}</Label>
+                <Slider min={50} max={98} step={1} value={[physics.damping * 100]} onValueChange={([v]) => setPhysics(p => ({ ...p, damping: v / 100 }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Repulsion: {Math.round(physics.repulsion)}</Label>
+                <Slider min={200} max={3000} step={50} value={[physics.repulsion]} onValueChange={([v]) => setPhysics(p => ({ ...p, repulsion: v }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Attraction: {physics.attraction.toFixed(3)}</Label>
+                <Slider min={1} max={20} step={1} value={[physics.attraction * 1000]} onValueChange={([v]) => setPhysics(p => ({ ...p, attraction: v / 1000 }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Gravity: {physics.gravity.toFixed(3)}</Label>
+                <Slider min={1} max={10} step={1} value={[physics.gravity * 1000]} onValueChange={([v]) => setPhysics(p => ({ ...p, gravity: v / 1000 }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Max Velocity: {physics.maxVelocity.toFixed(1)}</Label>
+                <Slider min={1} max={15} step={1} value={[physics.maxVelocity]} onValueChange={([v]) => setPhysics(p => ({ ...p, maxVelocity: v }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Smoothing: {physics.lerpFactor.toFixed(2)}</Label>
+                <Slider min={5} max={50} step={1} value={[physics.lerpFactor * 100]} onValueChange={([v]) => setPhysics(p => ({ ...p, lerpFactor: v / 100 }))} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div ref={containerRef} className="w-full">
         <Card className="overflow-hidden relative">
