@@ -116,35 +116,35 @@ function useSimulation(
 
     const tick = () => {
       const nodes = nodesRef.current;
-      // Smooth alpha decay: starts fast, slows gracefully
-      const progress = iterRef.current / 500;
-      const alpha = Math.max(0.002, Math.exp(-3 * progress));
+      // Smoother alpha decay over longer period
+      const progress = iterRef.current / 800;
+      const alpha = Math.max(0.001, Math.exp(-2.5 * progress));
 
-      // Apply drag position
+      // Apply drag position with smooth lerp instead of snapping
       if (dragRef.current && dragPosRef.current) {
         const dragNode = nodeMap.get(dragRef.current);
         if (dragNode) {
-          dragNode.x = dragPosRef.current.x;
-          dragNode.y = dragPosRef.current.y;
+          dragNode.x += (dragPosRef.current.x - dragNode.x) * 0.6;
+          dragNode.y += (dragPosRef.current.y - dragNode.y) * 0.6;
           dragNode.vx = 0;
           dragNode.vy = 0;
         }
       }
 
-      // Repulsion (with collision avoidance using node radii)
+      // Repulsion (with soft collision avoidance)
       for (let i = 0; i < nodes.length; i++) {
         for (let j = i + 1; j < nodes.length; j++) {
           const dx = nodes[j].x - nodes[i].x;
           const dy = nodes[j].y - nodes[i].y;
           const dist = Math.sqrt(dx * dx + dy * dy) || 0.1;
-          const minDist = nodes[i].radius + nodes[j].radius + 20; // minimum gap
+          const minDist = nodes[i].radius + nodes[j].radius + 24;
 
-          // Standard repulsion
-          let force = (1200 * alpha) / (dist * dist);
+          // Softer repulsion curve
+          let force = (900 * alpha) / (dist * dist);
 
-          // Extra collision force when overlapping
+          // Gentle collision push
           if (dist < minDist) {
-            force += ((minDist - dist) / minDist) * 8 * alpha;
+            force += ((minDist - dist) / minDist) * 5 * alpha;
           }
 
           const fx = (dx / dist) * force;
@@ -160,7 +160,7 @@ function useSimulation(
         }
       }
 
-      // Attraction along edges
+      // Softer attraction along edges
       for (const edge of edges) {
         const s = nodeMap.get(edge.source);
         const t = nodeMap.get(edge.target);
@@ -168,29 +168,29 @@ function useSimulation(
         const dx = t.x - s.x;
         const dy = t.y - s.y;
         const dist = Math.sqrt(dx * dx + dy * dy) || 0.1;
-        const idealDist = s.radius + t.radius + 60;
-        const force = (dist - idealDist) * 0.006 * alpha * Math.min(edge.weight, 5);
+        const idealDist = s.radius + t.radius + 70;
+        const force = (dist - idealDist) * 0.004 * alpha * Math.min(edge.weight, 5);
         const fx = (dx / dist) * force;
         const fy = (dy / dist) * force;
         if (s.id !== dragRef.current) { s.vx += fx; s.vy += fy; }
         if (t.id !== dragRef.current) { t.vx -= fx; t.vy -= fy; }
       }
 
-      // Center gravity
+      // Gentle center gravity
       for (const node of nodes) {
         if (node.id === dragRef.current) continue;
-        node.vx += (cx - node.x) * 0.004 * alpha;
-        node.vy += (cy - node.y) * 0.004 * alpha;
+        node.vx += (cx - node.x) * 0.003 * alpha;
+        node.vy += (cy - node.y) * 0.003 * alpha;
       }
 
-      // Apply velocity with smooth damping
-      const damping = 0.7;
+      // Higher damping for smoother, less jittery motion
+      const damping = 0.82;
       for (const node of nodes) {
         if (node.id === dragRef.current) continue;
         node.vx *= damping;
         node.vy *= damping;
-        // Clamp max velocity for stability
-        const maxV = 8;
+        // Lower max velocity for gentler movement
+        const maxV = 5;
         node.vx = Math.max(-maxV, Math.min(maxV, node.vx));
         node.vy = Math.max(-maxV, Math.min(maxV, node.vy));
         node.x += node.vx;
@@ -199,8 +199,8 @@ function useSimulation(
         node.y = Math.max(padding, Math.min(height - padding, node.y));
       }
 
-      // Smooth interpolation for display positions (lerp)
-      const lerpFactor = 0.35;
+      // Smoother interpolation (higher lerp = closer tracking but still soft)
+      const lerpFactor = 0.18;
       const newDisplay = nodes.map((n, i) => {
         const prev = displayRef.current[i] || { x: n.x, y: n.y };
         return {
@@ -213,7 +213,7 @@ function useSimulation(
       setPositions([...newDisplay]);
       iterRef.current++;
 
-      if (iterRef.current < 600 || dragRef.current) {
+      if (iterRef.current < 900 || dragRef.current) {
         frameRef.current = requestAnimationFrame(tick);
       }
     };
