@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ExternalLink, Filter, RotateCcw, Circle, X, Search, Route, Clock3, GitBranch, BarChart3 } from "lucide-react";
+import { ExternalLink, Filter, RotateCcw, Circle, X, Search, Route, Clock3, GitBranch, BarChart3cide-react";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import type { Link } from "@/types/links";
@@ -2425,7 +2425,7 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
     const density = maxPossibleEdges > 0 ? totalEdges / maxPossibleEdges : 0;
     const degreeMap: Record<string, number> = {};
     nodes.forEach(n => { degreeMap[n.id] = 0; });
-    edges.forEach(e => { degreeMap[e.from] = (degreeMap[e.from] || 0) + 1; degreeMap[e.to] = (degreeMap[e.to] || 0) + 1; });
+    edges.forEach(e => { degreeMap[e.from] = (desource] = (degreeMap[e.source] || 0) + 1; degreeMap[e.target] = (degreeMap[e.target; });
     const degrees = Object.values(degreeMap);
     const avgConnections = totalNodes > 0 ? degrees.reduce((a, b) => a + b, 0) / totalNodes : 0;
     const maxDegree = degrees.length > 0 ? Math.max(...degrees) : 0;
