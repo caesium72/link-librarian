@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft, Flame, Clock, Star, Sparkles, ExternalLink,
   BookOpen, TrendingUp, Eye, RefreshCw, Share2, Box, Layers,
-  Maximize2, Minimize2, Save, Loader2, Wand2,
+  Maximize2, Minimize2, Save, Loader2, Wand2, Atom,
 } from "lucide-react";
 import { KnowledgeGraph } from "@/components/KnowledgeGraph";
 import { KnowledgeGraph3D } from "@/components/KnowledgeGraph3D";
@@ -31,6 +31,7 @@ export default function Knowledge() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("trending");
   const [graphMode, setGraphMode] = useState<"3d" | "2d">("3d");
+  const [graph3DTheme, setGraph3DTheme] = useState<"cosmos" | "atomic">("cosmos");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [displayMode, setDisplayMode] = useState<"3d" | "2d">("3d");
@@ -491,6 +492,31 @@ export default function Knowledge() {
                     <Layers className="h-3 w-3" />
                     2D
                   </Button>
+                  
+                  {/* Theme selector (only for 3D mode) */}
+                  {graphMode === "3d" && (
+                    <>
+                      <div className="w-px h-5 bg-border mx-1" />
+                      <Button
+                        variant={graph3DTheme === "cosmos" ? "default" : "outline"}
+                        size="sm"
+                        className="gap-1.5 text-xs h-7 transition-all duration-300"
+                        onClick={() => setGraph3DTheme("cosmos")}
+                      >
+                        🪐 Cosmos
+                      </Button>
+                      <Button
+                        variant={graph3DTheme === "atomic" ? "default" : "outline"}
+                        size="sm"
+                        className="gap-1.5 text-xs h-7 transition-all duration-300"
+                        onClick={() => setGraph3DTheme("atomic")}
+                      >
+                        <Atom className="h-3 w-3" />
+                        Atomic
+                      </Button>
+                    </>
+                  )}
+                  
                   <Button
                     variant="outline"
                     size="sm"
@@ -518,7 +544,7 @@ export default function Knowledge() {
                 }}
               >
                 {displayMode === "3d" ? (
-                  <KnowledgeGraph3D links={allLinks} isLoading={allLinksLoading} />
+                  <KnowledgeGraph3D links={allLinks} isLoading={allLinksLoading} theme={graph3DTheme} />
                 ) : (
                   <KnowledgeGraph links={allLinks} isLoading={allLinksLoading} />
                 )}
