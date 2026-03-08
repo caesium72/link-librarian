@@ -544,7 +544,7 @@ export default function Knowledge() {
                 }}
               >
                 {displayMode === "3d" ? (
-                  <KnowledgeGraph3D links={allLinks} isLoading={allLinksLoading} />
+                  <KnowledgeGraph3D links={allLinks} isLoading={allLinksLoading} theme={graph3DTheme} />
                 ) : (
                   <KnowledgeGraph links={allLinks} isLoading={allLinksLoading} />
                 )}
