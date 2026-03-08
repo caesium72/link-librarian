@@ -1142,6 +1142,114 @@ function ElectronShells() {
   );
 }
 
+// ─── Hyperspace Entry Animation ───
+function HyperspaceEntry({ targetPosition, theme }: { targetPosition: [number, number, number]; theme: string }) {
+  const { camera } = useThree();
+  const streaksRef = useRef<THREE.Points>(null!);
+  const progress = useRef(0);
+  const startPos = useRef<THREE.Vector3 | null>(null);
+  const targetPos = useRef(new THREE.Vector3(...targetPosition));
+  const active = useRef(true);
+  const streakCount = 300;
+
+  const streakData = useMemo(() => {
+    const positions = new Float32Array(streakCount * 3);
+    const velocities = new Float32Array(streakCount * 3);
+    for (let i = 0; i < streakCount; i++) {
+      // Spread in a cone from far away toward center
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.random() * 0.6; // narrow cone
+      const r = 40 + Math.random() * 60;
+      positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+      positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta) + (Math.random() - 0.5) * 20;
+      positions[i * 3 + 2] = r * Math.cos(phi);
+      velocities[i * 3] = -positions[i * 3] * 0.02;
+      velocities[i * 3 + 1] = -positions[i * 3 + 1] * 0.02;
+      velocities[i * 3 + 2] = -positions[i * 3 + 2] * 0.03;
+    }
+    return { positions, velocities };
+  }, []);
+
+  useFrame((_, delta) => {
+    if (!active.current) return;
+
+    if (!startPos.current) {
+      // Set camera far back on first frame
+      const dir = targetPos.current.clone().normalize();
+      startPos.current = targetPos.current.clone().add(dir.multiplyScalar(80));
+      camera.position.copy(startPos.current);
+      camera.lookAt(0, 0, 0);
+    }
+
+    progress.current += delta * 0.55; // ~1.8s total
+    const t = Math.min(progress.current, 1);
+    // Ease-out cubic
+    const ease = 1 - Math.pow(1 - t, 3);
+
+    // Interpolate camera position
+    camera.position.lerpVectors(startPos.current!, targetPos.current, ease);
+    camera.lookAt(0, 0, 0);
+
+    // Animate star streaks
+    if (streaksRef.current) {
+      const posAttr = streaksRef.current.geometry.getAttribute("position");
+      const warpSpeed = Math.max(0, 1 - t) * 2;
+      for (let i = 0; i < streakCount; i++) {
+        let x = posAttr.getX(i) + streakData.velocities[i * 3] * warpSpeed * 60 * delta;
+        let y = posAttr.getY(i) + streakData.velocities[i * 3 + 1] * warpSpeed * 60 * delta;
+        let z = posAttr.getZ(i) + streakData.velocities[i * 3 + 2] * warpSpeed * 60 * delta;
+        // Reset if too close to center
+        const dist = Math.sqrt(x * x + y * y + z * z);
+        if (dist < 2) {
+          const theta = Math.random() * Math.PI * 2;
+          const phi = Math.random() * 0.6;
+          const r = 40 + Math.random() * 40;
+          x = r * Math.sin(phi) * Math.cos(theta);
+          y = r * Math.sin(phi) * Math.sin(theta);
+          z = r * Math.cos(phi);
+        }
+        posAttr.setXYZ(i, x, y, z);
+      }
+      posAttr.needsUpdate = true;
+
+      // Fade out streaks as we arrive
+      const mat = streaksRef.current.material as THREE.PointsMaterial;
+      mat.opacity = Math.max(0, (1 - t) * 0.9);
+      mat.size = 0.03 + (1 - t) * 0.12;
+    }
+
+    if (t >= 1) {
+      active.current = false;
+      if (streaksRef.current) {
+        streaksRef.current.visible = false;
+      }
+    }
+  });
+
+  const streakColor = theme === "ocean" ? "#60c0e0" : theme === "atomic" ? "#00ff88" : theme === "sphere" ? "#4fc3f7" : "#aabbff";
+
+  return (
+    <points ref={streaksRef}>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          array={streakData.positions}
+          count={streakCount}
+          itemSize={3}
+        />
+      </bufferGeometry>
+      <pointsMaterial
+        color={streakColor}
+        size={0.15}
+        transparent
+        opacity={0.9}
+        depthWrite={false}
+        sizeAttenuation
+      />
+    </points>
+  );
+}
+
 // ─── Scene Transition Wrapper ───
 function SceneTransition({ themeKey, children }: { themeKey: string; children: React.ReactNode }) {
   const groupRef = useRef<THREE.Group>(null!);
@@ -2415,6 +2523,12 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
                 theme === "atomic" ? 25 : theme === "sphere" ? 20 : theme === "ocean" ? 15 : 30, 
                 theme === "atomic" ? 45 : theme === "sphere" ? 50 : theme === "ocean" ? 50 : 55
               ]} />
+              <HyperspaceEntry
+                targetPosition={
+                  theme === "atomic" ? [0, 6, 20] : theme === "sphere" ? [0, 10, 28] : theme === "ocean" ? [0, 5, 25] : [0, 8, 25]
+                }
+                theme={theme}
+              />
               <SceneTransition themeKey={theme}>
                 {theme === "cosmos" ? (
                   <CosmosScene
