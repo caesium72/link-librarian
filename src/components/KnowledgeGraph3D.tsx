@@ -1869,6 +1869,7 @@ function OceanScene({
       <OceanPlankton />
       <CausticLights />
       <SwimmingFish edges={edges} nodeMap={nodeMap} />
+      <GiantWhale />
 
       {/* Fog for depth atmosphere */}
       <fog attach="fog" args={["#050a18", 20, 55]} />
