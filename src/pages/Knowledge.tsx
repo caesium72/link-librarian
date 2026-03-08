@@ -44,6 +44,31 @@ export default function Knowledge() {
   const [autoDiscovering, setAutoDiscovering] = useState(false);
   const [autoDiscoverProgress, setAutoDiscoverProgress] = useState("");
 
+  // Real trending state
+  const [trendingTimeRange, setTrendingTimeRange] = useState<string>("7d");
+  const [trendingCategory, setTrendingCategory] = useState<string>("all");
+  const [trendingData, setTrendingData] = useState<any>(null);
+  const [trendingRealLoading, setTrendingRealLoading] = useState(false);
+  const [trendingRealLoaded, setTrendingRealLoaded] = useState(false);
+  const [trendingView, setTrendingView] = useState<"library" | "global">("global");
+
+  const fetchTrendingData = async () => {
+    setTrendingRealLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("trending-knowledge", {
+        body: { timeRange: trendingTimeRange, category: trendingCategory },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setTrendingData(data);
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setTrendingRealLoading(false);
+      setTrendingRealLoaded(true);
+    }
+  };
+
   // Save state for link cards
   const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
