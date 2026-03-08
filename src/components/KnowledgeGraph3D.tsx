@@ -481,9 +481,16 @@ function PlanetNode({
   onHover: (id: string | null) => void;
 }) {
   const meshRef = useRef<THREE.Mesh>(null!);
+  const groupRef = useRef<THREE.Group>(null!);
+  const lensHaloRef = useRef<THREE.Mesh>(null!);
   const currentScale = useRef(1);
   const pulsePhase = useRef(Math.random() * Math.PI * 2);
   const planet = getPlanetColor(node.colorIndex);
+
+  // Distance from black hole center (0,0,0)
+  const distFromCenter = Math.sqrt(node.position[0] ** 2 + node.position[1] ** 2 + node.position[2] ** 2);
+  // Proximity factor: 1.0 at center, 0.0 at distance >= 12
+  const proximity = Math.max(0, 1 - distFromCenter / 12);
 
   const wobbleAxis = useRef(new THREE.Vector3(
     Math.random() * 0.3 - 0.15,
@@ -498,8 +505,29 @@ function PlanetNode({
 
     const pulse = Math.sin(state.clock.elapsedTime * 1.2 + pulsePhase.current) * 0.03;
     meshRef.current.scale.setScalar(currentScale.current + pulse);
-
     meshRef.current.rotateOnAxis(wobbleAxis.current, delta * 0.4);
+
+    // Gravitational distortion: stretch node towards center
+    if (groupRef.current && proximity > 0.05) {
+      const t = state.clock.elapsedTime;
+      const stretchAmount = 1 + proximity * 0.25 * (1 + Math.sin(t * 1.5 + pulsePhase.current) * 0.3);
+      // Stretch toward center direction
+      const dirX = -node.position[0] / (distFromCenter || 1);
+      const dirY = -node.position[1] / (distFromCenter || 1);
+      const dirZ = -node.position[2] / (distFromCenter || 1);
+      // Apply non-uniform scale along the radial direction (approximate with dominant axis)
+      const ax = 1 + Math.abs(dirX) * (stretchAmount - 1);
+      const ay = 1 + Math.abs(dirY) * (stretchAmount - 1);
+      const az = 1 + Math.abs(dirZ) * (stretchAmount - 1);
+      groupRef.current.scale.set(ax, ay, az);
+    }
+
+    // Lensing halo pulse
+    if (lensHaloRef.current && proximity > 0.1) {
+      const lp = 1 + Math.sin(state.clock.elapsedTime * 2 + pulsePhase.current) * 0.15;
+      lensHaloRef.current.scale.setScalar(lp);
+      (lensHaloRef.current.material as THREE.MeshBasicMaterial).opacity = proximity * 0.15;
+    }
   });
 
   const dimColor = "#2a2a35";
