@@ -33,12 +33,28 @@ const ATOM_COLORS = [
   { core: "#66ff99", glow: "#99ffcc", trail: "#33cc66", name: "Mint" },
 ];
 
+// ─── Sphere color palette (Sphere theme) ───
+const SPHERE_COLORS = [
+  { core: "#4fc3f7", glow: "#81d4fa", edge: "#29b6f6", name: "Sky Blue" },
+  { core: "#ba68c8", glow: "#ce93d8", edge: "#ab47bc", name: "Lavender" },
+  { core: "#81c784", glow: "#a5d6a7", edge: "#66bb6a", name: "Sage" },
+  { core: "#ffb74d", glow: "#ffcc80", edge: "#ffa726", name: "Amber" },
+  { core: "#f06292", glow: "#f48fb1", edge: "#ec407a", name: "Rose" },
+  { core: "#4dd0e1", glow: "#80deea", edge: "#26c6da", name: "Teal" },
+  { core: "#fff176", glow: "#fff59d", edge: "#ffee58", name: "Lemon" },
+  { core: "#7986cb", glow: "#9fa8da", edge: "#5c6bc0", name: "Indigo" },
+];
+
 function getPlanetColor(index: number) {
   return PLANET_COLORS[index % PLANET_COLORS.length];
 }
 
 function getAtomColor(index: number) {
   return ATOM_COLORS[index % ATOM_COLORS.length];
+}
+
+function getSphereColor(index: number) {
+  return SPHERE_COLORS[index % SPHERE_COLORS.length];
 }
 
 interface Node3D {
@@ -56,7 +72,7 @@ interface Edge3D {
   weight: number;
 }
 
-function buildGraph3D(links: Link[], theme: "cosmos" | "atomic") {
+function buildGraph3D(links: Link[], theme: "cosmos" | "atomic" | "sphere") {
   const tagCount: Record<string, number> = {};
   const cooccurrence: Record<string, number> = {};
   const tagLinks: Record<string, Link[]> = {};
@@ -84,52 +100,79 @@ function buildGraph3D(links: Link[], theme: "cosmos" | "atomic") {
   const topSet = new Set(topTags);
   const maxC = Math.max(...topTags.map((t) => tagCount[t]), 1);
 
-  // Atomic theme: tighter electron shells
-  // Cosmos theme: wider orbital shells
-  const shellConfig = theme === "atomic" 
-    ? [
-        { maxNodes: 4, radius: 3, tiltY: 0 },
-        { maxNodes: 8, radius: 5.5, tiltY: 0.5 },
-        { maxNodes: 12, radius: 8.5, tiltY: -0.3 },
-        { maxNodes: 16, radius: 12, tiltY: 0.4 },
-      ]
-    : [
-        { maxNodes: 3, radius: 4, tiltY: 0 },
-        { maxNodes: 6, radius: 7, tiltY: 0.4 },
-        { maxNodes: 10, radius: 11, tiltY: -0.3 },
-        { maxNodes: 21, radius: 16, tiltY: 0.6 },
-      ];
-
   const nodes: Node3D[] = [];
-  let tagIndex = 0;
 
-  for (const shell of shellConfig) {
-    const nodesInShell = topTags.slice(tagIndex, tagIndex + shell.maxNodes);
-    const count = nodesInShell.length;
-    if (count === 0) break;
-
-    for (let i = 0; i < count; i++) {
-      const tag = nodesInShell[i];
-      const angle = (2 * Math.PI * i) / count;
-      const verticalScatter = (Math.random() - 0.5) * (theme === "atomic" ? 0.8 : 1.5);
-      const r = theme === "atomic" 
-        ? 0.2 + (tagCount[tag] / maxC) * 0.4
-        : 0.25 + (tagCount[tag] / maxC) * 0.55;
+  if (theme === "sphere") {
+    // Sphere theme: distribute nodes on sphere surface using Fibonacci spiral
+    const sphereRadius = 12;
+    const goldenRatio = (1 + Math.sqrt(5)) / 2;
+    
+    for (let i = 0; i < topTags.length; i++) {
+      const tag = topTags[i];
+      const theta = 2 * Math.PI * i / goldenRatio;
+      const phi = Math.acos(1 - 2 * (i + 0.5) / topTags.length);
+      
+      const x = sphereRadius * Math.sin(phi) * Math.cos(theta);
+      const y = sphereRadius * Math.cos(phi);
+      const z = sphereRadius * Math.sin(phi) * Math.sin(theta);
+      
+      const r = 0.3 + (tagCount[tag] / maxC) * 0.5;
 
       nodes.push({
         id: tag,
         label: tag,
         count: tagCount[tag],
-        position: [
-          shell.radius * Math.cos(angle),
-          shell.radius * Math.sin(angle) * Math.sin(shell.tiltY) + verticalScatter,
-          shell.radius * Math.sin(angle) * Math.cos(shell.tiltY),
-        ] as [number, number, number],
+        position: [x, y, z] as [number, number, number],
         radius: r,
-        colorIndex: tagIndex + i,
+        colorIndex: i,
       });
     }
-    tagIndex += count;
+  } else {
+    // Atomic/Cosmos shell-based layout
+    const shellConfig = theme === "atomic" 
+      ? [
+          { maxNodes: 4, radius: 3, tiltY: 0 },
+          { maxNodes: 8, radius: 5.5, tiltY: 0.5 },
+          { maxNodes: 12, radius: 8.5, tiltY: -0.3 },
+          { maxNodes: 16, radius: 12, tiltY: 0.4 },
+        ]
+      : [
+          { maxNodes: 3, radius: 4, tiltY: 0 },
+          { maxNodes: 6, radius: 7, tiltY: 0.4 },
+          { maxNodes: 10, radius: 11, tiltY: -0.3 },
+          { maxNodes: 21, radius: 16, tiltY: 0.6 },
+        ];
+
+    let tagIndex = 0;
+
+    for (const shell of shellConfig) {
+      const nodesInShell = topTags.slice(tagIndex, tagIndex + shell.maxNodes);
+      const count = nodesInShell.length;
+      if (count === 0) break;
+
+      for (let i = 0; i < count; i++) {
+        const tag = nodesInShell[i];
+        const angle = (2 * Math.PI * i) / count;
+        const verticalScatter = (Math.random() - 0.5) * (theme === "atomic" ? 0.8 : 1.5);
+        const r = theme === "atomic" 
+          ? 0.2 + (tagCount[tag] / maxC) * 0.4
+          : 0.25 + (tagCount[tag] / maxC) * 0.55;
+
+        nodes.push({
+          id: tag,
+          label: tag,
+          count: tagCount[tag],
+          position: [
+            shell.radius * Math.cos(angle),
+            shell.radius * Math.sin(angle) * Math.sin(shell.tiltY) + verticalScatter,
+            shell.radius * Math.sin(angle) * Math.cos(shell.tiltY),
+          ] as [number, number, number],
+          radius: r,
+          colorIndex: tagIndex + i,
+        });
+      }
+      tagIndex += count;
+    }
   }
 
   const edges: Edge3D[] = [];
@@ -1145,14 +1188,391 @@ function AtomicScene({
   );
 }
 
+// ─── Sphere Node (Sphere theme) ───
+function SphereNode({
+  node,
+  isSelected,
+  isConnected,
+  isHovered,
+  isDimmed,
+  maxCount,
+  onSelect,
+  onHover,
+}: {
+  node: Node3D;
+  isSelected: boolean;
+  isConnected: boolean;
+  isHovered: boolean;
+  isDimmed: boolean;
+  maxCount: number;
+  onSelect: (id: string | null) => void;
+  onHover: (id: string | null) => void;
+}) {
+  const meshRef = useRef<THREE.Mesh>(null!);
+  const glowRef = useRef<THREE.Mesh>(null!);
+  const currentScale = useRef(1);
+  const pulsePhase = useRef(Math.random() * Math.PI * 2);
+  const sphereColor = getSphereColor(node.colorIndex);
+
+  useFrame((state, delta) => {
+    if (!meshRef.current) return;
+    const target = isSelected ? 1.8 : isHovered ? 1.5 : isConnected ? 1.2 : 1;
+    currentScale.current += (target - currentScale.current) * Math.min(delta * 6, 1);
+
+    const pulse = Math.sin(state.clock.elapsedTime * 1.8 + pulsePhase.current) * 0.05;
+    meshRef.current.scale.setScalar(currentScale.current + pulse);
+    
+    if (glowRef.current) {
+      const glowPulse = 1 + Math.sin(state.clock.elapsedTime * 2 + pulsePhase.current) * 0.1;
+      glowRef.current.scale.setScalar(glowPulse);
+    }
+  });
+
+  const dimColor = "#2a2a35";
+  const dimGlow = "#1a1a22";
+  const activeColor = isDimmed ? dimColor : sphereColor.core;
+  const activeGlow = isDimmed ? dimGlow : sphereColor.glow;
+
+  const emissiveIntensity = isSelected ? 1.8 : isHovered ? 1.2 : isDimmed ? 0.02 : 0.4;
+  const sphereOpacity = isSelected ? 1.0 : isDimmed ? 0.4 : 0.9;
+
+  return (
+    <group position={node.position}>
+      {/* Outer glow layers for 3D depth effect */}
+      <mesh ref={glowRef}>
+        <sphereGeometry args={[node.radius * 2.5, 32, 32]} />
+        <meshBasicMaterial color={activeGlow} transparent opacity={isSelected ? 0.2 : isDimmed ? 0.01 : 0.06} depthWrite={false} />
+      </mesh>
+      <mesh>
+        <sphereGeometry args={[node.radius * 1.8, 32, 32]} />
+        <meshBasicMaterial color={activeColor} transparent opacity={isSelected ? 0.25 : isDimmed ? 0.02 : 0.1} depthWrite={false} />
+      </mesh>
+      
+      {/* Core sphere with glass-like material */}
+      <mesh
+        ref={meshRef}
+        onClick={(e) => { e.stopPropagation(); onSelect(isSelected ? null : node.id); }}
+        onPointerOver={(e) => { e.stopPropagation(); onHover(node.id); document.body.style.cursor = "pointer"; }}
+        onPointerOut={() => { onHover(null); document.body.style.cursor = "auto"; }}
+      >
+        <sphereGeometry args={[node.radius, 64, 64]} />
+        <meshPhysicalMaterial
+          color={activeColor}
+          emissive={activeGlow}
+          emissiveIntensity={emissiveIntensity}
+          metalness={0.3}
+          roughness={0.1}
+          clearcoat={1.0}
+          clearcoatRoughness={0.05}
+          transmission={isDimmed ? 0 : 0.3}
+          thickness={0.5}
+          transparent
+          opacity={sphereOpacity}
+        />
+      </mesh>
+
+      {/* Inner highlight for 3D depth */}
+      <mesh position={[node.radius * -0.3, node.radius * 0.3, node.radius * 0.3]}>
+        <sphereGeometry args={[node.radius * 0.2, 16, 16]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={isDimmed ? 0.02 : 0.3} />
+      </mesh>
+
+      <Billboard follow lockX={false} lockY={false} lockZ={false}>
+        <Text
+          position={[0, node.radius + 0.45, 0]}
+          fontSize={0.24}
+          color={isSelected || isHovered ? "#ffffff" : "#e4e4e7"}
+          anchorX="center"
+          anchorY="bottom"
+          font={undefined}
+          outlineWidth={0.025}
+          outlineColor="#000000"
+        >
+          {node.label}
+        </Text>
+        <Text
+          position={[0, 0, 0]}
+          fontSize={0.18}
+          color="#ffffff"
+          anchorX="center"
+          anchorY="middle"
+          font={undefined}
+          outlineWidth={0.015}
+          outlineColor="#000000"
+        >
+          {String(node.count)}
+        </Text>
+      </Billboard>
+    </group>
+  );
+}
+
+// ─── Enhanced Edge for Sphere theme with glow ───
+function SphereEdgeLine({
+  from,
+  to,
+  weight,
+  maxWeight,
+  isHighlighted,
+  isDimmed,
+  sourceColor,
+  targetColor,
+}: {
+  from: [number, number, number];
+  to: [number, number, number];
+  weight: number;
+  maxWeight: number;
+  isHighlighted: boolean;
+  isDimmed: boolean;
+  sourceColor: string;
+  targetColor: string;
+}) {
+  const groupRef = useRef<THREE.Group>(null!);
+  const pulseRef = useRef<THREE.Mesh>(null!);
+  const glowRef = useRef<THREE.Line>(null!);
+
+  const { curve, lineObj, glowLine } = useMemo(() => {
+    const start = new THREE.Vector3(...from);
+    const end = new THREE.Vector3(...to);
+    const mid = start.clone().add(end).multiplyScalar(0.5);
+    // Arc towards center for sphere layout
+    const toCenter = mid.clone().normalize().multiplyScalar(-2);
+    mid.add(toCenter);
+
+    const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
+    const points = curve.getPoints(64);
+    
+    // Main line
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const weightNorm = weight / maxWeight;
+    const color = isHighlighted ? sourceColor : "#5a5a6a";
+    const opacity = isDimmed ? 0.03 : isHighlighted ? 0.85 : 0.25 + weightNorm * 0.2;
+    const material = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
+    const lineObj = new THREE.Line(geometry, material);
+    
+    // Glow line (thicker, more transparent)
+    const glowGeo = new THREE.BufferGeometry().setFromPoints(points);
+    const glowMat = new THREE.LineBasicMaterial({ 
+      color: isHighlighted ? sourceColor : "#8888aa", 
+      transparent: true, 
+      opacity: isDimmed ? 0.01 : isHighlighted ? 0.4 : 0.08 
+    });
+    const glowLine = new THREE.Line(glowGeo, glowMat);
+    
+    return { curve, lineObj, glowLine };
+  }, [from, to, isHighlighted, isDimmed, sourceColor, weight, maxWeight]);
+
+  useFrame((state) => {
+    if (!pulseRef.current || !isHighlighted) return;
+    const t = (state.clock.elapsedTime * 0.4) % 1;
+    const pos = curve.getPoint(t);
+    pulseRef.current.position.copy(pos);
+    const scale = 1 + Math.sin(state.clock.elapsedTime * 3) * 0.3;
+    pulseRef.current.scale.setScalar(scale);
+  });
+
+  return (
+    <group ref={groupRef}>
+      <primitive object={glowLine} />
+      <primitive object={lineObj} />
+      {isHighlighted && (
+        <mesh ref={pulseRef}>
+          <sphereGeometry args={[0.08, 12, 12]} />
+          <meshBasicMaterial color={sourceColor} transparent opacity={0.9} />
+        </mesh>
+      )}
+    </group>
+  );
+}
+
+// ─── Sphere Grid (wireframe sphere for reference) ───
+function SphereGrid() {
+  const ref = useRef<THREE.Mesh>(null!);
+  
+  useFrame((state) => {
+    if (ref.current) {
+      ref.current.rotation.y = state.clock.elapsedTime * 0.02;
+      ref.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.01) * 0.1;
+    }
+  });
+
+  return (
+    <mesh ref={ref}>
+      <sphereGeometry args={[12, 32, 32]} />
+      <meshBasicMaterial 
+        color="#4fc3f7" 
+        wireframe 
+        transparent 
+        opacity={0.06} 
+      />
+    </mesh>
+  );
+}
+
+// ─── Central Core for Sphere theme ───
+function SphereCore() {
+  const coreRef = useRef<THREE.Mesh>(null!);
+  const ring1Ref = useRef<THREE.Mesh>(null!);
+  const ring2Ref = useRef<THREE.Mesh>(null!);
+  const ring3Ref = useRef<THREE.Mesh>(null!);
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    if (coreRef.current) {
+      const pulse = 1 + Math.sin(t * 2) * 0.08;
+      coreRef.current.scale.setScalar(pulse);
+    }
+    if (ring1Ref.current) ring1Ref.current.rotation.x = t * 0.5;
+    if (ring2Ref.current) ring2Ref.current.rotation.y = t * 0.4;
+    if (ring3Ref.current) ring3Ref.current.rotation.z = t * 0.3;
+  });
+
+  return (
+    <group>
+      {/* Glowing core */}
+      <mesh ref={coreRef}>
+        <sphereGeometry args={[0.8, 32, 32]} />
+        <meshPhysicalMaterial
+          color="#4fc3f7"
+          emissive="#29b6f6"
+          emissiveIntensity={1.5}
+          metalness={0}
+          roughness={0.2}
+          clearcoat={1}
+        />
+      </mesh>
+      {/* Outer glow */}
+      <mesh>
+        <sphereGeometry args={[1.2, 32, 32]} />
+        <meshBasicMaterial color="#81d4fa" transparent opacity={0.15} depthWrite={false} />
+      </mesh>
+      <mesh>
+        <sphereGeometry args={[1.8, 32, 32]} />
+        <meshBasicMaterial color="#b3e5fc" transparent opacity={0.08} depthWrite={false} />
+      </mesh>
+      
+      {/* Orbiting rings for 3D effect */}
+      <mesh ref={ring1Ref} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[2.5, 0.02, 8, 64]} />
+        <meshBasicMaterial color="#4fc3f7" transparent opacity={0.3} />
+      </mesh>
+      <mesh ref={ring2Ref} rotation={[Math.PI / 3, 0, 0]}>
+        <torusGeometry args={[3, 0.015, 8, 64]} />
+        <meshBasicMaterial color="#ba68c8" transparent opacity={0.25} />
+      </mesh>
+      <mesh ref={ring3Ref} rotation={[Math.PI / 4, Math.PI / 4, 0]}>
+        <torusGeometry args={[3.5, 0.01, 8, 64]} />
+        <meshBasicMaterial color="#81c784" transparent opacity={0.2} />
+      </mesh>
+    </group>
+  );
+}
+
+// ─── Sphere Scene ───
+function SphereScene({
+  nodes,
+  edges,
+  selectedTag,
+  hoveredTag,
+  connectedTags,
+  maxWeight,
+  maxCount,
+  onSelect,
+  onHover,
+}: {
+  nodes: Node3D[];
+  edges: Edge3D[];
+  selectedTag: string | null;
+  hoveredTag: string | null;
+  connectedTags: Set<string>;
+  maxWeight: number;
+  maxCount: number;
+  onSelect: (id: string | null) => void;
+  onHover: (id: string | null) => void;
+}) {
+  const nodeMap = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
+
+  return (
+    <>
+      <ambientLight intensity={0.3} />
+      <pointLight position={[20, 20, 20]} intensity={2.5} color="#ffffff" />
+      <pointLight position={[-20, -15, -10]} intensity={1.5} color="#4fc3f7" />
+      <pointLight position={[0, 15, -20]} intensity={1.2} color="#ba68c8" />
+      <pointLight position={[15, -10, 15]} intensity={1.0} color="#81c784" />
+      <directionalLight position={[0, 10, 10]} intensity={0.5} />
+
+      <SphereCore />
+      <SphereGrid />
+      <Particles />
+
+      {edges.map((edge) => {
+        const s = nodeMap.get(edge.source);
+        const t = nodeMap.get(edge.target);
+        if (!s || !t) return null;
+        const isHighlighted =
+          selectedTag === edge.source || selectedTag === edge.target ||
+          hoveredTag === edge.source || hoveredTag === edge.target;
+        const isDimmed = !!(selectedTag || hoveredTag) && !isHighlighted;
+        return (
+          <SphereEdgeLine
+            key={`${edge.source}-${edge.target}`}
+            from={s.position}
+            to={t.position}
+            weight={edge.weight}
+            maxWeight={maxWeight}
+            isHighlighted={isHighlighted}
+            isDimmed={isDimmed}
+            sourceColor={getSphereColor(s.colorIndex).core}
+            targetColor={getSphereColor(t.colorIndex).core}
+          />
+        );
+      })}
+
+      {nodes.map((node) => (
+        <Float
+          key={node.id}
+          speed={selectedTag === node.id ? 2.5 : 1.0}
+          rotationIntensity={0.02}
+          floatIntensity={selectedTag === node.id ? 0.3 : 0.1}
+          floatingRange={[-0.05, 0.05]}
+        >
+          <SphereNode
+            node={node}
+            isSelected={selectedTag === node.id}
+            isConnected={connectedTags.has(node.id)}
+            isHovered={hoveredTag === node.id}
+            isDimmed={!!selectedTag && selectedTag !== node.id}
+            maxCount={maxCount}
+            onSelect={onSelect}
+            onHover={onHover}
+          />
+        </Float>
+      ))}
+
+      <OrbitControls
+        enableDamping
+        dampingFactor={0.05}
+        rotateSpeed={0.4}
+        zoomSpeed={0.7}
+        minDistance={8}
+        maxDistance={40}
+        enablePan={false}
+        autoRotate
+        autoRotateSpeed={0.15}
+      />
+    </>
+  );
+}
+
 // ─── Color Legend ───
-function ColorLegend({ nodes, maxCount, theme }: { nodes: Node3D[]; maxCount: number; theme: "cosmos" | "atomic" }) {
-  const colors = theme === "cosmos" ? PLANET_COLORS : ATOM_COLORS;
+function ColorLegend({ nodes, maxCount, theme }: { nodes: Node3D[]; maxCount: number; theme: "cosmos" | "atomic" | "sphere" }) {
+  const colors = theme === "cosmos" ? PLANET_COLORS : theme === "atomic" ? ATOM_COLORS : SPHERE_COLORS;
+  const themeName = theme === "cosmos" ? "🪐 Cosmos" : theme === "atomic" ? "⚛️ Atomic" : "🌐 Sphere";
   
   return (
     <div className="absolute top-3 right-3 bg-background/85 backdrop-blur-md rounded-lg border border-border/50 p-3 space-y-2.5 max-w-[180px] animate-in fade-in slide-in-from-right-3 duration-500 pointer-events-auto">
       <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-        {theme === "cosmos" ? "🪐 Cosmos" : "⚛️ Atomic"} Legend
+        {themeName} Legend
       </p>
 
       <div className="space-y-1">
@@ -1182,10 +1602,15 @@ function ColorLegend({ nodes, maxCount, theme }: { nodes: Node3D[]; maxCount: nu
           <p className="text-[9px] text-muted-foreground font-medium">Rings = Connections</p>
           <p className="text-[8px] text-muted-foreground/70">Brighter rings = more active</p>
         </div>
-      ) : (
+      ) : theme === "atomic" ? (
         <div className="space-y-0.5">
           <p className="text-[9px] text-muted-foreground font-medium">Electrons = Sub-links</p>
           <p className="text-[8px] text-muted-foreground/70">Click electrons for previews</p>
+        </div>
+      ) : (
+        <div className="space-y-0.5">
+          <p className="text-[9px] text-muted-foreground font-medium">Surface Layout</p>
+          <p className="text-[8px] text-muted-foreground/70">Nodes on sphere surface</p>
         </div>
       )}
 
@@ -1263,7 +1688,7 @@ function MoonPreviewPopover({
 interface KnowledgeGraph3DProps {
   links: Link[];
   isLoading: boolean;
-  theme?: "cosmos" | "atomic";
+  theme?: "cosmos" | "atomic" | "sphere";
 }
 
 export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: KnowledgeGraph3DProps) {
@@ -1323,13 +1748,17 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
         <CardContent className="p-0 relative">
           <div className="h-[500px] w-full bg-background">
             <Canvas
-              camera={{ position: theme === "atomic" ? [0, 6, 20] : [0, 8, 25], fov: 50 }}
+              camera={{ position: theme === "atomic" ? [0, 6, 20] : theme === "sphere" ? [0, 10, 28] : [0, 8, 25], fov: 50 }}
               dpr={[1, 2]}
               style={{ background: "transparent" }}
               gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
               onPointerMissed={() => { setSelectedTag(null); setMoonPreview(null); }}
             >
-              <fog attach="fog" args={[theme === "atomic" ? "#050510" : "#09090b", theme === "atomic" ? 25 : 30, theme === "atomic" ? 45 : 55]} />
+              <fog attach="fog" args={[
+                theme === "atomic" ? "#050510" : theme === "sphere" ? "#080818" : "#09090b", 
+                theme === "atomic" ? 25 : theme === "sphere" ? 20 : 30, 
+                theme === "atomic" ? 45 : theme === "sphere" ? 50 : 55
+              ]} />
               {theme === "cosmos" ? (
                 <CosmosScene
                   nodes={nodes}
@@ -1342,7 +1771,7 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
                   onSelect={setSelectedTag}
                   onHover={setHoveredTag}
                 />
-              ) : (
+              ) : theme === "atomic" ? (
                 <AtomicScene
                   nodes={nodes}
                   edges={edges}
@@ -1355,6 +1784,18 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
                   onSelect={setSelectedTag}
                   onHover={setHoveredTag}
                   onMoonClick={handleMoonClick}
+                />
+              ) : (
+                <SphereScene
+                  nodes={nodes}
+                  edges={edges}
+                  selectedTag={selectedTag}
+                  hoveredTag={hoveredTag}
+                  connectedTags={connectedTags}
+                  maxWeight={maxWeight}
+                  maxCount={maxCount}
+                  onSelect={setSelectedTag}
+                  onHover={setHoveredTag}
                 />
               )}
             </Canvas>
@@ -1387,7 +1828,9 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
                 <div className="w-2.5 h-2.5 rounded-full" style={{ 
                   background: theme === "cosmos" 
                     ? getPlanetColor(nodes.find(n => n.id === hoveredTag)?.colorIndex || 0).core
-                    : getAtomColor(nodes.find(n => n.id === hoveredTag)?.colorIndex || 0).core
+                    : theme === "atomic"
+                    ? getAtomColor(nodes.find(n => n.id === hoveredTag)?.colorIndex || 0).core
+                    : getSphereColor(nodes.find(n => n.id === hoveredTag)?.colorIndex || 0).core
                 }} />
                 <p className="text-xs font-semibold">{hoveredTag}</p>
               </div>
@@ -1423,7 +1866,7 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
                   {Array.from(connectedTags).map((tag, i) => {
                     const tagNode = nodes.find(n => n.id === tag);
                     const color = tagNode 
-                      ? (theme === "cosmos" ? getPlanetColor(tagNode.colorIndex).core : getAtomColor(tagNode.colorIndex).core)
+                      ? (theme === "cosmos" ? getPlanetColor(tagNode.colorIndex).core : theme === "atomic" ? getAtomColor(tagNode.colorIndex).core : getSphereColor(tagNode.colorIndex).core)
                       : undefined;
                     return (
                       <Badge

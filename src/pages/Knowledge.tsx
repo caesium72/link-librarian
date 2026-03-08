@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft, Flame, Clock, Star, Sparkles, ExternalLink,
   BookOpen, TrendingUp, Eye, RefreshCw, Share2, Box, Layers,
-  Maximize2, Minimize2, Save, Loader2, Wand2, Atom,
+  Maximize2, Minimize2, Save, Loader2, Wand2, Atom, Globe,
 } from "lucide-react";
 import { KnowledgeGraph } from "@/components/KnowledgeGraph";
 import { KnowledgeGraph3D } from "@/components/KnowledgeGraph3D";
@@ -31,7 +31,7 @@ export default function Knowledge() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("trending");
   const [graphMode, setGraphMode] = useState<"3d" | "2d">("3d");
-  const [graph3DTheme, setGraph3DTheme] = useState<"cosmos" | "atomic">("cosmos");
+  const [graph3DTheme, setGraph3DTheme] = useState<"cosmos" | "atomic" | "sphere">("cosmos");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [displayMode, setDisplayMode] = useState<"3d" | "2d">("3d");
@@ -513,6 +513,15 @@ export default function Knowledge() {
                       >
                         <Atom className="h-3 w-3" />
                         Atomic
+                      </Button>
+                      <Button
+                        variant={graph3DTheme === "sphere" ? "default" : "outline"}
+                        size="sm"
+                        className="gap-1.5 text-xs h-7 transition-all duration-300"
+                        onClick={() => setGraph3DTheme("sphere")}
+                      >
+                        <Globe className="h-3 w-3" />
+                        Sphere
                       </Button>
                     </>
                   )}
