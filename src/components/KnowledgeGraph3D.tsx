@@ -636,6 +636,7 @@ function PlanetNode({
           {String(node.count)}
         </Text>
       </Billboard>
+      </group>
     </group>
   );
 }
