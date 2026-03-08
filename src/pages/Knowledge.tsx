@@ -523,6 +523,14 @@ export default function Knowledge() {
                         <Globe className="h-3 w-3" />
                         Sphere
                       </Button>
+                      <Button
+                        variant={graph3DTheme === "ocean" ? "default" : "outline"}
+                        size="sm"
+                        className="gap-1.5 text-xs h-7 transition-all duration-300"
+                        onClick={() => setGraph3DTheme("ocean")}
+                      >
+                        🌊 Ocean
+                      </Button>
                     </>
                   )}
                   
