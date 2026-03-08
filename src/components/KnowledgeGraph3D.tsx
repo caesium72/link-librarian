@@ -1629,29 +1629,17 @@ function CosmosScene({
 
 // ─── Atomic Scene ───
 function AtomicScene({
-  nodes,
-  edges,
-  selectedTag,
-  hoveredTag,
-  connectedTags,
-  maxWeight,
-  maxCount,
-  tagLinks,
-  onSelect,
-  onHover,
-  onMoonClick,
+  nodes, edges, selectedTag, hoveredTag, connectedTags, maxWeight, maxCount,
+  tagLinks, onSelect, onHover, onMoonClick,
+  forceBrightNodes = null, pathEdgeKeys = null,
 }: {
-  nodes: Node3D[];
-  edges: Edge3D[];
-  selectedTag: string | null;
-  hoveredTag: string | null;
-  connectedTags: Set<string>;
-  maxWeight: number;
-  maxCount: number;
+  nodes: Node3D[]; edges: Edge3D[];
+  selectedTag: string | null; hoveredTag: string | null; connectedTags: Set<string>;
+  maxWeight: number; maxCount: number;
   tagLinks: Record<string, Link[]>;
-  onSelect: (id: string | null) => void;
-  onHover: (id: string | null) => void;
+  onSelect: (id: string | null) => void; onHover: (id: string | null) => void;
   onMoonClick: (nodeId: string, moonIdx: number, position: THREE.Vector3) => void;
+  forceBrightNodes?: Set<string> | null; pathEdgeKeys?: Set<string> | null;
 }) {
   const nodeMap = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
 
