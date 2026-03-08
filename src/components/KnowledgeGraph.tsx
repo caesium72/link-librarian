@@ -111,7 +111,8 @@ function useSimulation(
   initialNodes: GraphNode[],
   edges: GraphEdge[],
   width: number,
-  height: number
+  height: number,
+  physicsRef: React.RefObject<PhysicsSettings>
 ) {
   const nodesRef = useRef<GraphNode[]>([]);
   const [positions, setPositions] = useState<SimPositions[]>([]);
