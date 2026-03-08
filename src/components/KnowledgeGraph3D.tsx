@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ExternalLink, Filter, RotateCcw, Circle, X, Search, Route, Clock3, GitBranch } from "lucide-react";
+import { ExternalLink, Filter, RotateCcw, Circle, X, Search, Route, Clock3, GitBranch, BarChart3 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import type { Link } from "@/types/links";
@@ -2379,7 +2379,7 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
   const [moonPreview, setMoonPreview] = useState<{ nodeId: string; moonIdx: number } | null>(null);
 
   // Feature states
-  const [activeFeature, setActiveFeature] = useState<"none" | "search" | "time" | "path" | "cluster">("none");
+  const [activeFeature, setActiveFeature] = useState<"none" | "search" | "time" | "path"  | "stats"| "cluster">("none");
   const [searchQuery, setSearchQuery] = useState("");
   const [timeSlider, setTimeSlider] = useState(100);
   const [pathStart, setPathStart] = useState<string | null>(null);
@@ -2416,6 +2416,27 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
   const { nodes, edges, tagLinks } = useMemo(() => buildGraph3D(filteredLinks, theme), [filteredLinks, theme]);
   const maxWeight = useMemo(() => Math.max(...edges.map((e) => e.weight), 1), [edges]);
   const maxCount = useMemo(() => Math.max(...nodes.map((n) => n.count), 1), [nodes]);
+
+  // Graph statistics
+  const graphStats = useMemo(() => {
+    const totalNodes = nodes.length;
+    const totalEdges = edges.length;
+    const maxPossibleEdges = totalNodes > 1 ? (totalNodes * (totalNodes - 1)) / 2 : 0;
+    const density = maxPossibleEdges > 0 ? totalEdges / maxPossibleEdges : 0;
+    const degreeMap: Record<string, number> = {};
+    nodes.forEach(n => { degreeMap[n.id] = 0; });
+    edges.forEach(e => {
+      degreeMap[e.source] = (degreeMap[e.source] || 0) + 1;
+      degreeMap[e.target] = (degreeMap[e.target] || 0) + 1;
+    });
+    const degrees = Object.values(degreeMap);
+    const avgConnections = totalNodes > 0 ? degrees.reduce((a, b) => a + b, 0) / totalNodes : 0;
+    const maxDegree = degrees.length > 0 ? Math.max(...degrees) : 0;
+    const isolatedNodes = degrees.filter(d => d === 0).length;
+    const totalLinks = filteredLinks.length;
+    const topNode = nodes.length > 0 ? [...nodes].sort((a, b) => b.count - a.count)[0] : null;
+    return { totalNodes, totalEdges, density, avgConnections, maxDegree, isolatedNodes, totalLinks, topNode };
+  }, [nodes, edges, filteredLinks]);
 
   // Clusters
   const { clusters, clusterSizes } = useMemo(() => computeClusters(nodes, edges), [nodes, edges]);
@@ -2702,6 +2723,56 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
             </div>
           )}
 
+          {/* Feature Panel - Stats */}
+          {activeFeature === "stats" && (
+            <div className="absolute top-3 right-3 bg-background/90 backdrop-blur-md rounded-lg border border-border/60 px-3 py-2.5 animate-in fade-in zoom-in-95 duration-200 pointer-events-auto z-40 min-w-[200px]">
+              <div className="flex items-center gap-1.5 mb-2.5">
+                <BarChart3 className="h-3.5 w-3.5 text-primary" />
+                <span className="text-[10px] font-semibold">Graph Statistics</span>
+              </div>
+              <div className="space-y-2">
+                {[
+                  { label: "Total Nodes", value: graphStats.totalNodes },
+                  { label: "Total Edges", value: graphStats.totalEdges },
+                  { label: "Density", value: `${(graphStats.density * 100).toFixed(1)}%` },
+                  { label: "Avg Connections", value: graphStats.avgConnections.toFixed(1) },
+                  { label: "Max Connections", value: graphStats.maxDegree },
+                  { label: "Isolated Nodes", value: graphStats.isolatedNodes },
+                  { label: "Total Links", value: graphStats.totalLinks },
+                ].map((stat, i) => (
+                  <div
+                    key={stat.label}
+                    className="flex items-center justify-between gap-3 animate-in fade-in slide-in-from-right-2"
+                    style={{ animationDelay: `${i * 40}ms`, animationFillMode: "both" }}
+                  >
+                    <span className="text-[10px] text-muted-foreground">{stat.label}</span>
+                    <span className="text-[11px] font-semibold tabular-nums">{stat.value}</span>
+                  </div>
+                ))}
+                {graphStats.topNode && (
+                  <div className="pt-1.5 border-t border-border/40 animate-in fade-in slide-in-from-right-2" style={{ animationDelay: "300ms", animationFillMode: "both" }}>
+                    <span className="text-[10px] text-muted-foreground">Most Connected</span>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{graphStats.topNode.label}</Badge>
+                      <span className="text-[10px] text-muted-foreground">{graphStats.topNode.count} links</span>
+                    </div>
+                  </div>
+                )}
+                {graphStats.density > 0 && (
+                  <div className="pt-1.5 border-t border-border/40 animate-in fade-in slide-in-from-right-2" style={{ animationDelay: "350ms", animationFillMode: "both" }}>
+                    <span className="text-[10px] text-muted-foreground">Density Bar</span>
+                    <div className="w-full h-1.5 bg-muted rounded-full mt-1 overflow-hidden">
+                      <div
+                        className="h-full bg-primary rounded-full transition-all duration-700"
+                        style={{ width: `${Math.min(graphStats.density * 100, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Feature Toolbar */}
           <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-0.5 bg-background/90 backdrop-blur-md rounded-full border border-border/60 px-1.5 py-1 animate-in fade-in slide-in-from-bottom-3 duration-500 pointer-events-auto">
             {([
@@ -2709,6 +2780,7 @@ export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: Knowled
               { key: "time" as const, icon: <Clock3 className="h-3.5 w-3.5" />, label: "Time Travel" },
               { key: "path" as const, icon: <Route className="h-3.5 w-3.5" />, label: "Path Finder" },
               { key: "cluster" as const, icon: <GitBranch className="h-3.5 w-3.5" />, label: "Clusters" },
+              { key: "stats" as const, icon: <BarChart3 className="h-3.5 w-3.5" />, label: "Stats" },
             ]).map(f => (
               <Button
                 key={f.key}
