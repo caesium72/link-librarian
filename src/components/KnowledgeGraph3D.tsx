@@ -159,16 +159,18 @@ function SaturnRing({
   );
 }
 
-// ─── Orbiting moons / electron spheres ───
+// ─── Orbiting moons with comet trail ───
 function OrbitingMoons({ parentRadius, color, glowColor, count, isDimmed }: { parentRadius: number; color: string; glowColor: string; count: number; isDimmed: boolean }) {
   const groupRef = useRef<THREE.Group>(null!);
+  const trailSegments = 12; // Number of trail segments per moon
+  
   const moonData = useMemo(() => {
     const moons = [];
-    const numMoons = Math.min(Math.max(count, 1), 4); // 1-4 moons based on link count
+    const numMoons = Math.min(Math.max(count, 1), 4);
     for (let i = 0; i < numMoons; i++) {
       moons.push({
         orbitRadius: parentRadius * (2.8 + i * 0.7),
-        size: 0.04 + Math.random() * 0.04,
+        size: 0.06 + Math.random() * 0.04,
         speed: (0.8 + Math.random() * 0.6) * (i % 2 === 0 ? 1 : -1),
         phase: (Math.PI * 2 * i) / numMoons,
         tiltX: (Math.random() - 0.5) * 1.2,
@@ -180,38 +182,74 @@ function OrbitingMoons({ parentRadius, color, glowColor, count, isDimmed }: { pa
 
   useFrame((state) => {
     if (!groupRef.current) return;
-    const children = groupRef.current.children;
     const t = state.clock.elapsedTime;
-    moonData.forEach((moon, i) => {
-      if (children[i]) {
+    
+    moonData.forEach((moon, moonIndex) => {
+      const moonGroup = groupRef.current.children[moonIndex] as THREE.Group;
+      if (!moonGroup) return;
+      
+      // Update main moon sphere (first child)
+      const mainSphere = moonGroup.children[0];
+      if (mainSphere) {
         const angle = t * moon.speed + moon.phase;
-        children[i].position.x = Math.cos(angle) * moon.orbitRadius;
-        children[i].position.y = Math.sin(angle) * moon.orbitRadius * Math.sin(moon.tiltX);
-        children[i].position.z = Math.sin(angle) * moon.orbitRadius * Math.cos(moon.tiltX);
+        mainSphere.position.x = Math.cos(angle) * moon.orbitRadius;
+        mainSphere.position.y = Math.sin(angle) * moon.orbitRadius * Math.sin(moon.tiltX);
+        mainSphere.position.z = Math.sin(angle) * moon.orbitRadius * Math.cos(moon.tiltX);
+      }
+      
+      // Update trail segments (following children)
+      for (let i = 1; i <= trailSegments; i++) {
+        const trailSphere = moonGroup.children[i];
+        if (trailSphere) {
+          const trailDelay = i * 0.08;
+          const trailAngle = (t - trailDelay) * moon.speed + moon.phase;
+          trailSphere.position.x = Math.cos(trailAngle) * moon.orbitRadius;
+          trailSphere.position.y = Math.sin(trailAngle) * moon.orbitRadius * Math.sin(moon.tiltX);
+          trailSphere.position.z = Math.sin(trailAngle) * moon.orbitRadius * Math.cos(moon.tiltX);
+        }
       }
     });
   });
 
   const moonColor = isDimmed ? "#2a2a35" : color;
   const moonEmissive = isDimmed ? "#1a1a22" : glowColor;
-  const moonOpacity = isDimmed ? 0.3 : 0.9;
+  const moonOpacity = isDimmed ? 0.3 : 0.95;
 
   return (
     <group ref={groupRef}>
-      {moonData.map((moon, i) => (
-        <mesh key={i}>
-          <sphereGeometry args={[moon.size, 16, 16]} />
-          <meshPhysicalMaterial
-            color={moonColor}
-            emissive={moonEmissive}
-            emissiveIntensity={isDimmed ? 0.05 : 0.6}
-            metalness={0.3}
-            roughness={0.4}
-            clearcoat={0.8}
-            transparent
-            opacity={moonOpacity}
-          />
-        </mesh>
+      {moonData.map((moon, moonIdx) => (
+        <group key={moonIdx}>
+          {/* Main moon sphere */}
+          <mesh>
+            <sphereGeometry args={[moon.size, 16, 16]} />
+            <meshPhysicalMaterial
+              color={moonColor}
+              emissive={moonEmissive}
+              emissiveIntensity={isDimmed ? 0.05 : 0.8}
+              metalness={0.3}
+              roughness={0.3}
+              clearcoat={1}
+              transparent
+              opacity={moonOpacity}
+            />
+          </mesh>
+          {/* Comet trail segments */}
+          {Array.from({ length: trailSegments }).map((_, trailIdx) => {
+            const trailScale = 1 - (trailIdx + 1) / (trailSegments + 1);
+            const trailOpacity = (isDimmed ? 0.1 : 0.6) * trailScale * trailScale;
+            return (
+              <mesh key={trailIdx}>
+                <sphereGeometry args={[moon.size * trailScale * 0.8, 8, 8]} />
+                <meshBasicMaterial
+                  color={moonEmissive}
+                  transparent
+                  opacity={trailOpacity}
+                  depthWrite={false}
+                />
+              </mesh>
+            );
+          })}
+        </group>
       ))}
     </group>
   );
@@ -318,34 +356,7 @@ function PlanetNode({
         />
       </mesh>
 
-      {/* Saturn-style rings */}
-      <SaturnRing
-        radius={node.radius * 1.7}
-        thickness={0.025 + sizeNorm * 0.018}
-        color={activeRing}
-        opacity={isSelected ? 0.85 : ringBaseOpacity}
-        tiltX={1.2}
-        tiltZ={0.2}
-        speed={isDimmed ? 0.3 : 1.5}
-      />
-      <SaturnRing
-        radius={node.radius * 2.0}
-        thickness={0.015 + sizeNorm * 0.012}
-        color={activeGlow}
-        opacity={isSelected ? 0.65 : ringBaseOpacity * 0.7}
-        tiltX={1.1}
-        tiltZ={0.3}
-        speed={isDimmed ? -0.2 : -1.0}
-      />
-      <SaturnRing
-        radius={node.radius * 2.35}
-        thickness={0.01}
-        color={activeColor}
-        opacity={isSelected ? 0.5 : ringBaseOpacity * 0.5}
-        tiltX={1.3}
-        tiltZ={-0.1}
-        speed={isDimmed ? 0.1 : 0.6}
-      />
+      {/* Pure spherical node — no Saturn rings, just atmospheric glow */}
 
       {/* Orbiting moon spheres */}
       <OrbitingMoons
