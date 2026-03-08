@@ -607,6 +607,14 @@ const Analytics = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* AI Knowledge Report */}
+        <div className="mt-8">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 font-mono">
+            <span className="text-primary">✦</span> AI Knowledge Report
+          </h2>
+          <KnowledgeReport />
+        </div>
       </div>
     </div>
   );
