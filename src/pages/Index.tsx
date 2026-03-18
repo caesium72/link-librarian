@@ -548,6 +548,7 @@ const Index = () => {
                   onRetry: (id: string) => retryMutation.mutate(id),
                   onDelete: (id: string) => deleteMutation.mutate(id),
                   onClick: handleSelectLink,
+                  onUpdate: handleUpdate,
                   onReview: (link: Link) => setReviewLink(link),
                   selectionMode,
                   selectedIds,

@@ -99,6 +99,7 @@ export function LinkSection({
               onRetry={onRetry}
               onDelete={onDelete}
               onClick={onClick}
+              onUpdate={onUpdate}
               onReview={onReview}
               selectionMode={selectionMode}
               isSelected={selectedIds?.has(link.id)}
