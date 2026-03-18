@@ -65,12 +65,17 @@ export function LinkSection({
           {links.map((link, index) => (
             <div
               key={link.id}
-              className="animate-fade-in"
+              className="animate-fade-in relative"
               style={{
                 animationDelay: `${Math.min((indexOffset + index) * 0.03, 0.3)}s`,
                 animationFillMode: "backwards",
               }}
             >
+              {showNumbers && (
+                <span className="absolute -left-1 -top-1 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-mono font-bold shadow-sm">
+                  {indexOffset + index + 1}
+                </span>
+              )}
               <LinkGridCard
                 link={link}
                 onPin={onPin}
