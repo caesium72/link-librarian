@@ -33,6 +33,7 @@ export function LinkSection({
   onRetry,
   onDelete,
   onClick,
+  onUpdate,
   onReview,
   selectionMode,
   selectedIds,
