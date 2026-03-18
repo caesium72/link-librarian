@@ -478,6 +478,15 @@ const Index = () => {
               >
                 {viewMode === "list" ? <LayoutGrid className="h-3.5 w-3.5" /> : <LayoutList className="h-3.5 w-3.5" />}
               </Button>
+              <Button
+                variant={showNumbers ? "default" : "ghost"}
+                size="icon"
+                className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-all"
+                onClick={toggleNumbers}
+                title={showNumbers ? "Hide link numbers" : "Show link numbers"}
+              >
+                <ListOrdered className="h-3.5 w-3.5" />
+              </Button>
               {filteredLinks.length > 0 && !selectionMode && (
                 <Button variant="outline" size="sm" className="h-8 text-xs font-mono gap-1.5 hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all" onClick={() => setSelectionMode(true)}>
                   <CheckSquare className="h-3 w-3" /> Select
