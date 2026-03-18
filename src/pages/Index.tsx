@@ -91,6 +91,14 @@ const Index = () => {
     });
   }, []);
 
+  const toggleNumbers = useCallback(() => {
+    setShowNumbers((prev) => {
+      const next = !prev;
+      try { localStorage.setItem("show-link-numbers", String(next)); } catch {}
+      return next;
+    });
+  }, []);
+
   // Selection mode state
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
