@@ -48,6 +48,7 @@ interface LinkCardProps {
   onRetry: (id: string) => void;
   onDelete: (id: string) => void;
   onClick: (link: Link) => void;
+  onUpdate?: (id: string, updates: Partial<Link>) => void;
   onReview?: (link: Link) => void;
   selectionMode?: boolean;
   isSelected?: boolean;
