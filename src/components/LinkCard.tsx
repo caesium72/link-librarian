@@ -332,6 +332,18 @@ export function LinkCard({ link, onPin, onRetry, onDelete, onClick, onUpdate, on
                   <Pin className="h-3 w-3" /> {link.is_pinned ? "Pinned" : "Pin"}
                 </Button>
                 <Button
+                  variant={link.is_read ? "default" : "outline"}
+                  size="sm"
+                  className={cn(
+                    "h-7 text-xs font-mono gap-1.5 transition-all",
+                    !link.is_read && "hover:bg-primary/10 hover:text-primary hover:border-primary/30"
+                  )}
+                  onClick={toggleRead}
+                >
+                  {link.is_read ? <BookCheck className="h-3 w-3" /> : <BookOpen className="h-3 w-3" />}
+                  {link.is_read ? "Visited" : "Mark Visited"}
+                </Button>
+                <Button
                   variant="outline"
                   size="sm"
                   className="h-7 text-xs font-mono gap-1.5 hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-colors"
