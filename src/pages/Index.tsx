@@ -914,6 +914,7 @@ function MobileLayout(props: any) {
                 selectionMode,
                 selectedIds,
                 onToggleSelect: toggleSelect,
+                showNumbers,
               };
               return (
                 <>
