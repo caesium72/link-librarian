@@ -118,8 +118,27 @@ export function LinkCard({ link, onPin, onRetry, onDelete, onClick, onUpdate, on
               {link.is_pinned && (
                 <Pin className="h-3 w-3 text-primary shrink-0 animate-scale-in" />
               )}
-              {!(link as any).is_read && (
-                <Eye className="h-3 w-3 text-primary shrink-0" />
+              {link.is_read ? (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <BookCheck className="h-3 w-3 text-muted-foreground shrink-0" />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">Visited</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ) : (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="relative shrink-0 flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary/40" />
+                        <BookOpen className="relative h-3 w-3 text-primary" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">Unread</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
               <HealthStatusIndicator
                 healthStatus={(link as any).health_status}
