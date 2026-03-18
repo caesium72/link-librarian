@@ -24,6 +24,7 @@ interface LinkSectionProps {
   indexOffset?: number;
   viewMode?: "list" | "grid";
   highlightedId?: string | null;
+  showNumbers?: boolean;
 }
 
 export function LinkSection({
@@ -41,6 +42,7 @@ export function LinkSection({
   indexOffset = 0,
   viewMode = "list",
   highlightedId,
+  showNumbers,
 }: LinkSectionProps) {
   if (links.length === 0) return null;
 
