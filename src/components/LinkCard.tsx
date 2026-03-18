@@ -75,6 +75,11 @@ export function LinkCard({ link, onPin, onRetry, onDelete, onClick, onUpdate, on
     }
   };
 
+  const toggleRead = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onUpdate?.(link.id, { is_read: !link.is_read });
+  };
+
   return (
     <Card
       className={cn(
@@ -85,7 +90,8 @@ export function LinkCard({ link, onPin, onRetry, onDelete, onClick, onUpdate, on
         isSelected ? "border-primary ring-2 ring-primary/20 shadow-md" : "hover:border-primary/40",
         expanded && "shadow-lg border-primary/30 ring-1 ring-primary/10",
         isHighlighted && "ring-2 ring-primary/40 border-primary",
-        !(link as any).is_read && "border-l-2 border-l-primary"
+        !link.is_read && "border-l-2 border-l-primary",
+        link.is_read && "opacity-75"
       )}
       onClick={handleClick}
     >
