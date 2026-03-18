@@ -80,7 +80,8 @@ export function LinkGridCard({
         "hover:shadow-lg hover:-translate-y-0.5",
         isSelected ? "border-primary ring-2 ring-primary/20 shadow-md" : "hover:border-primary/40",
         isHighlighted && "ring-2 ring-primary/40 border-primary",
-        !(link as any).is_read && "border-l-2 border-l-primary"
+        !link.is_read && "border-l-2 border-l-primary",
+        link.is_read && "opacity-75"
       )}
       onClick={handleClick}
     >
