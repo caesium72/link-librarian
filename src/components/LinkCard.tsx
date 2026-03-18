@@ -16,8 +16,12 @@ import {
   ChevronDown,
   Sparkles,
   Eye,
+  EyeOff,
+  BookOpen,
+  BookCheck,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { AddToCollectionMenu } from "@/components/AddToCollectionMenu";
 import { HealthStatusIndicator } from "@/components/HealthStatusIndicator";
 import { cn } from "@/lib/utils";
