@@ -70,6 +70,9 @@ const Index = () => {
   const [duplicateFilter, setDuplicateFilter] = useState(false);
   const [activeStatFilter, setActiveStatFilter] = useState("all");
   const [reviewLink, setReviewLink] = useState<Link | null>(null);
+  const [showNumbers, setShowNumbers] = useState(() => {
+    try { return localStorage.getItem("show-link-numbers") === "true"; } catch { return false; }
+  });
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const toggleSidebar = useCallback(() => {
