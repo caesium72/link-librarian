@@ -10,8 +10,10 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
-  Eye,
+  BookOpen,
+  BookCheck,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { HealthStatusIndicator } from "@/components/HealthStatusIndicator";
 import { cn } from "@/lib/utils";
