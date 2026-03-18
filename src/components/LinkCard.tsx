@@ -56,7 +56,7 @@ interface LinkCardProps {
   isHighlighted?: boolean;
 }
 
-export function LinkCard({ link, onPin, onRetry, onDelete, onClick, onReview, selectionMode, isSelected, onToggleSelect, isHighlighted }: LinkCardProps) {
+export function LinkCard({ link, onPin, onRetry, onDelete, onClick, onUpdate, onReview, selectionMode, isSelected, onToggleSelect, isHighlighted }: LinkCardProps) {
   const { toast } = useToast();
   const [expanded, setExpanded] = useState(false);
   const statusInfo = statusConfig[link.status as keyof typeof statusConfig] ?? statusConfig.pending;
