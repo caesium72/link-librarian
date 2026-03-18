@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SimilarLinks } from "@/components/SimilarLinks";
 import {
-  ExternalLink, Copy, Pin, PinOff, RefreshCw, Trash2, X,
+  ExternalLink, Copy, Pin, PinOff, RefreshCw, Trash2, X, BookOpen, BookCheck,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
