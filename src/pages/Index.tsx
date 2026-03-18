@@ -36,7 +36,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, LogOut, Pin, FileText, Video, GitBranch, BookOpen, Wrench, MessageSquare, LayoutGrid, LayoutList, Filter, Clock, CheckCircle2, AlertCircle, ArrowUpDown, ArrowDown, ArrowUp, Settings, RefreshCw, CheckSquare, X, Trash2, Tag, Eye, EyeOff, Sparkles, HeartPulse, TrendingUp } from "lucide-react";
+import { Search, LogOut, Pin, FileText, Video, GitBranch, BookOpen, Wrench, MessageSquare, LayoutGrid, LayoutList, Filter, Clock, CheckCircle2, AlertCircle, ArrowUpDown, ArrowDown, ArrowUp, Settings, RefreshCw, CheckSquare, X, Trash2, Tag, Eye, EyeOff, Sparkles, HeartPulse, TrendingUp, ListOrdered } from "lucide-react";
 import { SmartSearchDialog } from "@/components/SmartSearchDialog";
 import { ImportDialog } from "@/components/ImportDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -70,6 +70,9 @@ const Index = () => {
   const [duplicateFilter, setDuplicateFilter] = useState(false);
   const [activeStatFilter, setActiveStatFilter] = useState("all");
   const [reviewLink, setReviewLink] = useState<Link | null>(null);
+  const [showNumbers, setShowNumbers] = useState(() => {
+    try { return localStorage.getItem("show-link-numbers") === "true"; } catch { return false; }
+  });
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const toggleSidebar = useCallback(() => {
@@ -84,6 +87,14 @@ const Index = () => {
     setViewMode((prev) => {
       const next = prev === "list" ? "grid" : "list";
       try { localStorage.setItem("view-mode", next); } catch {}
+      return next;
+    });
+  }, []);
+
+  const toggleNumbers = useCallback(() => {
+    setShowNumbers((prev) => {
+      const next = !prev;
+      try { localStorage.setItem("show-link-numbers", String(next)); } catch {}
       return next;
     });
   }, []);
@@ -401,6 +412,7 @@ const Index = () => {
           bulkDeleteMutation={bulkDeleteMutation} bulkTagMutation={bulkTagMutation}
           handleRefresh={handleRefresh}
           pendingCount={pendingCount} readyCount={readyCount} failedCount={failedCount}
+          showNumbers={showNumbers}
         />
         <FailedLinkReviewDialog
           link={reviewLink}
@@ -466,6 +478,15 @@ const Index = () => {
                 title={viewMode === "list" ? "Switch to grid" : "Switch to list"}
               >
                 {viewMode === "list" ? <LayoutGrid className="h-3.5 w-3.5" /> : <LayoutList className="h-3.5 w-3.5" />}
+              </Button>
+              <Button
+                variant={showNumbers ? "default" : "ghost"}
+                size="icon"
+                className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-all"
+                onClick={toggleNumbers}
+                title={showNumbers ? "Hide link numbers" : "Show link numbers"}
+              >
+                <ListOrdered className="h-3.5 w-3.5" />
               </Button>
               {filteredLinks.length > 0 && !selectionMode && (
                 <Button variant="outline" size="sm" className="h-8 text-xs font-mono gap-1.5 hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all" onClick={() => setSelectionMode(true)}>
@@ -555,6 +576,7 @@ const Index = () => {
                   onToggleSelect: toggleSelect,
                   viewMode,
                   highlightedId: highlightedLinkId,
+                  showNumbers,
                 };
                 return (
                   <>
@@ -650,7 +672,7 @@ function MobileLayout(props: any) {
     selectionMode, setSelectionMode, selectedIds, toggleSelect, selectAll, exitSelectionMode,
     showDeleteConfirm, setShowDeleteConfirm, showTagInput, setShowTagInput, tagInput, setTagInput,
     handleUpdate, retryMutation, deleteMutation, bulkDeleteMutation, bulkTagMutation,
-    handleRefresh, pendingCount, readyCount, failedCount,
+    handleRefresh, pendingCount, readyCount, failedCount, showNumbers,
   } = props;
 
   return (
@@ -893,6 +915,7 @@ function MobileLayout(props: any) {
                 selectionMode,
                 selectedIds,
                 onToggleSelect: toggleSelect,
+                showNumbers,
               };
               return (
                 <>

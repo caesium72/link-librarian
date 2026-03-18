@@ -24,6 +24,7 @@ interface LinkSectionProps {
   indexOffset?: number;
   viewMode?: "list" | "grid";
   highlightedId?: string | null;
+  showNumbers?: boolean;
 }
 
 export function LinkSection({
@@ -41,6 +42,7 @@ export function LinkSection({
   indexOffset = 0,
   viewMode = "list",
   highlightedId,
+  showNumbers,
 }: LinkSectionProps) {
   if (links.length === 0) return null;
 
@@ -63,12 +65,17 @@ export function LinkSection({
           {links.map((link, index) => (
             <div
               key={link.id}
-              className="animate-fade-in"
+              className="animate-fade-in relative"
               style={{
                 animationDelay: `${Math.min((indexOffset + index) * 0.03, 0.3)}s`,
                 animationFillMode: "backwards",
               }}
             >
+              {showNumbers && (
+                <span className="absolute -left-1 -top-1 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-mono font-bold shadow-sm">
+                  {indexOffset + index + 1}
+                </span>
+              )}
               <LinkGridCard
                 link={link}
                 onPin={onPin}
@@ -87,25 +94,32 @@ export function LinkSection({
         links.map((link, index) => (
           <div
             key={link.id}
-            className="animate-fade-in"
+            className="animate-fade-in flex items-start gap-2"
             style={{
               animationDelay: `${Math.min((indexOffset + index) * 0.03, 0.3)}s`,
               animationFillMode: "backwards",
             }}
           >
-            <LinkCard
-              link={link}
-              onPin={onPin}
-              onRetry={onRetry}
-              onDelete={onDelete}
-              onClick={onClick}
-              onUpdate={onUpdate}
-              onReview={onReview}
-              selectionMode={selectionMode}
-              isSelected={selectedIds?.has(link.id)}
-              onToggleSelect={onToggleSelect}
-              isHighlighted={highlightedId === link.id}
-            />
+            {showNumbers && (
+              <span className="flex h-6 w-6 mt-4 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-mono font-bold shrink-0 shadow-sm">
+                {indexOffset + index + 1}
+              </span>
+            )}
+            <div className="flex-1 min-w-0">
+              <LinkCard
+                link={link}
+                onPin={onPin}
+                onRetry={onRetry}
+                onDelete={onDelete}
+                onClick={onClick}
+                onUpdate={onUpdate}
+                onReview={onReview}
+                selectionMode={selectionMode}
+                isSelected={selectedIds?.has(link.id)}
+                onToggleSelect={onToggleSelect}
+                isHighlighted={highlightedId === link.id}
+              />
+            </div>
           </div>
         ))
       )}
