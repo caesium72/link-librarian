@@ -412,6 +412,7 @@ const Index = () => {
           bulkDeleteMutation={bulkDeleteMutation} bulkTagMutation={bulkTagMutation}
           handleRefresh={handleRefresh}
           pendingCount={pendingCount} readyCount={readyCount} failedCount={failedCount}
+          showNumbers={showNumbers}
         />
         <FailedLinkReviewDialog
           link={reviewLink}
