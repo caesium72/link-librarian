@@ -575,6 +575,7 @@ const Index = () => {
                   onToggleSelect: toggleSelect,
                   viewMode,
                   highlightedId: highlightedLinkId,
+                  showNumbers,
                 };
                 return (
                   <>
