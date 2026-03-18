@@ -10,8 +10,10 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
-  Eye,
+  BookOpen,
+  BookCheck,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { HealthStatusIndicator } from "@/components/HealthStatusIndicator";
 import { cn } from "@/lib/utils";
@@ -78,7 +80,8 @@ export function LinkGridCard({
         "hover:shadow-lg hover:-translate-y-0.5",
         isSelected ? "border-primary ring-2 ring-primary/20 shadow-md" : "hover:border-primary/40",
         isHighlighted && "ring-2 ring-primary/40 border-primary",
-        !(link as any).is_read && "border-l-2 border-l-primary"
+        !link.is_read && "border-l-2 border-l-primary",
+        link.is_read && "opacity-75"
       )}
       onClick={handleClick}
     >
@@ -96,7 +99,28 @@ export function LinkGridCard({
               </div>
             )}
             {link.is_pinned && <Pin className="h-3 w-3 text-primary shrink-0" />}
-            {!(link as any).is_read && <Eye className="h-3 w-3 text-primary shrink-0" />}
+            {link.is_read ? (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <BookCheck className="h-3 w-3 text-muted-foreground shrink-0" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">Visited</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="relative shrink-0 flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary/40" />
+                      <BookOpen className="relative h-3 w-3 text-primary" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">Unread</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
             <HealthStatusIndicator
               healthStatus={(link as any).health_status}
               healthStatusCode={(link as any).health_status_code}

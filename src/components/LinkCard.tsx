@@ -16,8 +16,12 @@ import {
   ChevronDown,
   Sparkles,
   Eye,
+  EyeOff,
+  BookOpen,
+  BookCheck,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { AddToCollectionMenu } from "@/components/AddToCollectionMenu";
 import { HealthStatusIndicator } from "@/components/HealthStatusIndicator";
 import { cn } from "@/lib/utils";
@@ -44,6 +48,7 @@ interface LinkCardProps {
   onRetry: (id: string) => void;
   onDelete: (id: string) => void;
   onClick: (link: Link) => void;
+  onUpdate?: (id: string, updates: Partial<Link>) => void;
   onReview?: (link: Link) => void;
   selectionMode?: boolean;
   isSelected?: boolean;
@@ -51,7 +56,7 @@ interface LinkCardProps {
   isHighlighted?: boolean;
 }
 
-export function LinkCard({ link, onPin, onRetry, onDelete, onClick, onReview, selectionMode, isSelected, onToggleSelect, isHighlighted }: LinkCardProps) {
+export function LinkCard({ link, onPin, onRetry, onDelete, onClick, onUpdate, onReview, selectionMode, isSelected, onToggleSelect, isHighlighted }: LinkCardProps) {
   const { toast } = useToast();
   const [expanded, setExpanded] = useState(false);
   const statusInfo = statusConfig[link.status as keyof typeof statusConfig] ?? statusConfig.pending;
@@ -70,6 +75,11 @@ export function LinkCard({ link, onPin, onRetry, onDelete, onClick, onReview, se
     }
   };
 
+  const toggleRead = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onUpdate?.(link.id, { is_read: !link.is_read });
+  };
+
   return (
     <Card
       className={cn(
@@ -80,7 +90,8 @@ export function LinkCard({ link, onPin, onRetry, onDelete, onClick, onReview, se
         isSelected ? "border-primary ring-2 ring-primary/20 shadow-md" : "hover:border-primary/40",
         expanded && "shadow-lg border-primary/30 ring-1 ring-primary/10",
         isHighlighted && "ring-2 ring-primary/40 border-primary",
-        !(link as any).is_read && "border-l-2 border-l-primary"
+        !link.is_read && "border-l-2 border-l-primary",
+        link.is_read && "opacity-75"
       )}
       onClick={handleClick}
     >
@@ -107,8 +118,27 @@ export function LinkCard({ link, onPin, onRetry, onDelete, onClick, onReview, se
               {link.is_pinned && (
                 <Pin className="h-3 w-3 text-primary shrink-0 animate-scale-in" />
               )}
-              {!(link as any).is_read && (
-                <Eye className="h-3 w-3 text-primary shrink-0" />
+              {link.is_read ? (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <BookCheck className="h-3 w-3 text-muted-foreground shrink-0" />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">Visited</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ) : (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="relative shrink-0 flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary/40" />
+                        <BookOpen className="relative h-3 w-3 text-primary" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">Unread</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
               <HealthStatusIndicator
                 healthStatus={(link as any).health_status}
@@ -300,6 +330,18 @@ export function LinkCard({ link, onPin, onRetry, onDelete, onClick, onReview, se
                   onClick={() => onPin(link.id, link.is_pinned)}
                 >
                   <Pin className="h-3 w-3" /> {link.is_pinned ? "Pinned" : "Pin"}
+                </Button>
+                <Button
+                  variant={link.is_read ? "default" : "outline"}
+                  size="sm"
+                  className={cn(
+                    "h-7 text-xs font-mono gap-1.5 transition-all",
+                    !link.is_read && "hover:bg-primary/10 hover:text-primary hover:border-primary/30"
+                  )}
+                  onClick={toggleRead}
+                >
+                  {link.is_read ? <BookCheck className="h-3 w-3" /> : <BookOpen className="h-3 w-3" />}
+                  {link.is_read ? "Visited" : "Mark Visited"}
                 </Button>
                 <Button
                   variant="outline"

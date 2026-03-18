@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SimilarLinks } from "@/components/SimilarLinks";
 import {
-  ExternalLink, Copy, Pin, PinOff, RefreshCw, Trash2, X,
+  ExternalLink, Copy, Pin, PinOff, RefreshCw, Trash2, X, BookOpen, BookCheck,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -174,6 +174,10 @@ export function LinkDetailPanel({ link, onClose, onUpdate, onRetry, onDelete, on
           <Button variant="outline" size="sm" className="font-mono text-xs" onClick={() => onUpdate(link.id, { is_pinned: !link.is_pinned })}>
             {link.is_pinned ? <PinOff className="h-3 w-3 mr-1" /> : <Pin className="h-3 w-3 mr-1" />}
             {link.is_pinned ? "Unpin" : "Pin"}
+          </Button>
+          <Button variant={link.is_read ? "default" : "outline"} size="sm" className="font-mono text-xs" onClick={() => onUpdate(link.id, { is_read: !link.is_read })}>
+            {link.is_read ? <BookCheck className="h-3 w-3 mr-1" /> : <BookOpen className="h-3 w-3 mr-1" />}
+            {link.is_read ? "Visited" : "Mark Visited"}
           </Button>
           {link.status === "failed" && (
             <Button variant="outline" size="sm" className="font-mono text-xs" onClick={() => onRetry(link.id)}>

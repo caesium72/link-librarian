@@ -16,6 +16,7 @@ interface LinkSectionProps {
   onRetry: (id: string) => void;
   onDelete: (id: string) => void;
   onClick: (link: Link) => void;
+  onUpdate?: (id: string, updates: Partial<Link>) => void;
   onReview?: (link: Link) => void;
   selectionMode?: boolean;
   selectedIds?: Set<string>;
@@ -32,6 +33,7 @@ export function LinkSection({
   onRetry,
   onDelete,
   onClick,
+  onUpdate,
   onReview,
   selectionMode,
   selectedIds,
@@ -97,6 +99,7 @@ export function LinkSection({
               onRetry={onRetry}
               onDelete={onDelete}
               onClick={onClick}
+              onUpdate={onUpdate}
               onReview={onReview}
               selectionMode={selectionMode}
               isSelected={selectedIds?.has(link.id)}

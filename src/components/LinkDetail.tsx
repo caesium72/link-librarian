@@ -17,6 +17,8 @@ import {
   PinOff,
   RefreshCw,
   Trash2,
+  BookOpen,
+  BookCheck,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -203,7 +205,7 @@ export function LinkDetail({ link, open, onClose, onUpdate, onRetry, onDelete, o
           </div>
 
           {/* Actions */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button
               variant="outline"
               size="sm"
@@ -212,6 +214,15 @@ export function LinkDetail({ link, open, onClose, onUpdate, onRetry, onDelete, o
             >
               {link.is_pinned ? <PinOff className="h-3 w-3 mr-1" /> : <Pin className="h-3 w-3 mr-1" />}
               {link.is_pinned ? "Unpin" : "Pin"}
+            </Button>
+            <Button
+              variant={link.is_read ? "default" : "outline"}
+              size="sm"
+              className="font-mono text-xs"
+              onClick={() => onUpdate(link.id, { is_read: !link.is_read })}
+            >
+              {link.is_read ? <BookCheck className="h-3 w-3 mr-1" /> : <BookOpen className="h-3 w-3 mr-1" />}
+              {link.is_read ? "Visited" : "Mark Visited"}
             </Button>
             {link.status === "failed" && (
               <Button
