@@ -147,7 +147,7 @@ export default function Dashboard() {
           </div>
           <div className="flex gap-2 flex-wrap">
             <Button size="sm" asChild>
-              <RouterLink to="/"><Plus className="h-3.5 w-3.5 mr-1.5" />Add Link</RouterLink>
+              <RouterLink to="/library"><Plus className="h-3.5 w-3.5 mr-1.5" />Add Link</RouterLink>
             </Button>
             <Button size="sm" variant="outline" asChild>
               <RouterLink to="/knowledge"><Compass className="h-3.5 w-3.5 mr-1.5" />Discover</RouterLink>
