@@ -16,6 +16,7 @@ import Discover from "./pages/Discover";
 import Digest from "./pages/Digest";
 import PublicProfile from "./pages/PublicProfile";
 import Knowledge from "./pages/Knowledge";
+import Dashboard from "./pages/Dashboard";
 
 const queryClient = new QueryClient();
 
