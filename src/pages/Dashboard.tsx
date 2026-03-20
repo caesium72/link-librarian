@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow, subDays, format, startOfDay } from "date-fns";
 import { useEffect, useRef, useState } from "react";
+import { LinksOverTimeChart, ContentTypePieChart, DayOfWeekRadar, ActivityHeatmap } from "@/components/dashboard/DashboardCharts";
 
 export default function Dashboard() {
   const { user, signOut, loading: authLoading } = useRequireAuth();
