@@ -147,7 +147,7 @@ export default function Dashboard() {
           </div>
           <div className="flex gap-2 flex-wrap">
             <Button size="sm" asChild>
-              <RouterLink to="/"><Plus className="h-3.5 w-3.5 mr-1.5" />Add Link</RouterLink>
+              <RouterLink to="/library"><Plus className="h-3.5 w-3.5 mr-1.5" />Add Link</RouterLink>
             </Button>
             <Button size="sm" variant="outline" asChild>
               <RouterLink to="/knowledge"><Compass className="h-3.5 w-3.5 mr-1.5" />Discover</RouterLink>
@@ -199,7 +199,7 @@ export default function Dashboard() {
                 Recent Activity
               </CardTitle>
               <Button variant="ghost" size="sm" asChild>
-                <RouterLink to="/" className="text-xs gap-1">
+                <RouterLink to="/library" className="text-xs gap-1">
                   View all <ArrowRight className="h-3 w-3" />
                 </RouterLink>
               </Button>
@@ -223,7 +223,7 @@ export default function Dashboard() {
                 recentActivity?.map(link => (
                   <RouterLink
                     key={link.id}
-                    to="/"
+                    to="/library"
                     className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors group"
                   >
                     <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center shrink-0 text-muted-foreground group-hover:text-primary transition-colors">
@@ -325,7 +325,7 @@ export default function Dashboard() {
 
         {/* Quick Navigation */}
         <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <NavCard to="/" icon={<Library className="h-5 w-5" />} label="My Library" desc="Browse & manage links" />
+          <NavCard to="/library" icon={<Library className="h-5 w-5" />} label="My Library" desc="Browse & manage links" />
           <NavCard to="/knowledge" icon={<Sparkles className="h-5 w-5" />} label="Knowledge" desc="Discover & explore" />
           <NavCard to="/analytics" icon={<BarChart3 className="h-5 w-5" />} label="Analytics" desc="Reading insights" />
           <NavCard to="/digest" icon={<Calendar className="h-5 w-5" />} label="Digest" desc="Weekly summaries" />
