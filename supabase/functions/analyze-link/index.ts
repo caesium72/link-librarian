@@ -111,65 +111,77 @@ Based on the URL, domain, title, and description, provide:
 5. 3-7 key bullet points about the content (if determinable)
 6. Your confidence score (0.0 to 1.0) in the analysis quality`;
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          {
-            role: "system",
-            content: "You are a link analysis assistant. Analyze URLs and provide structured metadata.",
-          },
-          { role: "user", content: prompt },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "analyze_link",
-              description: "Provide structured analysis of a web page",
-              parameters: {
-                type: "object",
-                properties: {
-                  clean_title: { type: "string", description: "Clean, descriptive title" },
-                  summary: { type: "string", description: "1-3 sentence summary" },
-                  tags: {
-                    type: "array",
-                    items: { type: "string" },
-                    description: "3-10 relevant lowercase tags",
-                  },
-                  content_type: {
-                    type: "string",
-                    enum: ["article", "video", "repo", "docs", "tool", "thread", "other"],
-                    description: "Type of content",
-                  },
-                  key_points: {
-                    type: "array",
-                    items: { type: "string" },
-                    description: "3-7 key bullet points",
-                  },
-                  confidence: {
-                    type: "number",
-                    description: "Confidence score 0.0 to 1.0",
-                  },
+    const aiBody = JSON.stringify({
+      model: "google/gemini-2.5-flash-lite",
+      messages: [
+        {
+          role: "system",
+          content: "You are a link analysis assistant. Analyze URLs and provide structured metadata.",
+        },
+        { role: "user", content: prompt },
+      ],
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "analyze_link",
+            description: "Provide structured analysis of a web page",
+            parameters: {
+              type: "object",
+              properties: {
+                clean_title: { type: "string", description: "Clean, descriptive title" },
+                summary: { type: "string", description: "1-3 sentence summary" },
+                tags: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "3-10 relevant lowercase tags",
                 },
-                required: ["clean_title", "summary", "tags", "content_type", "key_points", "confidence"],
-                additionalProperties: false,
+                content_type: {
+                  type: "string",
+                  enum: ["article", "video", "repo", "docs", "tool", "thread", "other"],
+                  description: "Type of content",
+                },
+                key_points: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "3-7 key bullet points",
+                },
+                confidence: {
+                  type: "number",
+                  description: "Confidence score 0.0 to 1.0",
+                },
               },
+              required: ["clean_title", "summary", "tags", "content_type", "key_points", "confidence"],
+              additionalProperties: false,
             },
           },
-        ],
-        tool_choice: { type: "function", function: { name: "analyze_link" } },
-      }),
+        },
+      ],
+      tool_choice: { type: "function", function: { name: "analyze_link" } },
     });
 
-    if (!aiResponse.ok) {
+    // Retry with exponential backoff for rate limits
+    let aiResponse: Response | null = null;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: aiBody,
+      });
+      if (aiResponse.status !== 429) break;
+      const wait = Math.pow(2, attempt) * 2000; // 2s, 4s, 8s, 16s
+      console.log(`Rate limited, retrying in ${wait}ms (attempt ${attempt + 1}/4)`);
+      await new Response(await aiResponse.text()).text(); // consume body
+      await new Promise(r => setTimeout(r, wait));
+    }
+
+    if (!aiResponse || !aiResponse.ok) {
+      const errText = aiResponse ? await aiResponse.text() : "No response";
       const errText = await aiResponse.text();
-      console.error("AI error:", aiResponse.status, errText);
+      console.error("AI error:", aiResponse?.status, errText);
 
       // Mark as failed
       await supabase
