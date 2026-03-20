@@ -199,7 +199,7 @@ export default function Dashboard() {
                 Recent Activity
               </CardTitle>
               <Button variant="ghost" size="sm" asChild>
-                <RouterLink to="/" className="text-xs gap-1">
+                <RouterLink to="/library" className="text-xs gap-1">
                   View all <ArrowRight className="h-3 w-3" />
                 </RouterLink>
               </Button>
