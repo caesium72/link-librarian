@@ -178,7 +178,8 @@ Based on the URL, domain, title, and description, provide:
       await new Promise(r => setTimeout(r, wait));
     }
 
-    if (!aiResponse.ok) {
+    if (!aiResponse || !aiResponse.ok) {
+      const errText = aiResponse ? await aiResponse.text() : "No response";
       const errText = await aiResponse.text();
       console.error("AI error:", aiResponse.status, errText);
 
