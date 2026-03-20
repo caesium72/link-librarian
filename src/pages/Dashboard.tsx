@@ -98,6 +98,20 @@ export default function Dashboard() {
     staleTime: 60_000,
   });
 
+  const { data: chartLinks = [] } = useQuery({
+    queryKey: ["dashboard-chart-links"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("links")
+        .select("created_at, content_type, tags, reading_completed_at")
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false });
+      return data || [];
+    },
+    enabled: !!user,
+    staleTime: 60_000,
+  });
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
