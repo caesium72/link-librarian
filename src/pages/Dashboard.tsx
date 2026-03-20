@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow, subDays, format, startOfDay } from "date-fns";
 import { useEffect, useRef, useState } from "react";
+import { LinksOverTimeChart, ContentTypePieChart, DayOfWeekRadar, ActivityHeatmap } from "@/components/dashboard/DashboardCharts";
 
 export default function Dashboard() {
   const { user, signOut, loading: authLoading } = useRequireAuth();
@@ -91,6 +92,20 @@ export default function Dashboard() {
         .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .limit(6);
+      return data || [];
+    },
+    enabled: !!user,
+    staleTime: 60_000,
+  });
+
+  const { data: chartLinks = [] } = useQuery({
+    queryKey: ["dashboard-chart-links"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("links")
+        .select("created_at, content_type, tags, reading_completed_at")
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false });
       return data || [];
     },
     enabled: !!user,
@@ -323,7 +338,14 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Quick Navigation */}
+        {/* Charts */}
+        <section className="grid md:grid-cols-2 gap-4">
+          <LinksOverTimeChart links={chartLinks} />
+          <ContentTypePieChart links={chartLinks} />
+          <DayOfWeekRadar links={chartLinks} />
+          <ActivityHeatmap links={chartLinks} />
+        </section>
+
         <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <NavCard to="/library" icon={<Library className="h-5 w-5" />} label="My Library" desc="Browse & manage links" />
           <NavCard to="/knowledge" icon={<Sparkles className="h-5 w-5" />} label="Knowledge" desc="Discover & explore" />
