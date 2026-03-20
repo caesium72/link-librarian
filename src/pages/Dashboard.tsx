@@ -325,7 +325,7 @@ export default function Dashboard() {
 
         {/* Quick Navigation */}
         <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <NavCard to="/" icon={<Library className="h-5 w-5" />} label="My Library" desc="Browse & manage links" />
+          <NavCard to="/library" icon={<Library className="h-5 w-5" />} label="My Library" desc="Browse & manage links" />
           <NavCard to="/knowledge" icon={<Sparkles className="h-5 w-5" />} label="Knowledge" desc="Discover & explore" />
           <NavCard to="/analytics" icon={<BarChart3 className="h-5 w-5" />} label="Analytics" desc="Reading insights" />
           <NavCard to="/digest" icon={<Calendar className="h-5 w-5" />} label="Digest" desc="Weekly summaries" />
