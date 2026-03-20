@@ -338,7 +338,14 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Quick Navigation */}
+        {/* Charts */}
+        <section className="grid md:grid-cols-2 gap-4">
+          <LinksOverTimeChart links={chartLinks} />
+          <ContentTypePieChart links={chartLinks} />
+          <DayOfWeekRadar links={chartLinks} />
+          <ActivityHeatmap links={chartLinks} />
+        </section>
+
         <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <NavCard to="/library" icon={<Library className="h-5 w-5" />} label="My Library" desc="Browse & manage links" />
           <NavCard to="/knowledge" icon={<Sparkles className="h-5 w-5" />} label="Knowledge" desc="Discover & explore" />
