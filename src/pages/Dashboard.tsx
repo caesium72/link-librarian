@@ -223,7 +223,7 @@ export default function Dashboard() {
                 recentActivity?.map(link => (
                   <RouterLink
                     key={link.id}
-                    to="/"
+                    to="/library"
                     className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors group"
                   >
                     <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center shrink-0 text-muted-foreground group-hover:text-primary transition-colors">
