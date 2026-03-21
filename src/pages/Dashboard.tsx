@@ -339,6 +339,13 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Discover & Trending */}
+        <section className="grid md:grid-cols-3 gap-4">
+          <DiscoverCategoryChart links={chartLinks} />
+          <MiniDiscoverWidget />
+          <TrendingTopicsCloud />
+        </section>
+
         {/* Charts */}
         <section className="grid md:grid-cols-2 gap-4">
           <LinksOverTimeChart links={chartLinks} />
