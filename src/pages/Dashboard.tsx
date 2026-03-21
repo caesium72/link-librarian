@@ -104,7 +104,7 @@ export default function Dashboard() {
     queryFn: async () => {
       const { data } = await supabase
         .from("links")
-        .select("created_at, content_type, tags, reading_completed_at")
+        .select("created_at, content_type, tags, reading_completed_at, source")
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
       return data || [];
