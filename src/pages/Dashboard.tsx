@@ -16,6 +16,7 @@ import {
 import { formatDistanceToNow, subDays, format, startOfDay } from "date-fns";
 import { useEffect, useRef, useState } from "react";
 import { LinksOverTimeChart, ContentTypePieChart, DayOfWeekRadar, ActivityHeatmap } from "@/components/dashboard/DashboardCharts";
+import { DiscoverCategoryChart, MiniDiscoverWidget, TrendingTopicsCloud } from "@/components/dashboard/DiscoverWidgets";
 
 export default function Dashboard() {
   const { user, signOut, loading: authLoading } = useRequireAuth();
@@ -103,7 +104,7 @@ export default function Dashboard() {
     queryFn: async () => {
       const { data } = await supabase
         .from("links")
-        .select("created_at, content_type, tags, reading_completed_at")
+        .select("created_at, content_type, tags, reading_completed_at, source")
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
       return data || [];
@@ -337,6 +338,13 @@ export default function Dashboard() {
             </Card>
           </div>
         </div>
+
+        {/* Discover & Trending */}
+        <section className="grid md:grid-cols-3 gap-4">
+          <DiscoverCategoryChart links={chartLinks} />
+          <MiniDiscoverWidget />
+          <TrendingTopicsCloud />
+        </section>
 
         {/* Charts */}
         <section className="grid md:grid-cols-2 gap-4">
