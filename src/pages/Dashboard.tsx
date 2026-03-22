@@ -352,10 +352,10 @@ export default function Dashboard() {
 
         {/* Charts */}
         <section className="grid md:grid-cols-2 gap-4">
-          <LinksOverTimeChart links={chartLinks} />
-          <ContentTypePieChart links={chartLinks} />
-          <DayOfWeekRadar links={chartLinks} />
-          <ActivityHeatmap links={chartLinks} />
+          <RouterLink to="/analytics"><div className="hover:ring-2 hover:ring-primary/20 rounded-xl transition-all"><LinksOverTimeChart links={chartLinks} /></div></RouterLink>
+          <RouterLink to="/analytics"><div className="hover:ring-2 hover:ring-primary/20 rounded-xl transition-all"><ContentTypePieChart links={chartLinks} /></div></RouterLink>
+          <RouterLink to="/analytics"><div className="hover:ring-2 hover:ring-primary/20 rounded-xl transition-all"><DayOfWeekRadar links={chartLinks} /></div></RouterLink>
+          <RouterLink to="/analytics"><div className="hover:ring-2 hover:ring-primary/20 rounded-xl transition-all"><ActivityHeatmap links={chartLinks} /></div></RouterLink>
         </section>
 
         <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
