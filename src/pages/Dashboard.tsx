@@ -176,12 +176,12 @@ export default function Dashboard() {
 
         {/* Stats Grid */}
         <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <StatCard icon={<Library className="h-4 w-4" />} label="Total Links" value={stats?.totalLinks} loading={statsLoading} />
-          <StatCard icon={<TrendingUp className="h-4 w-4" />} label="This Week" value={stats?.thisWeekLinks} loading={statsLoading} accent />
-          <StatCard icon={<BookCheck className="h-4 w-4" />} label="Read" value={stats?.readCount} loading={statsLoading} />
-          <StatCard icon={<BookOpen className="h-4 w-4" />} label="Unread" value={stats?.unreadCount} loading={statsLoading} />
-          <StatCard icon={<FolderOpen className="h-4 w-4" />} label="Collections" value={stats?.collectionsCount} loading={statsLoading} />
-          <StatCard icon={<Flame className="h-4 w-4" />} label="Day Streak" value={stats?.currentStreak} loading={statsLoading} accent />
+          <StatCard icon={<Library className="h-4 w-4" />} label="Total Links" value={stats?.totalLinks} loading={statsLoading} to="/library" />
+          <StatCard icon={<TrendingUp className="h-4 w-4" />} label="This Week" value={stats?.thisWeekLinks} loading={statsLoading} accent to="/library" />
+          <StatCard icon={<BookCheck className="h-4 w-4" />} label="Read" value={stats?.readCount} loading={statsLoading} to="/library" />
+          <StatCard icon={<BookOpen className="h-4 w-4" />} label="Unread" value={stats?.unreadCount} loading={statsLoading} to="/library" />
+          <StatCard icon={<FolderOpen className="h-4 w-4" />} label="Collections" value={stats?.collectionsCount} loading={statsLoading} to="/library" />
+          <StatCard icon={<Flame className="h-4 w-4" />} label="Day Streak" value={stats?.currentStreak} loading={statsLoading} accent to="/analytics" />
         </section>
 
         {/* Reading Progress */}
