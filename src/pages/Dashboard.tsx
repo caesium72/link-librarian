@@ -1,4 +1,5 @@
 import { useRequireAuth } from "@/hooks/useAuth";
+import { useQueryClient } from "@tanstack/react-query";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Link as RouterLink } from "react-router-dom";
