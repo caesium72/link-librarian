@@ -186,24 +186,26 @@ export default function Dashboard() {
 
         {/* Reading Progress */}
         {stats && (
-          <Card>
-            <CardContent className="p-4 sm:p-5">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Brain className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium">Reading Progress</span>
+          <RouterLink to="/library">
+            <Card className="hover:border-primary/30 hover:shadow-md transition-all cursor-pointer">
+              <CardContent className="p-4 sm:p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Brain className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium">Reading Progress</span>
+                  </div>
+                  <span className="text-xs font-mono text-muted-foreground">
+                    {stats.completionRate}% complete
+                  </span>
                 </div>
-                <span className="text-xs font-mono text-muted-foreground">
-                  {stats.completionRate}% complete
-                </span>
-              </div>
-              <Progress value={stats.completionRate} className="h-2" />
-              <div className="flex justify-between mt-2 text-[10px] text-muted-foreground font-mono uppercase tracking-wider">
-                <span>{stats.readCount} read</span>
-                <span>{stats.unreadCount} remaining</span>
-              </div>
-            </CardContent>
-          </Card>
+                <Progress value={stats.completionRate} className="h-2" />
+                <div className="flex justify-between mt-2 text-[10px] text-muted-foreground font-mono uppercase tracking-wider">
+                  <span>{stats.readCount} read</span>
+                  <span>{stats.unreadCount} remaining</span>
+                </div>
+              </CardContent>
+            </Card>
+          </RouterLink>
         )}
 
         <div className="grid lg:grid-cols-3 gap-6">
