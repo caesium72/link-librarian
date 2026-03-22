@@ -409,9 +409,9 @@ function StatCard({ icon, label, value, loading, accent, to }: {
   return to ? <RouterLink to={to}>{card}</RouterLink> : card;
 }
 
-function StatusRow({ label, count, color }: { label: string; count: number; color: string }) {
-  return (
-    <div className="flex items-center justify-between">
+function StatusRow({ label, count, color, to }: { label: string; count: number; color: string; to?: string }) {
+  const content = (
+    <div className={`flex items-center justify-between ${to ? "hover:bg-muted/50 rounded-md p-1 -m-1 cursor-pointer transition-colors" : ""}`}>
       <div className="flex items-center gap-2">
         <div className={`h-2 w-2 rounded-full ${color}`} />
         <span className="text-xs">{label}</span>
@@ -419,6 +419,7 @@ function StatusRow({ label, count, color }: { label: string; count: number; colo
       <span className="text-xs font-mono font-medium">{count}</span>
     </div>
   );
+  return to ? <RouterLink to={to}>{content}</RouterLink> : content;
 }
 
 function NavCard({ to, icon, label, desc }: { to: string; icon: React.ReactNode; label: string; desc: string }) {
