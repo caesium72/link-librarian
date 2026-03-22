@@ -176,34 +176,36 @@ export default function Dashboard() {
 
         {/* Stats Grid */}
         <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <StatCard icon={<Library className="h-4 w-4" />} label="Total Links" value={stats?.totalLinks} loading={statsLoading} />
-          <StatCard icon={<TrendingUp className="h-4 w-4" />} label="This Week" value={stats?.thisWeekLinks} loading={statsLoading} accent />
-          <StatCard icon={<BookCheck className="h-4 w-4" />} label="Read" value={stats?.readCount} loading={statsLoading} />
-          <StatCard icon={<BookOpen className="h-4 w-4" />} label="Unread" value={stats?.unreadCount} loading={statsLoading} />
-          <StatCard icon={<FolderOpen className="h-4 w-4" />} label="Collections" value={stats?.collectionsCount} loading={statsLoading} />
-          <StatCard icon={<Flame className="h-4 w-4" />} label="Day Streak" value={stats?.currentStreak} loading={statsLoading} accent />
+          <StatCard icon={<Library className="h-4 w-4" />} label="Total Links" value={stats?.totalLinks} loading={statsLoading} to="/library" />
+          <StatCard icon={<TrendingUp className="h-4 w-4" />} label="This Week" value={stats?.thisWeekLinks} loading={statsLoading} accent to="/library" />
+          <StatCard icon={<BookCheck className="h-4 w-4" />} label="Read" value={stats?.readCount} loading={statsLoading} to="/library" />
+          <StatCard icon={<BookOpen className="h-4 w-4" />} label="Unread" value={stats?.unreadCount} loading={statsLoading} to="/library" />
+          <StatCard icon={<FolderOpen className="h-4 w-4" />} label="Collections" value={stats?.collectionsCount} loading={statsLoading} to="/library" />
+          <StatCard icon={<Flame className="h-4 w-4" />} label="Day Streak" value={stats?.currentStreak} loading={statsLoading} accent to="/analytics" />
         </section>
 
         {/* Reading Progress */}
         {stats && (
-          <Card>
-            <CardContent className="p-4 sm:p-5">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Brain className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium">Reading Progress</span>
+          <RouterLink to="/library">
+            <Card className="hover:border-primary/30 hover:shadow-md transition-all cursor-pointer">
+              <CardContent className="p-4 sm:p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Brain className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium">Reading Progress</span>
+                  </div>
+                  <span className="text-xs font-mono text-muted-foreground">
+                    {stats.completionRate}% complete
+                  </span>
                 </div>
-                <span className="text-xs font-mono text-muted-foreground">
-                  {stats.completionRate}% complete
-                </span>
-              </div>
-              <Progress value={stats.completionRate} className="h-2" />
-              <div className="flex justify-between mt-2 text-[10px] text-muted-foreground font-mono uppercase tracking-wider">
-                <span>{stats.readCount} read</span>
-                <span>{stats.unreadCount} remaining</span>
-              </div>
-            </CardContent>
-          </Card>
+                <Progress value={stats.completionRate} className="h-2" />
+                <div className="flex justify-between mt-2 text-[10px] text-muted-foreground font-mono uppercase tracking-wider">
+                  <span>{stats.readCount} read</span>
+                  <span>{stats.unreadCount} remaining</span>
+                </div>
+              </CardContent>
+            </Card>
+          </RouterLink>
         )}
 
         <div className="grid lg:grid-cols-3 gap-6">
@@ -276,9 +278,9 @@ export default function Dashboard() {
                   <Skeleton className="h-16 w-full" />
                 ) : (
                   <>
-                    <StatusRow label="Ready" count={stats ? stats.totalLinks - (stats.pendingCount + stats.failedCount) : 0} color="bg-emerald-500" />
-                    <StatusRow label="Pending" count={stats?.pendingCount || 0} color="bg-amber-500" />
-                    <StatusRow label="Failed" count={stats?.failedCount || 0} color="bg-destructive" />
+                    <StatusRow label="Ready" count={stats ? stats.totalLinks - (stats.pendingCount + stats.failedCount) : 0} color="bg-emerald-500" to="/library" />
+                    <StatusRow label="Pending" count={stats?.pendingCount || 0} color="bg-amber-500" to="/library" />
+                    <StatusRow label="Failed" count={stats?.failedCount || 0} color="bg-destructive" to="/library" />
                   </>
                 )}
               </CardContent>
@@ -297,10 +299,12 @@ export default function Dashboard() {
                 ) : (
                   <div className="flex flex-wrap gap-1.5">
                     {stats?.topTags.map(([tag, count]) => (
-                      <Badge key={tag} variant="outline" className="text-[10px] gap-1">
-                        {tag}
-                        <span className="text-muted-foreground/50">{count}</span>
-                      </Badge>
+                      <RouterLink key={tag} to={`/library?search=${encodeURIComponent(tag)}`}>
+                        <Badge variant="outline" className="text-[10px] gap-1 cursor-pointer hover:bg-primary/10 hover:border-primary/30 transition-colors">
+                          {tag}
+                          <span className="text-muted-foreground/50">{count}</span>
+                        </Badge>
+                      </RouterLink>
                     ))}
                   </div>
                 )}
@@ -321,7 +325,7 @@ export default function Dashboard() {
                   stats?.contentTypes.slice(0, 5).map(([type, count]) => {
                     const pct = stats.totalLinks > 0 ? Math.round((count / stats.totalLinks) * 100) : 0;
                     return (
-                      <div key={type} className="flex items-center gap-2 text-xs">
+                      <RouterLink key={type} to={`/library?contentType=${encodeURIComponent(type)}`} className="flex items-center gap-2 text-xs hover:bg-muted/50 rounded-md p-1 -m-1 transition-colors">
                         <span className="w-14 capitalize text-muted-foreground font-mono">{type}</span>
                         <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                           <div
@@ -330,7 +334,7 @@ export default function Dashboard() {
                           />
                         </div>
                         <span className="w-8 text-right font-mono text-muted-foreground">{pct}%</span>
-                      </div>
+                      </RouterLink>
                     );
                   })
                 )}
@@ -348,10 +352,10 @@ export default function Dashboard() {
 
         {/* Charts */}
         <section className="grid md:grid-cols-2 gap-4">
-          <LinksOverTimeChart links={chartLinks} />
-          <ContentTypePieChart links={chartLinks} />
-          <DayOfWeekRadar links={chartLinks} />
-          <ActivityHeatmap links={chartLinks} />
+          <RouterLink to="/analytics"><div className="hover:ring-2 hover:ring-primary/20 rounded-xl transition-all"><LinksOverTimeChart links={chartLinks} /></div></RouterLink>
+          <RouterLink to="/analytics"><div className="hover:ring-2 hover:ring-primary/20 rounded-xl transition-all"><ContentTypePieChart links={chartLinks} /></div></RouterLink>
+          <RouterLink to="/analytics"><div className="hover:ring-2 hover:ring-primary/20 rounded-xl transition-all"><DayOfWeekRadar links={chartLinks} /></div></RouterLink>
+          <RouterLink to="/analytics"><div className="hover:ring-2 hover:ring-primary/20 rounded-xl transition-all"><ActivityHeatmap links={chartLinks} /></div></RouterLink>
         </section>
 
         <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -365,8 +369,8 @@ export default function Dashboard() {
   );
 }
 
-function StatCard({ icon, label, value, loading, accent }: {
-  icon: React.ReactNode; label: string; value?: number; loading: boolean; accent?: boolean;
+function StatCard({ icon, label, value, loading, accent, to }: {
+  icon: React.ReactNode; label: string; value?: number; loading: boolean; accent?: boolean; to?: string;
 }) {
   const [displayed, setDisplayed] = useState(0);
   const prevRef = useRef(0);
@@ -388,8 +392,8 @@ function StatCard({ icon, label, value, loading, accent }: {
     prevRef.current = end;
   }, [value, loading]);
 
-  return (
-    <Card className={accent ? "border-primary/20 bg-primary/5" : ""}>
+  const card = (
+    <Card className={`${accent ? "border-primary/20 bg-primary/5" : ""} ${to ? "hover:border-primary/30 hover:shadow-md transition-all cursor-pointer" : ""}`}>
       <CardContent className="p-3">
         <div className={`mb-1.5 ${accent ? "text-primary" : "text-muted-foreground"}`}>{icon}</div>
         {loading ? (
@@ -401,11 +405,13 @@ function StatCard({ icon, label, value, loading, accent }: {
       </CardContent>
     </Card>
   );
+
+  return to ? <RouterLink to={to}>{card}</RouterLink> : card;
 }
 
-function StatusRow({ label, count, color }: { label: string; count: number; color: string }) {
-  return (
-    <div className="flex items-center justify-between">
+function StatusRow({ label, count, color, to }: { label: string; count: number; color: string; to?: string }) {
+  const content = (
+    <div className={`flex items-center justify-between ${to ? "hover:bg-muted/50 rounded-md p-1 -m-1 cursor-pointer transition-colors" : ""}`}>
       <div className="flex items-center gap-2">
         <div className={`h-2 w-2 rounded-full ${color}`} />
         <span className="text-xs">{label}</span>
@@ -413,6 +419,7 @@ function StatusRow({ label, count, color }: { label: string; count: number; colo
       <span className="text-xs font-mono font-medium">{count}</span>
     </div>
   );
+  return to ? <RouterLink to={to}>{content}</RouterLink> : content;
 }
 
 function NavCard({ to, icon, label, desc }: { to: string; icon: React.ReactNode; label: string; desc: string }) {
