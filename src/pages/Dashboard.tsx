@@ -299,10 +299,12 @@ export default function Dashboard() {
                 ) : (
                   <div className="flex flex-wrap gap-1.5">
                     {stats?.topTags.map(([tag, count]) => (
-                      <Badge key={tag} variant="outline" className="text-[10px] gap-1">
-                        {tag}
-                        <span className="text-muted-foreground/50">{count}</span>
-                      </Badge>
+                      <RouterLink key={tag} to={`/library?search=${encodeURIComponent(tag)}`}>
+                        <Badge variant="outline" className="text-[10px] gap-1 cursor-pointer hover:bg-primary/10 hover:border-primary/30 transition-colors">
+                          {tag}
+                          <span className="text-muted-foreground/50">{count}</span>
+                        </Badge>
+                      </RouterLink>
                     ))}
                   </div>
                 )}
