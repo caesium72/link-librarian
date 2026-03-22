@@ -18,6 +18,7 @@ import { formatDistanceToNow, subDays, format, startOfDay } from "date-fns";
 import { useEffect, useRef, useState } from "react";
 import { LinksOverTimeChart, ContentTypePieChart, DayOfWeekRadar, ActivityHeatmap } from "@/components/dashboard/DashboardCharts";
 import { DiscoverCategoryChart, MiniDiscoverWidget, TrendingTopicsCloud } from "@/components/dashboard/DiscoverWidgets";
+import { AddLinkInput } from "@/components/AddLinkInput";
 
 export default function Dashboard() {
   const { user, signOut, loading: authLoading } = useRequireAuth();
