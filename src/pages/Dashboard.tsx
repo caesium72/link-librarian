@@ -278,9 +278,9 @@ export default function Dashboard() {
                   <Skeleton className="h-16 w-full" />
                 ) : (
                   <>
-                    <StatusRow label="Ready" count={stats ? stats.totalLinks - (stats.pendingCount + stats.failedCount) : 0} color="bg-emerald-500" />
-                    <StatusRow label="Pending" count={stats?.pendingCount || 0} color="bg-amber-500" />
-                    <StatusRow label="Failed" count={stats?.failedCount || 0} color="bg-destructive" />
+                    <StatusRow label="Ready" count={stats ? stats.totalLinks - (stats.pendingCount + stats.failedCount) : 0} color="bg-emerald-500" to="/library" />
+                    <StatusRow label="Pending" count={stats?.pendingCount || 0} color="bg-amber-500" to="/library" />
+                    <StatusRow label="Failed" count={stats?.failedCount || 0} color="bg-destructive" to="/library" />
                   </>
                 )}
               </CardContent>
