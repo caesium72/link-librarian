@@ -369,8 +369,8 @@ export default function Dashboard() {
   );
 }
 
-function StatCard({ icon, label, value, loading, accent }: {
-  icon: React.ReactNode; label: string; value?: number; loading: boolean; accent?: boolean;
+function StatCard({ icon, label, value, loading, accent, to }: {
+  icon: React.ReactNode; label: string; value?: number; loading: boolean; accent?: boolean; to?: string;
 }) {
   const [displayed, setDisplayed] = useState(0);
   const prevRef = useRef(0);
@@ -392,8 +392,8 @@ function StatCard({ icon, label, value, loading, accent }: {
     prevRef.current = end;
   }, [value, loading]);
 
-  return (
-    <Card className={accent ? "border-primary/20 bg-primary/5" : ""}>
+  const card = (
+    <Card className={`${accent ? "border-primary/20 bg-primary/5" : ""} ${to ? "hover:border-primary/30 hover:shadow-md transition-all cursor-pointer" : ""}`}>
       <CardContent className="p-3">
         <div className={`mb-1.5 ${accent ? "text-primary" : "text-muted-foreground"}`}>{icon}</div>
         {loading ? (
@@ -405,6 +405,8 @@ function StatCard({ icon, label, value, loading, accent }: {
       </CardContent>
     </Card>
   );
+
+  return to ? <RouterLink to={to}>{card}</RouterLink> : card;
 }
 
 function StatusRow({ label, count, color }: { label: string; count: number; color: string }) {
