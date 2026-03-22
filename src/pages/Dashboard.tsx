@@ -325,7 +325,7 @@ export default function Dashboard() {
                   stats?.contentTypes.slice(0, 5).map(([type, count]) => {
                     const pct = stats.totalLinks > 0 ? Math.round((count / stats.totalLinks) * 100) : 0;
                     return (
-                      <div key={type} className="flex items-center gap-2 text-xs">
+                      <RouterLink key={type} to={`/library?contentType=${encodeURIComponent(type)}`} className="flex items-center gap-2 text-xs hover:bg-muted/50 rounded-md p-1 -m-1 transition-colors">
                         <span className="w-14 capitalize text-muted-foreground font-mono">{type}</span>
                         <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                           <div
@@ -334,7 +334,7 @@ export default function Dashboard() {
                           />
                         </div>
                         <span className="w-8 text-right font-mono text-muted-foreground">{pct}%</span>
-                      </div>
+                      </RouterLink>
                     );
                   })
                 )}
