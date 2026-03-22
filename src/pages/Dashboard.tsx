@@ -22,6 +22,7 @@ import { AddLinkInput } from "@/components/AddLinkInput";
 
 export default function Dashboard() {
   const { user, signOut, loading: authLoading } = useRequireAuth();
+  const queryClient = useQueryClient();
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["dashboard-stats"],
