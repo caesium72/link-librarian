@@ -10,15 +10,43 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Progress } from "@/components/ui/progress";
 import {
-  Library, BookOpen, BookCheck, Clock, TrendingUp, Plus,
+  Library, BookOpen, BookCheck, Clock, TrendingUp, Plus, Search,
   ArrowRight, Sparkles, BarChart3, Brain, FolderOpen,
   Flame, Calendar, ExternalLink, Settings, Compass
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow, subDays, format, startOfDay } from "date-fns";
 import { useEffect, useRef, useState } from "react";
 import { LinksOverTimeChart, ContentTypePieChart, DayOfWeekRadar, ActivityHeatmap } from "@/components/dashboard/DashboardCharts";
 import { DiscoverCategoryChart, MiniDiscoverWidget, TrendingTopicsCloud } from "@/components/dashboard/DiscoverWidgets";
 import { AddLinkInput } from "@/components/AddLinkInput";
+
+function SearchWidget() {
+  const navigate = useNavigate();
+  const [query, setQuery] = useState("");
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (query.trim()) {
+      navigate(`/library?search=${encodeURIComponent(query.trim())}`);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSearch} className="flex gap-2">
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search your links..."
+        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      />
+      <Button type="submit" size="sm" disabled={!query.trim()} className="shrink-0">
+        <Search className="h-4 w-4" />
+      </Button>
+    </form>
+  );
+}
 
 export default function Dashboard() {
   const { user, signOut, loading: authLoading } = useRequireAuth();
@@ -139,7 +167,7 @@ export default function Dashboard() {
       <header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <RouterLink to="/" className="text-lg font-bold tracking-tight">
-            XenoKnowledge
+            LinkStash
           </RouterLink>
           <div className="flex items-center gap-2">
             <ThemeToggle />
@@ -177,16 +205,27 @@ export default function Dashboard() {
               </Button>
             </div>
           </div>
-          {/* Quick Add Link */}
-          <Card>
-            <CardContent className="p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <Plus className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium">Quick Add</span>
-              </div>
-              <AddLinkInput onSuccess={() => queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] })} />
-            </CardContent>
-          </Card>
+          {/* Quick Add + Search */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Card>
+              <CardContent className="p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Plus className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium">Quick Add</span>
+                </div>
+                <AddLinkInput onSuccess={() => queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] })} />
+              </CardContent>
+            </Card>
+            <Card className="hover:border-primary/30 transition-all">
+              <CardContent className="p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Search className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium">Search Library</span>
+                </div>
+                <SearchWidget />
+              </CardContent>
+            </Card>
+          </div>
         </section>
 
         {/* Stats Grid */}
