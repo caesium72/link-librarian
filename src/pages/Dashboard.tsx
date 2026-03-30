@@ -10,10 +10,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Progress } from "@/components/ui/progress";
 import {
-  Library, BookOpen, BookCheck, Clock, TrendingUp, Plus,
+  Library, BookOpen, BookCheck, Clock, TrendingUp, Plus, Search,
   ArrowRight, Sparkles, BarChart3, Brain, FolderOpen,
   Flame, Calendar, ExternalLink, Settings, Compass
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow, subDays, format, startOfDay } from "date-fns";
 import { useEffect, useRef, useState } from "react";
 import { LinksOverTimeChart, ContentTypePieChart, DayOfWeekRadar, ActivityHeatmap } from "@/components/dashboard/DashboardCharts";
