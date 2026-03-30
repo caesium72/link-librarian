@@ -178,16 +178,27 @@ export default function Dashboard() {
               </Button>
             </div>
           </div>
-          {/* Quick Add Link */}
-          <Card>
-            <CardContent className="p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <Plus className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium">Quick Add</span>
-              </div>
-              <AddLinkInput onSuccess={() => queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] })} />
-            </CardContent>
-          </Card>
+          {/* Quick Add + Search */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Card>
+              <CardContent className="p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Plus className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium">Quick Add</span>
+                </div>
+                <AddLinkInput onSuccess={() => queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] })} />
+              </CardContent>
+            </Card>
+            <Card className="hover:border-primary/30 transition-all">
+              <CardContent className="p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Search className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium">Search Library</span>
+                </div>
+                <SearchWidget />
+              </CardContent>
+            </Card>
+          </div>
         </section>
 
         {/* Stats Grid */}
