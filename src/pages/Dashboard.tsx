@@ -21,6 +21,33 @@ import { LinksOverTimeChart, ContentTypePieChart, DayOfWeekRadar, ActivityHeatma
 import { DiscoverCategoryChart, MiniDiscoverWidget, TrendingTopicsCloud } from "@/components/dashboard/DiscoverWidgets";
 import { AddLinkInput } from "@/components/AddLinkInput";
 
+function SearchWidget() {
+  const navigate = useNavigate();
+  const [query, setQuery] = useState("");
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (query.trim()) {
+      navigate(`/library?search=${encodeURIComponent(query.trim())}`);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSearch} className="flex gap-2">
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search your links..."
+        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      />
+      <Button type="submit" size="sm" disabled={!query.trim()} className="shrink-0">
+        <Search className="h-4 w-4" />
+      </Button>
+    </form>
+  );
+}
+
 export default function Dashboard() {
   const { user, signOut, loading: authLoading } = useRequireAuth();
   const queryClient = useQueryClient();
