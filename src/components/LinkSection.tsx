@@ -46,6 +46,8 @@ export function LinkSection({
   viewMode = "list",
   highlightedId,
   showNumbers,
+  onRetryAll,
+  retryAllLoading,
 }: LinkSectionProps) {
   if (links.length === 0) return null;
 
