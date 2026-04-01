@@ -246,6 +246,22 @@ const Index = () => {
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
+  const [retryAllLoading, setRetryAllLoading] = useState(false);
+  const handleRetryAll = useCallback(async () => {
+    const pendingLinks = (links || []).filter((l) => l.status === "pending");
+    if (pendingLinks.length === 0) return;
+    setRetryAllLoading(true);
+    try {
+      await Promise.all(pendingLinks.map((l) => retryAnalysis(l.id)));
+      queryClient.invalidateQueries({ queryKey: ["links"] });
+      toast({ title: "Retry queued", description: `Re-analyzing ${pendingLinks.length} pending link(s).` });
+    } catch (e: any) {
+      toast({ title: "Retry failed", description: e.message, variant: "destructive" });
+    } finally {
+      setRetryAllLoading(false);
+    }
+  }, [links, queryClient, toast]);
+
   const deleteMutation = useMutation({
     mutationFn: deleteLink,
     onSuccess: (_data, deletedId) => {
@@ -413,6 +429,7 @@ const Index = () => {
           handleRefresh={handleRefresh}
           pendingCount={pendingCount} readyCount={readyCount} failedCount={failedCount}
           showNumbers={showNumbers}
+          handleRetryAll={handleRetryAll} retryAllLoading={retryAllLoading}
         />
         <FailedLinkReviewDialog
           link={reviewLink}
@@ -581,7 +598,7 @@ const Index = () => {
                 return (
                   <>
                     <LinkSection status="ready" links={readyLinks} {...cardProps} indexOffset={0} />
-                    <LinkSection status="pending" links={pendingLinks} {...cardProps} indexOffset={readyLinks.length} />
+                    <LinkSection status="pending" links={pendingLinks} {...cardProps} indexOffset={readyLinks.length} onRetryAll={handleRetryAll} retryAllLoading={retryAllLoading} />
                     <LinkSection status="failed" links={failedLinks} {...cardProps} indexOffset={readyLinks.length + pendingLinks.length} />
                   </>
                 );
@@ -673,6 +690,7 @@ function MobileLayout(props: any) {
     showDeleteConfirm, setShowDeleteConfirm, showTagInput, setShowTagInput, tagInput, setTagInput,
     handleUpdate, retryMutation, deleteMutation, bulkDeleteMutation, bulkTagMutation,
     handleRefresh, pendingCount, readyCount, failedCount, showNumbers,
+    handleRetryAll, retryAllLoading,
   } = props;
 
   return (
@@ -920,7 +938,7 @@ function MobileLayout(props: any) {
               return (
                 <>
                   <LinkSection status="ready" links={readyLinks} {...cardProps} indexOffset={0} />
-                  <LinkSection status="pending" links={pendingLinks} {...cardProps} indexOffset={readyLinks.length} />
+                  <LinkSection status="pending" links={pendingLinks} {...cardProps} indexOffset={readyLinks.length} onRetryAll={handleRetryAll} retryAllLoading={retryAllLoading} />
                   <LinkSection status="failed" links={failedLinks} {...cardProps} indexOffset={readyLinks.length + pendingLinks.length} />
                 </>
               );

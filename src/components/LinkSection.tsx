@@ -1,7 +1,8 @@
 import { Link } from "@/types/links";
 import { LinkCard } from "@/components/LinkCard";
 import { LinkGridCard } from "@/components/LinkGridCard";
-import { Clock, CheckCircle2, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Clock, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
 
 const sectionConfig = {
   ready: { icon: CheckCircle2, label: "Ready", className: "text-primary" },
@@ -25,6 +26,8 @@ interface LinkSectionProps {
   viewMode?: "list" | "grid";
   highlightedId?: string | null;
   showNumbers?: boolean;
+  onRetryAll?: () => void;
+  retryAllLoading?: boolean;
 }
 
 export function LinkSection({
@@ -43,6 +46,8 @@ export function LinkSection({
   viewMode = "list",
   highlightedId,
   showNumbers,
+  onRetryAll,
+  retryAllLoading,
 }: LinkSectionProps) {
   if (links.length === 0) return null;
 
@@ -59,6 +64,18 @@ export function LinkSection({
         <span className="text-[10px] font-mono text-muted-foreground/60">
           ({links.length})
         </span>
+        {status === "pending" && onRetryAll && links.length > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onRetryAll}
+            disabled={retryAllLoading}
+            className="ml-auto h-6 px-2 text-[10px] font-mono gap-1 text-muted-foreground hover:text-primary"
+          >
+            <RefreshCw className={`h-3 w-3 ${retryAllLoading ? "animate-spin" : ""}`} />
+            {retryAllLoading ? "Retrying..." : "Retry All"}
+          </Button>
+        )}
       </div>
       {viewMode === "grid" ? (
         <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
