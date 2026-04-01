@@ -123,6 +123,8 @@ const Index = () => {
         sortBy,
       }),
     enabled: !!user,
+    staleTime: 5000,
+    refetchOnWindowFocus: false,
   });
 
   // Fetch collection link IDs for filtering
