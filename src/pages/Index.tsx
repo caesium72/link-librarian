@@ -613,7 +613,7 @@ const Index = () => {
                 return (
                   <>
                     <LinkSection status="ready" links={readyLinks} {...cardProps} indexOffset={0} />
-                    <LinkSection status="pending" links={pendingLinks} {...cardProps} indexOffset={readyLinks.length} onRetryAll={handleRetryAll} retryAllLoading={retryAllLoading} />
+                    <LinkSection status="pending" links={pendingLinks} {...cardProps} indexOffset={readyLinks.length} onRetryAll={handleRetryAll} retryAllLoading={retryAllLoading} retryProgress={retryProgress} />
                     <LinkSection status="failed" links={failedLinks} {...cardProps} indexOffset={readyLinks.length + pendingLinks.length} />
                   </>
                 );
