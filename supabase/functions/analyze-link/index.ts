@@ -198,8 +198,34 @@ Based on the URL, domain, title, and description, provide:
       });
     }
 
-    const aiData = await aiResponse.json();
+    const aiText = await aiResponse.text();
+    let aiData;
+    try {
+      aiData = JSON.parse(aiText);
+    } catch (e) {
+      console.error("Failed to parse AI response body:", aiText?.slice(0, 200));
+      await supabase
+        .from("links")
+        .update({ status: "failed", title: pageTitle || url, canonical_url: canonicalUrl, domain: finalDomain })
+        .eq("id", linkId);
+      return new Response(JSON.stringify({ error: "Empty or malformed AI response" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+    if (!toolCall?.function?.arguments) {
+      console.error("No tool call in AI response:", JSON.stringify(aiData).slice(0, 300));
+      await supabase
+        .from("links")
+        .update({ status: "failed", title: pageTitle || url, canonical_url: canonicalUrl, domain: finalDomain })
+        .eq("id", linkId);
+      return new Response(JSON.stringify({ error: "AI returned no analysis" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     let analysis;
     try {
