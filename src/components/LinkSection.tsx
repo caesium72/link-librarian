@@ -2,6 +2,7 @@ import { Link } from "@/types/links";
 import { LinkCard } from "@/components/LinkCard";
 import { LinkGridCard } from "@/components/LinkGridCard";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { Clock, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
 
 const sectionConfig = {
@@ -28,6 +29,7 @@ interface LinkSectionProps {
   showNumbers?: boolean;
   onRetryAll?: () => void;
   retryAllLoading?: boolean;
+  retryProgress?: { current: number; total: number };
 }
 
 export function LinkSection({

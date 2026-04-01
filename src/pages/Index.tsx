@@ -247,22 +247,23 @@ const Index = () => {
   });
 
   const [retryAllLoading, setRetryAllLoading] = useState(false);
+  const [retryProgress, setRetryProgress] = useState({ current: 0, total: 0 });
   const handleRetryAll = useCallback(async () => {
     const pendingLinks = (links || []).filter((l) => l.status === "pending");
     if (pendingLinks.length === 0) return;
     setRetryAllLoading(true);
+    setRetryProgress({ current: 0, total: pendingLinks.length });
     let succeeded = 0;
     try {
-      // Process sequentially with delay to avoid rate limiting
-      for (const link of pendingLinks) {
+      for (let i = 0; i < pendingLinks.length; i++) {
         try {
-          await retryAnalysis(link.id);
+          await retryAnalysis(pendingLinks[i].id);
           succeeded++;
         } catch {
           // continue with next link
         }
-        // Small delay between requests to avoid 429s
-        if (pendingLinks.indexOf(link) < pendingLinks.length - 1) {
+        setRetryProgress({ current: i + 1, total: pendingLinks.length });
+        if (i < pendingLinks.length - 1) {
           await new Promise(r => setTimeout(r, 2000));
         }
       }
@@ -272,6 +273,7 @@ const Index = () => {
       toast({ title: "Retry failed", description: e.message, variant: "destructive" });
     } finally {
       setRetryAllLoading(false);
+      setRetryProgress({ current: 0, total: 0 });
     }
   }, [links, queryClient, toast]);
 
