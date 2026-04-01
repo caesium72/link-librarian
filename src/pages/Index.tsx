@@ -246,6 +246,22 @@ const Index = () => {
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
+  const [retryAllLoading, setRetryAllLoading] = useState(false);
+  const handleRetryAll = useCallback(async () => {
+    const pendingLinks = (links || []).filter((l) => l.status === "pending");
+    if (pendingLinks.length === 0) return;
+    setRetryAllLoading(true);
+    try {
+      await Promise.all(pendingLinks.map((l) => retryAnalysis(l.id)));
+      queryClient.invalidateQueries({ queryKey: ["links"] });
+      toast({ title: "Retry queued", description: `Re-analyzing ${pendingLinks.length} pending link(s).` });
+    } catch (e: any) {
+      toast({ title: "Retry failed", description: e.message, variant: "destructive" });
+    } finally {
+      setRetryAllLoading(false);
+    }
+  }, [links, queryClient, toast]);
+
   const deleteMutation = useMutation({
     mutationFn: deleteLink,
     onSuccess: (_data, deletedId) => {
