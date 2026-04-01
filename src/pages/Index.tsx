@@ -251,10 +251,23 @@ const Index = () => {
     const pendingLinks = (links || []).filter((l) => l.status === "pending");
     if (pendingLinks.length === 0) return;
     setRetryAllLoading(true);
+    let succeeded = 0;
     try {
-      await Promise.all(pendingLinks.map((l) => retryAnalysis(l.id)));
+      // Process sequentially with delay to avoid rate limiting
+      for (const link of pendingLinks) {
+        try {
+          await retryAnalysis(link.id);
+          succeeded++;
+        } catch {
+          // continue with next link
+        }
+        // Small delay between requests to avoid 429s
+        if (pendingLinks.indexOf(link) < pendingLinks.length - 1) {
+          await new Promise(r => setTimeout(r, 2000));
+        }
+      }
       queryClient.invalidateQueries({ queryKey: ["links"] });
-      toast({ title: "Retry queued", description: `Re-analyzing ${pendingLinks.length} pending link(s).` });
+      toast({ title: "Retry complete", description: `Re-analyzed ${succeeded}/${pendingLinks.length} link(s).` });
     } catch (e: any) {
       toast({ title: "Retry failed", description: e.message, variant: "destructive" });
     } finally {
