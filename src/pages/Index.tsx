@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import logo from "@/assets/logo.png";
 import { useRequireAuth } from "@/hooks/useAuth";
@@ -123,6 +123,8 @@ const Index = () => {
         sortBy,
       }),
     enabled: !!user,
+    staleTime: 5000,
+    refetchOnWindowFocus: false,
   });
 
   // Fetch collection link IDs for filtering
@@ -133,7 +135,7 @@ const Index = () => {
   });
 
   // Filter links by collection, read status, and duplicates
-  const filteredLinks = (() => {
+  const filteredLinks = useMemo(() => {
     let result = selectedCollectionId && collectionLinkIds
       ? links.filter((l) => collectionLinkIds.includes(l.id))
       : links;
@@ -141,21 +143,29 @@ const Index = () => {
     if (readFilter === "read") result = result.filter((l) => (l as any).is_read);
     if (duplicateFilter) result = result.filter((l) => ((l as any).duplicate_count || 0) > 0);
     return result;
-  })();
+  }, [links, selectedCollectionId, collectionLinkIds, readFilter, duplicateFilter]);
 
   // Fetch deleted links count
   const { data: deletedLinks = [] } = useQuery({
     queryKey: ["deleted-links"],
     queryFn: fetchDeletedLinks,
     enabled: !!user,
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
   });
   const deletedCount = deletedLinks.length;
 
   // Compute stats
-  const pendingCount = filteredLinks.filter((l) => l.status === "pending").length;
-  const readyCount = filteredLinks.filter((l) => l.status === "ready").length;
-  const failedCount = filteredLinks.filter((l) => l.status === "failed").length;
-  const duplicateCount = links.reduce((sum, l) => sum + ((l as any).duplicate_count || 0), 0);
+  const { pendingCount, readyCount, failedCount, duplicateCount } = useMemo(() => {
+    let pending = 0, ready = 0, failed = 0, dupes = 0;
+    for (const l of filteredLinks) {
+      if (l.status === "pending") pending++;
+      else if (l.status === "ready") ready++;
+      else if (l.status === "failed") failed++;
+    }
+    for (const l of links) dupes += ((l as any).duplicate_count || 0);
+    return { pendingCount: pending, readyCount: ready, failedCount: failed, duplicateCount: dupes };
+  }, [filteredLinks, links]);
 
   // Handle stat card clicks
   const handleStatClick = useCallback((stat: string) => {
@@ -196,6 +206,16 @@ const Index = () => {
   const linkCountRef = useRef(links.length);
   useEffect(() => { linkCountRef.current = links.length; }, [links.length]);
 
+  // Debounced realtime: batch invalidations to avoid excessive re-fetches
+  const pendingInvalidateRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleInvalidate = useCallback(() => {
+    if (pendingInvalidateRef.current) return; // already scheduled
+    pendingInvalidateRef.current = setTimeout(() => {
+      pendingInvalidateRef.current = null;
+      queryClient.invalidateQueries({ queryKey: ["links"] });
+    }, 2000);
+  }, [queryClient]);
+
   useEffect(() => {
     if (!user) return;
     const channel = supabase
@@ -204,7 +224,7 @@ const Index = () => {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'links' },
         (payload) => {
-          queryClient.invalidateQueries({ queryKey: ["links"] });
+          scheduleInvalidate();
           const title = (payload.new as any)?.title || (payload.new as any)?.original_url || "New link";
           toast({ title: "📥 New link added", description: title });
         }
@@ -212,20 +232,19 @@ const Index = () => {
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'links' },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["links"] });
-        }
+        () => { scheduleInvalidate(); }
       )
       .on(
         'postgres_changes',
         { event: 'DELETE', schema: 'public', table: 'links' },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["links"] });
-        }
+        () => { scheduleInvalidate(); }
       )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [user, queryClient, toast]);
+    return () => {
+      supabase.removeChannel(channel);
+      if (pendingInvalidateRef.current) clearTimeout(pendingInvalidateRef.current);
+    };
+  }, [user, scheduleInvalidate, toast]);
 
   const updateMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<Link> }) => updateLink(id, updates),
