@@ -135,7 +135,7 @@ const Index = () => {
   });
 
   // Filter links by collection, read status, and duplicates
-  const filteredLinks = (() => {
+  const filteredLinks = useMemo(() => {
     let result = selectedCollectionId && collectionLinkIds
       ? links.filter((l) => collectionLinkIds.includes(l.id))
       : links;
@@ -143,21 +143,29 @@ const Index = () => {
     if (readFilter === "read") result = result.filter((l) => (l as any).is_read);
     if (duplicateFilter) result = result.filter((l) => ((l as any).duplicate_count || 0) > 0);
     return result;
-  })();
+  }, [links, selectedCollectionId, collectionLinkIds, readFilter, duplicateFilter]);
 
   // Fetch deleted links count
   const { data: deletedLinks = [] } = useQuery({
     queryKey: ["deleted-links"],
     queryFn: fetchDeletedLinks,
     enabled: !!user,
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
   });
   const deletedCount = deletedLinks.length;
 
   // Compute stats
-  const pendingCount = filteredLinks.filter((l) => l.status === "pending").length;
-  const readyCount = filteredLinks.filter((l) => l.status === "ready").length;
-  const failedCount = filteredLinks.filter((l) => l.status === "failed").length;
-  const duplicateCount = links.reduce((sum, l) => sum + ((l as any).duplicate_count || 0), 0);
+  const { pendingCount, readyCount, failedCount, duplicateCount } = useMemo(() => {
+    let pending = 0, ready = 0, failed = 0, dupes = 0;
+    for (const l of filteredLinks) {
+      if (l.status === "pending") pending++;
+      else if (l.status === "ready") ready++;
+      else if (l.status === "failed") failed++;
+    }
+    for (const l of links) dupes += ((l as any).duplicate_count || 0);
+    return { pendingCount: pending, readyCount: ready, failedCount: failed, duplicateCount: dupes };
+  }, [filteredLinks, links]);
 
   // Handle stat card clicks
   const handleStatClick = useCallback((stat: string) => {
