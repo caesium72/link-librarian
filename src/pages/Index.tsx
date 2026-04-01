@@ -206,6 +206,16 @@ const Index = () => {
   const linkCountRef = useRef(links.length);
   useEffect(() => { linkCountRef.current = links.length; }, [links.length]);
 
+  // Debounced realtime: batch invalidations to avoid excessive re-fetches
+  const pendingInvalidateRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleInvalidate = useCallback(() => {
+    if (pendingInvalidateRef.current) return; // already scheduled
+    pendingInvalidateRef.current = setTimeout(() => {
+      pendingInvalidateRef.current = null;
+      queryClient.invalidateQueries({ queryKey: ["links"] });
+    }, 2000);
+  }, [queryClient]);
+
   useEffect(() => {
     if (!user) return;
     const channel = supabase
@@ -214,7 +224,7 @@ const Index = () => {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'links' },
         (payload) => {
-          queryClient.invalidateQueries({ queryKey: ["links"] });
+          scheduleInvalidate();
           const title = (payload.new as any)?.title || (payload.new as any)?.original_url || "New link";
           toast({ title: "📥 New link added", description: title });
         }
@@ -222,20 +232,19 @@ const Index = () => {
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'links' },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["links"] });
-        }
+        () => { scheduleInvalidate(); }
       )
       .on(
         'postgres_changes',
         { event: 'DELETE', schema: 'public', table: 'links' },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["links"] });
-        }
+        () => { scheduleInvalidate(); }
       )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [user, queryClient, toast]);
+    return () => {
+      supabase.removeChannel(channel);
+      if (pendingInvalidateRef.current) clearTimeout(pendingInvalidateRef.current);
+    };
+  }, [user, scheduleInvalidate, toast]);
 
   const updateMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<Link> }) => updateLink(id, updates),
