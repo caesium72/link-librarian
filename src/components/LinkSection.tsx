@@ -64,6 +64,18 @@ export function LinkSection({
         <span className="text-[10px] font-mono text-muted-foreground/60">
           ({links.length})
         </span>
+        {status === "pending" && onRetryAll && links.length > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onRetryAll}
+            disabled={retryAllLoading}
+            className="ml-auto h-6 px-2 text-[10px] font-mono gap-1 text-muted-foreground hover:text-primary"
+          >
+            <RefreshCw className={`h-3 w-3 ${retryAllLoading ? "animate-spin" : ""}`} />
+            {retryAllLoading ? "Retrying..." : "Retry All"}
+          </Button>
+        )}
       </div>
       {viewMode === "grid" ? (
         <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
