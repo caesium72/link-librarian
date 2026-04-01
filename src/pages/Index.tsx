@@ -689,6 +689,7 @@ function MobileLayout(props: any) {
     showDeleteConfirm, setShowDeleteConfirm, showTagInput, setShowTagInput, tagInput, setTagInput,
     handleUpdate, retryMutation, deleteMutation, bulkDeleteMutation, bulkTagMutation,
     handleRefresh, pendingCount, readyCount, failedCount, showNumbers,
+    handleRetryAll, retryAllLoading,
   } = props;
 
   return (
