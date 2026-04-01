@@ -247,22 +247,23 @@ const Index = () => {
   });
 
   const [retryAllLoading, setRetryAllLoading] = useState(false);
+  const [retryProgress, setRetryProgress] = useState({ current: 0, total: 0 });
   const handleRetryAll = useCallback(async () => {
     const pendingLinks = (links || []).filter((l) => l.status === "pending");
     if (pendingLinks.length === 0) return;
     setRetryAllLoading(true);
+    setRetryProgress({ current: 0, total: pendingLinks.length });
     let succeeded = 0;
     try {
-      // Process sequentially with delay to avoid rate limiting
-      for (const link of pendingLinks) {
+      for (let i = 0; i < pendingLinks.length; i++) {
         try {
-          await retryAnalysis(link.id);
+          await retryAnalysis(pendingLinks[i].id);
           succeeded++;
         } catch {
           // continue with next link
         }
-        // Small delay between requests to avoid 429s
-        if (pendingLinks.indexOf(link) < pendingLinks.length - 1) {
+        setRetryProgress({ current: i + 1, total: pendingLinks.length });
+        if (i < pendingLinks.length - 1) {
           await new Promise(r => setTimeout(r, 2000));
         }
       }
@@ -272,6 +273,7 @@ const Index = () => {
       toast({ title: "Retry failed", description: e.message, variant: "destructive" });
     } finally {
       setRetryAllLoading(false);
+      setRetryProgress({ current: 0, total: 0 });
     }
   }, [links, queryClient, toast]);
 
@@ -442,7 +444,7 @@ const Index = () => {
           handleRefresh={handleRefresh}
           pendingCount={pendingCount} readyCount={readyCount} failedCount={failedCount}
           showNumbers={showNumbers}
-          handleRetryAll={handleRetryAll} retryAllLoading={retryAllLoading}
+          handleRetryAll={handleRetryAll} retryAllLoading={retryAllLoading} retryProgress={retryProgress}
         />
         <FailedLinkReviewDialog
           link={reviewLink}
@@ -611,7 +613,7 @@ const Index = () => {
                 return (
                   <>
                     <LinkSection status="ready" links={readyLinks} {...cardProps} indexOffset={0} />
-                    <LinkSection status="pending" links={pendingLinks} {...cardProps} indexOffset={readyLinks.length} onRetryAll={handleRetryAll} retryAllLoading={retryAllLoading} />
+                    <LinkSection status="pending" links={pendingLinks} {...cardProps} indexOffset={readyLinks.length} onRetryAll={handleRetryAll} retryAllLoading={retryAllLoading} retryProgress={retryProgress} />
                     <LinkSection status="failed" links={failedLinks} {...cardProps} indexOffset={readyLinks.length + pendingLinks.length} />
                   </>
                 );
@@ -703,7 +705,7 @@ function MobileLayout(props: any) {
     showDeleteConfirm, setShowDeleteConfirm, showTagInput, setShowTagInput, tagInput, setTagInput,
     handleUpdate, retryMutation, deleteMutation, bulkDeleteMutation, bulkTagMutation,
     handleRefresh, pendingCount, readyCount, failedCount, showNumbers,
-    handleRetryAll, retryAllLoading,
+    handleRetryAll, retryAllLoading, retryProgress,
   } = props;
 
   return (
@@ -951,7 +953,7 @@ function MobileLayout(props: any) {
               return (
                 <>
                   <LinkSection status="ready" links={readyLinks} {...cardProps} indexOffset={0} />
-                  <LinkSection status="pending" links={pendingLinks} {...cardProps} indexOffset={readyLinks.length} onRetryAll={handleRetryAll} retryAllLoading={retryAllLoading} />
+                  <LinkSection status="pending" links={pendingLinks} {...cardProps} indexOffset={readyLinks.length} onRetryAll={handleRetryAll} retryAllLoading={retryAllLoading} retryProgress={retryProgress} />
                   <LinkSection status="failed" links={failedLinks} {...cardProps} indexOffset={readyLinks.length + pendingLinks.length} />
                 </>
               );

@@ -2,6 +2,7 @@ import { Link } from "@/types/links";
 import { LinkCard } from "@/components/LinkCard";
 import { LinkGridCard } from "@/components/LinkGridCard";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { Clock, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
 
 const sectionConfig = {
@@ -28,6 +29,7 @@ interface LinkSectionProps {
   showNumbers?: boolean;
   onRetryAll?: () => void;
   retryAllLoading?: boolean;
+  retryProgress?: { current: number; total: number };
 }
 
 export function LinkSection({
@@ -48,11 +50,15 @@ export function LinkSection({
   showNumbers,
   onRetryAll,
   retryAllLoading,
+  retryProgress,
 }: LinkSectionProps) {
   if (links.length === 0) return null;
 
   const config = sectionConfig[status as keyof typeof sectionConfig] || sectionConfig.ready;
   const Icon = config.icon;
+  const progressPercent = retryProgress && retryProgress.total > 0
+    ? Math.round((retryProgress.current / retryProgress.total) * 100)
+    : 0;
 
   return (
     <div className="space-y-2">
@@ -65,16 +71,26 @@ export function LinkSection({
           ({links.length})
         </span>
         {status === "pending" && onRetryAll && links.length > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onRetryAll}
-            disabled={retryAllLoading}
-            className="ml-auto h-6 px-2 text-[10px] font-mono gap-1 text-muted-foreground hover:text-primary"
-          >
-            <RefreshCw className={`h-3 w-3 ${retryAllLoading ? "animate-spin" : ""}`} />
-            {retryAllLoading ? "Retrying..." : "Retry All"}
-          </Button>
+          <div className="ml-auto flex items-center gap-2">
+            {retryAllLoading && retryProgress && retryProgress.total > 0 && (
+              <div className="flex items-center gap-2 min-w-[140px]">
+                <Progress value={progressPercent} className="h-1.5 flex-1" />
+                <span className="text-[10px] font-mono text-muted-foreground whitespace-nowrap">
+                  {retryProgress.current}/{retryProgress.total}
+                </span>
+              </div>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onRetryAll}
+              disabled={retryAllLoading}
+              className="h-6 px-2 text-[10px] font-mono gap-1 text-muted-foreground hover:text-primary"
+            >
+              <RefreshCw className={`h-3 w-3 ${retryAllLoading ? "animate-spin" : ""}`} />
+              {retryAllLoading ? "Retrying..." : "Retry All"}
+            </Button>
+          </div>
         )}
       </div>
       {viewMode === "grid" ? (
