@@ -444,7 +444,7 @@ const Index = () => {
           handleRefresh={handleRefresh}
           pendingCount={pendingCount} readyCount={readyCount} failedCount={failedCount}
           showNumbers={showNumbers}
-          handleRetryAll={handleRetryAll} retryAllLoading={retryAllLoading}
+          handleRetryAll={handleRetryAll} retryAllLoading={retryAllLoading} retryProgress={retryProgress}
         />
         <FailedLinkReviewDialog
           link={reviewLink}
