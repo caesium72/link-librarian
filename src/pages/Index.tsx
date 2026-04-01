@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import logo from "@/assets/logo.png";
 import { useRequireAuth } from "@/hooks/useAuth";
