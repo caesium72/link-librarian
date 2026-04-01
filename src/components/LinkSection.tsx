@@ -26,6 +26,8 @@ interface LinkSectionProps {
   viewMode?: "list" | "grid";
   highlightedId?: string | null;
   showNumbers?: boolean;
+  onRetryAll?: () => void;
+  retryAllLoading?: boolean;
 }
 
 export function LinkSection({
