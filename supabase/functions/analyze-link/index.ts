@@ -170,10 +170,10 @@ Based on the URL, domain, title, and description, provide:
         },
         body: aiBody,
       });
-      if (aiResponse.status !== 429) break;
-      const wait = Math.pow(2, attempt) * 2000; // 2s, 4s, 8s, 16s
-      console.log(`Rate limited, retrying in ${wait}ms (attempt ${attempt + 1}/4)`);
-      await new Response(await aiResponse.text()).text(); // consume body
+      if (aiResponse.status !== 429 && aiResponse.status !== 502 && aiResponse.status !== 503) break;
+      const wait = Math.pow(2, attempt) * 2000;
+      console.log(`Retryable error ${aiResponse.status}, retrying in ${wait}ms (attempt ${attempt + 1}/4)`);
+      await aiResponse.text(); // consume body
       await new Promise(r => setTimeout(r, wait));
     }
 
