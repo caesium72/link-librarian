@@ -20,6 +20,8 @@ import { useEffect, useRef, useState } from "react";
 import { LinksOverTimeChart, ContentTypePieChart, DayOfWeekRadar, ActivityHeatmap } from "@/components/dashboard/DashboardCharts";
 import { DiscoverCategoryChart, MiniDiscoverWidget, TrendingTopicsCloud } from "@/components/dashboard/DiscoverWidgets";
 import { AddLinkInput } from "@/components/AddLinkInput";
+import { PendingAnalysisWidget } from "@/components/dashboard/PendingAnalysisWidget";
+import { retryAnalysis } from "@/lib/api/links";
 
 function SearchWidget() {
   const navigate = useNavigate();
