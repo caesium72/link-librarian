@@ -20,6 +20,8 @@ import { useEffect, useRef, useState } from "react";
 import { LinksOverTimeChart, ContentTypePieChart, DayOfWeekRadar, ActivityHeatmap } from "@/components/dashboard/DashboardCharts";
 import { DiscoverCategoryChart, MiniDiscoverWidget, TrendingTopicsCloud } from "@/components/dashboard/DiscoverWidgets";
 import { AddLinkInput } from "@/components/AddLinkInput";
+import { PendingAnalysisWidget } from "@/components/dashboard/PendingAnalysisWidget";
+import { retryAnalysis } from "@/lib/api/links";
 
 function SearchWidget() {
   const navigate = useNavigate();
@@ -129,6 +131,28 @@ export default function Dashboard() {
     enabled: !!user,
     staleTime: 60_000,
   });
+
+  const { data: pendingLinks = [], isLoading: pendingLoading } = useQuery({
+    queryKey: ["dashboard-pending"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("links")
+        .select("id, title, original_url, domain, created_at, status")
+        .is("deleted_at", null)
+        .in("status", ["pending", "failed"])
+        .order("created_at", { ascending: false })
+        .limit(20);
+      return data || [];
+    },
+    enabled: !!user,
+    staleTime: 10_000,
+    refetchInterval: 15_000,
+  });
+
+  const handleRetryFromDashboard = async (id: string) => {
+    await retryAnalysis(id);
+    queryClient.invalidateQueries({ queryKey: ["dashboard-pending"] });
+  };
 
   const { data: chartLinks = [] } = useQuery({
     queryKey: ["dashboard-chart-links"],
@@ -261,6 +285,13 @@ export default function Dashboard() {
             </Card>
           </RouterLink>
         )}
+
+        {/* Pending Analysis 3D Widget */}
+        <PendingAnalysisWidget
+          pendingLinks={pendingLinks}
+          isLoading={pendingLoading}
+          onRetry={handleRetryFromDashboard}
+        />
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Recent Activity */}
