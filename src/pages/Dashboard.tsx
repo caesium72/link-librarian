@@ -132,6 +132,28 @@ export default function Dashboard() {
     staleTime: 60_000,
   });
 
+  const { data: pendingLinks = [], isLoading: pendingLoading } = useQuery({
+    queryKey: ["dashboard-pending"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("links")
+        .select("id, title, original_url, domain, created_at, status")
+        .is("deleted_at", null)
+        .in("status", ["pending", "failed"])
+        .order("created_at", { ascending: false })
+        .limit(20);
+      return data || [];
+    },
+    enabled: !!user,
+    staleTime: 10_000,
+    refetchInterval: 15_000,
+  });
+
+  const handleRetryFromDashboard = async (id: string) => {
+    await retryAnalysis(id);
+    queryClient.invalidateQueries({ queryKey: ["dashboard-pending"] });
+  };
+
   const { data: chartLinks = [] } = useQuery({
     queryKey: ["dashboard-chart-links"],
     queryFn: async () => {
