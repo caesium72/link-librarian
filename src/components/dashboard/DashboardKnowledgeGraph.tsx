@@ -116,22 +116,22 @@ function TagNode({ node, maxCount }: { node: GraphNode; maxCount: number }) {
 function EdgeLine({ edge, nodes }: { edge: GraphEdge; nodes: GraphNode[] }) {
   const src = nodes.find(n => n.id === edge.source);
   const tgt = nodes.find(n => n.id === edge.target);
-  if (!src || !tgt) return null;
 
-  const points = useMemo(() => [
-    new THREE.Vector3(...src.position),
-    new THREE.Vector3(...tgt.position),
-  ], [src.position, tgt.position]);
-
-  const geometry = useMemo(() => new THREE.BufferGeometry().setFromPoints(points), [points]);
-
-  return (
-    <primitive object={new THREE.Line(geometry, new THREE.LineBasicMaterial({
+  const lineObj = useMemo(() => {
+    if (!src || !tgt) return null;
+    const points = [new THREE.Vector3(...src.position), new THREE.Vector3(...tgt.position)];
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const material = new THREE.LineBasicMaterial({
       color: new THREE.Color("hsl(220, 60%, 50%)"),
       transparent: true,
       opacity: Math.min(0.15 + edge.weight * 0.05, 0.5),
-    }))} />
-  );
+    });
+    return new THREE.Line(geometry, material);
+  }, [src, tgt, edge.weight]);
+
+  if (!lineObj) return null;
+
+  return <primitive object={lineObj} />;
 }
 
 function GraphCore() {
