@@ -21,6 +21,8 @@ import { LinksOverTimeChart, ContentTypePieChart, DayOfWeekRadar, ActivityHeatma
 import { DiscoverCategoryChart, MiniDiscoverWidget, TrendingTopicsCloud } from "@/components/dashboard/DiscoverWidgets";
 import { AddLinkInput } from "@/components/AddLinkInput";
 import { PendingAnalysisWidget } from "@/components/dashboard/PendingAnalysisWidget";
+import { DashboardKnowledgeGraph } from "@/components/dashboard/DashboardKnowledgeGraph";
+import { Dashboard3DHero } from "@/components/dashboard/Dashboard3DHero";
 import { retryAnalysis } from "@/lib/api/links";
 
 function SearchWidget() {
@@ -206,6 +208,9 @@ export default function Dashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+        {/* 3D Hero Banner */}
+        <Dashboard3DHero />
+
         {/* Greeting + Quick Actions */}
         <section className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
@@ -292,6 +297,9 @@ export default function Dashboard() {
           isLoading={pendingLoading}
           onRetry={handleRetryFromDashboard}
         />
+
+        {/* 3D Knowledge Graph */}
+        <DashboardKnowledgeGraph links={chartLinks} />
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Recent Activity */}
