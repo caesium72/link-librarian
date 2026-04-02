@@ -286,6 +286,13 @@ export default function Dashboard() {
           </RouterLink>
         )}
 
+        {/* Pending Analysis 3D Widget */}
+        <PendingAnalysisWidget
+          pendingLinks={pendingLinks}
+          isLoading={pendingLoading}
+          onRetry={handleRetryFromDashboard}
+        />
+
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Recent Activity */}
           <Card className="lg:col-span-2">
