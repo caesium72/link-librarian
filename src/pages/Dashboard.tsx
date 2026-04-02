@@ -298,6 +298,9 @@ export default function Dashboard() {
           onRetry={handleRetryFromDashboard}
         />
 
+        {/* 3D Knowledge Graph */}
+        <DashboardKnowledgeGraph links={chartLinks} />
+
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Recent Activity */}
           <Card className="lg:col-span-2">
