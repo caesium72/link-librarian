@@ -3240,10 +3240,18 @@ interface KnowledgeGraph3DProps {
   links: Link[];
   isLoading: boolean;
   theme?: "cosmos" | "atomic" | "sphere" | "ocean" | "galaxy";
+  initialSelectedTag?: string | null;
 }
 
-export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos" }: KnowledgeGraph3DProps) {
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+export function KnowledgeGraph3D({ links, isLoading, theme = "cosmos", initialSelectedTag = null }: KnowledgeGraph3DProps) {
+  const [selectedTag, setSelectedTag] = useState<string | null>(initialSelectedTag);
+
+  // Sync initialSelectedTag when it changes (e.g. navigation from dashboard)
+  const prevInitialTag = useRef(initialSelectedTag);
+  if (initialSelectedTag !== prevInitialTag.current) {
+    prevInitialTag.current = initialSelectedTag;
+    if (initialSelectedTag) setSelectedTag(initialSelectedTag);
+  }
   const [hoveredTag, setHoveredTag] = useState<string | null>(null);
   const [moonPreview, setMoonPreview] = useState<{ nodeId: string; moonIdx: number } | null>(null);
 
