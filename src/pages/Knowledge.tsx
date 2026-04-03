@@ -39,7 +39,7 @@ export default function Knowledge() {
     if (tagFromUrl) setActiveTab("graph");
   }, [tagFromUrl]);
   const [graphMode, setGraphMode] = useState<"3d" | "2d">("3d");
-  const [graph3DTheme, setGraph3DTheme] = useState<"cosmos" | "atomic" | "sphere" | "ocean" | "galaxy">("cosmos");
+  const [graph3DTheme, setGraph3DTheme] = useState<"cosmos" | "atomic" | "sphere" | "ocean" | "galaxy">(tagFromUrl ? "atomic" : "cosmos");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [displayMode, setDisplayMode] = useState<"3d" | "2d">("3d");
@@ -925,7 +925,7 @@ export default function Knowledge() {
                 }}
               >
                 {displayMode === "3d" ? (
-                  <KnowledgeGraph3D links={allLinks} isLoading={allLinksLoading} theme={graph3DTheme} />
+                  <KnowledgeGraph3D links={allLinks} isLoading={allLinksLoading} theme={graph3DTheme} initialSelectedTag={tagFromUrl} />
                 ) : (
                   <KnowledgeGraph links={allLinks} isLoading={allLinksLoading} />
                 )}
