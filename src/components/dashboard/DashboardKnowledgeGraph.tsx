@@ -298,18 +298,25 @@ export function DashboardKnowledgeGraph({ links }: { links: Link[] }) {
           <RouterLink to="/knowledge" className="text-xs gap-1">
             Full graph <ArrowRight className="h-3 w-3" />
           </RouterLink>
-          </RouterLink>
         </Button>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="h-64 w-full">
+        <div className="h-64 w-full cursor-pointer">
           <Canvas camera={{ position: [0, 2, 5], fov: 45 }}>
-            <GraphScene links={links} />
+            <GraphScene links={links} onNodeClick={handleNodeClick} />
           </Canvas>
+        </div>
+        <div className="px-4 pb-1 text-[10px] text-muted-foreground text-center italic">
+          Click a node to explore that topic
         </div>
         <div className="px-4 pb-3 flex flex-wrap gap-1">
           {nodes.slice(0, 8).map(node => (
-            <Badge key={node.id} variant="outline" className="text-[9px] gap-1">
+            <Badge
+              key={node.id}
+              variant="outline"
+              className="text-[9px] gap-1 cursor-pointer hover:bg-primary/10 transition-colors"
+              onClick={() => handleNodeClick(node.id)}
+            >
               <div
                 className="h-1.5 w-1.5 rounded-full"
                 style={{ backgroundColor: PALETTE[node.colorIndex % PALETTE.length] }}
