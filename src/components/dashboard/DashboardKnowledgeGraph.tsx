@@ -1,11 +1,11 @@
-import { useRef, useMemo, useState } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { useRef, useMemo, useState, useCallback } from "react";
+import { Canvas, useFrame, ThreeEvent } from "@react-three/fiber";
 import { Float, MeshDistortMaterial, Text } from "@react-three/drei";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Network } from "lucide-react";
-import { Link as RouterLink } from "react-router-dom";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 import * as THREE from "three";
 
 interface Link {
@@ -79,8 +79,9 @@ function buildMiniGraph(links: Link[]): { nodes: GraphNode[]; edges: GraphEdge[]
   return { nodes, edges };
 }
 
-function TagNode({ node, maxCount }: { node: GraphNode; maxCount: number }) {
+function TagNode({ node, maxCount, onClick }: { node: GraphNode; maxCount: number; onClick?: (tag: string) => void }) {
   const meshRef = useRef<THREE.Mesh>(null!);
+  const [hovered, setHovered] = useState(false);
   const scale = 0.15 + (node.count / maxCount) * 0.25;
   const color = new THREE.Color(PALETTE[node.colorIndex % PALETTE.length]);
 
@@ -91,24 +92,54 @@ function TagNode({ node, maxCount }: { node: GraphNode; maxCount: number }) {
     meshRef.current.position.x = node.position[0] + Math.sin(t * 0.5 + idx) * 0.1;
     meshRef.current.position.y = node.position[1] + Math.sin(t * 0.7 + idx * 1.3) * 0.15;
     meshRef.current.position.z = node.position[2] + Math.cos(t * 0.4 + idx) * 0.1;
+    const targetScale = hovered ? 1.4 : 1;
+    meshRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.1);
   });
 
   return (
     <group>
-      <mesh ref={meshRef} position={node.position}>
+      <mesh
+        ref={meshRef}
+        position={node.position}
+        onClick={(e: ThreeEvent<MouseEvent>) => {
+          e.stopPropagation();
+          onClick?.(node.id);
+        }}
+        onPointerOver={() => {
+          setHovered(true);
+          document.body.style.cursor = "pointer";
+        }}
+        onPointerOut={() => {
+          setHovered(false);
+          document.body.style.cursor = "auto";
+        }}
+      >
         <sphereGeometry args={[scale, 24, 24]} />
         <MeshDistortMaterial
           color={color}
           emissive={color}
-          emissiveIntensity={0.5}
+          emissiveIntensity={hovered ? 0.9 : 0.5}
           roughness={0.2}
           metalness={0.7}
-          distort={0.2}
+          distort={hovered ? 0.35 : 0.2}
           speed={1.5}
           transparent
           opacity={0.9}
         />
       </mesh>
+      {hovered && (
+        <Text
+          position={[node.position[0], node.position[1] + scale + 0.25, node.position[2]]}
+          fontSize={0.15}
+          color="white"
+          anchorX="center"
+          anchorY="bottom"
+          outlineWidth={0.01}
+          outlineColor="black"
+        >
+          {node.label}
+        </Text>
+      )}
     </group>
   );
 }
@@ -199,7 +230,7 @@ function FloatingParticles({ count }: { count: number }) {
   );
 }
 
-function GraphScene({ links }: { links: Link[] }) {
+function GraphScene({ links, onNodeClick }: { links: Link[]; onNodeClick?: (tag: string) => void }) {
   const { nodes, edges } = useMemo(() => buildMiniGraph(links), [links]);
   const maxCount = Math.max(1, ...nodes.map(n => n.count));
 
@@ -225,7 +256,7 @@ function GraphScene({ links }: { links: Link[] }) {
           <EdgeLine key={i} edge={edge} nodes={nodes} />
         ))}
         {nodes.map(node => (
-          <TagNode key={node.id} node={node} maxCount={maxCount} />
+          <TagNode key={node.id} node={node} maxCount={maxCount} onClick={onNodeClick} />
         ))}
       </group>
     </>
@@ -234,6 +265,11 @@ function GraphScene({ links }: { links: Link[] }) {
 
 export function DashboardKnowledgeGraph({ links }: { links: Link[] }) {
   const { nodes } = useMemo(() => buildMiniGraph(links), [links]);
+  const navigate = useNavigate();
+
+  const handleNodeClick = useCallback((tag: string) => {
+    navigate(`/knowledge?tag=${encodeURIComponent(tag)}`);
+  }, [navigate]);
 
   if (nodes.length < 2) {
     return (
@@ -265,14 +301,22 @@ export function DashboardKnowledgeGraph({ links }: { links: Link[] }) {
         </Button>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="h-64 w-full">
+        <div className="h-64 w-full cursor-pointer">
           <Canvas camera={{ position: [0, 2, 5], fov: 45 }}>
-            <GraphScene links={links} />
+            <GraphScene links={links} onNodeClick={handleNodeClick} />
           </Canvas>
+        </div>
+        <div className="px-4 pb-1 text-[10px] text-muted-foreground text-center italic">
+          Click a node to explore that topic
         </div>
         <div className="px-4 pb-3 flex flex-wrap gap-1">
           {nodes.slice(0, 8).map(node => (
-            <Badge key={node.id} variant="outline" className="text-[9px] gap-1">
+            <Badge
+              key={node.id}
+              variant="outline"
+              className="text-[9px] gap-1 cursor-pointer hover:bg-primary/10 transition-colors"
+              onClick={() => handleNodeClick(node.id)}
+            >
               <div
                 className="h-1.5 w-1.5 rounded-full"
                 style={{ backgroundColor: PALETTE[node.colorIndex % PALETTE.length] }}

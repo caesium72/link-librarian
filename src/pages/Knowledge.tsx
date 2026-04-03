@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Link as RouterLink } from "react-router-dom";
+import { Link as RouterLink, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import logo from "@/assets/logo.png";
 import { useRequireAuth } from "@/hooks/useAuth";
@@ -31,7 +31,13 @@ interface RecommendedLink extends Link {
 export default function Knowledge() {
   const { loading: authLoading } = useRequireAuth();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("trending");
+  const [searchParams] = useSearchParams();
+  const tagFromUrl = searchParams.get("tag");
+  const [activeTab, setActiveTab] = useState(tagFromUrl ? "graph" : "trending");
+
+  useEffect(() => {
+    if (tagFromUrl) setActiveTab("graph");
+  }, [tagFromUrl]);
   const [graphMode, setGraphMode] = useState<"3d" | "2d">("3d");
   const [graph3DTheme, setGraph3DTheme] = useState<"cosmos" | "atomic" | "sphere" | "ocean" | "galaxy">("cosmos");
   const [isFullscreen, setIsFullscreen] = useState(false);
