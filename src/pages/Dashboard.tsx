@@ -297,8 +297,7 @@ export default function Dashboard() {
           onRetry={handleRetryFromDashboard}
         />
 
-        {/* 3D Knowledge Graph */}
-        <DashboardKnowledgeGraph links={chartLinks} />
+        {/* Pending Analysis 3D Widget */}
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Recent Activity */}
