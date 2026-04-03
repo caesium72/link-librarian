@@ -265,6 +265,11 @@ function GraphScene({ links, onNodeClick }: { links: Link[]; onNodeClick?: (tag:
 
 export function DashboardKnowledgeGraph({ links }: { links: Link[] }) {
   const { nodes } = useMemo(() => buildMiniGraph(links), [links]);
+  const navigate = useNavigate();
+
+  const handleNodeClick = useCallback((tag: string) => {
+    navigate(`/knowledge?tag=${encodeURIComponent(tag)}`);
+  }, [navigate]);
 
   if (nodes.length < 2) {
     return (
@@ -292,6 +297,7 @@ export function DashboardKnowledgeGraph({ links }: { links: Link[] }) {
         <Button variant="ghost" size="sm" asChild>
           <RouterLink to="/knowledge" className="text-xs gap-1">
             Full graph <ArrowRight className="h-3 w-3" />
+          </RouterLink>
           </RouterLink>
         </Button>
       </CardHeader>
