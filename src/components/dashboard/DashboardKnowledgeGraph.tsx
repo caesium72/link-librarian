@@ -230,7 +230,7 @@ function FloatingParticles({ count }: { count: number }) {
   );
 }
 
-function GraphScene({ links }: { links: Link[] }) {
+function GraphScene({ links, onNodeClick }: { links: Link[]; onNodeClick?: (tag: string) => void }) {
   const { nodes, edges } = useMemo(() => buildMiniGraph(links), [links]);
   const maxCount = Math.max(1, ...nodes.map(n => n.count));
 
@@ -256,7 +256,7 @@ function GraphScene({ links }: { links: Link[] }) {
           <EdgeLine key={i} edge={edge} nodes={nodes} />
         ))}
         {nodes.map(node => (
-          <TagNode key={node.id} node={node} maxCount={maxCount} />
+          <TagNode key={node.id} node={node} maxCount={maxCount} onClick={onNodeClick} />
         ))}
       </group>
     </>
