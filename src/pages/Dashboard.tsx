@@ -21,8 +21,7 @@ import { LinksOverTimeChart, ContentTypePieChart, DayOfWeekRadar, ActivityHeatma
 import { DiscoverCategoryChart, MiniDiscoverWidget, TrendingTopicsCloud } from "@/components/dashboard/DiscoverWidgets";
 import { AddLinkInput } from "@/components/AddLinkInput";
 import { PendingAnalysisWidget } from "@/components/dashboard/PendingAnalysisWidget";
-import { DashboardKnowledgeGraph } from "@/components/dashboard/DashboardKnowledgeGraph";
-import { Dashboard3DHero } from "@/components/dashboard/Dashboard3DHero";
+import { DashboardCosmosGraph } from "@/components/dashboard/DashboardCosmosGraph";
 import { retryAnalysis } from "@/lib/api/links";
 
 function SearchWidget() {
