@@ -79,8 +79,9 @@ function buildMiniGraph(links: Link[]): { nodes: GraphNode[]; edges: GraphEdge[]
   return { nodes, edges };
 }
 
-function TagNode({ node, maxCount }: { node: GraphNode; maxCount: number }) {
+function TagNode({ node, maxCount, onClick }: { node: GraphNode; maxCount: number; onClick?: (tag: string) => void }) {
   const meshRef = useRef<THREE.Mesh>(null!);
+  const [hovered, setHovered] = useState(false);
   const scale = 0.15 + (node.count / maxCount) * 0.25;
   const color = new THREE.Color(PALETTE[node.colorIndex % PALETTE.length]);
 
@@ -91,24 +92,54 @@ function TagNode({ node, maxCount }: { node: GraphNode; maxCount: number }) {
     meshRef.current.position.x = node.position[0] + Math.sin(t * 0.5 + idx) * 0.1;
     meshRef.current.position.y = node.position[1] + Math.sin(t * 0.7 + idx * 1.3) * 0.15;
     meshRef.current.position.z = node.position[2] + Math.cos(t * 0.4 + idx) * 0.1;
+    const targetScale = hovered ? 1.4 : 1;
+    meshRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.1);
   });
 
   return (
     <group>
-      <mesh ref={meshRef} position={node.position}>
+      <mesh
+        ref={meshRef}
+        position={node.position}
+        onClick={(e: ThreeEvent<MouseEvent>) => {
+          e.stopPropagation();
+          onClick?.(node.id);
+        }}
+        onPointerOver={() => {
+          setHovered(true);
+          document.body.style.cursor = "pointer";
+        }}
+        onPointerOut={() => {
+          setHovered(false);
+          document.body.style.cursor = "auto";
+        }}
+      >
         <sphereGeometry args={[scale, 24, 24]} />
         <MeshDistortMaterial
           color={color}
           emissive={color}
-          emissiveIntensity={0.5}
+          emissiveIntensity={hovered ? 0.9 : 0.5}
           roughness={0.2}
           metalness={0.7}
-          distort={0.2}
+          distort={hovered ? 0.35 : 0.2}
           speed={1.5}
           transparent
           opacity={0.9}
         />
       </mesh>
+      {hovered && (
+        <Text
+          position={[node.position[0], node.position[1] + scale + 0.25, node.position[2]]}
+          fontSize={0.15}
+          color="white"
+          anchorX="center"
+          anchorY="bottom"
+          outlineWidth={0.01}
+          outlineColor="black"
+        >
+          {node.label}
+        </Text>
+      )}
     </group>
   );
 }
